@@ -88,8 +88,12 @@ the compatible pinned baseline. Other OS/architectures and hosted CI are unverif
 
 ## Handoff
 
-Implementation commit and PR will be recorded in the follow-up handoff commit after
-publication. SharePoint tenant runtime, stylesheet isolation
+Implementation commit: [`dc8346f`](https://github.com/VigilanteWang/graphpermlist/commit/dc8346f1f634366fbb179a575fc04bd05cdf7eea).
+Stage PR: [#7](https://github.com/VigilanteWang/graphpermlist/pull/7), base main,
+head codex/phase-1-foundation. Code and local checks are ready for review; the PR is
+transitioned out of Draft after the final handoff push is verified. No merge is authorized.
+This follow-up commit records publication and handoff only; validation evidence above
+covers the implementation commit. Consult the live PR for its current review state. SharePoint tenant runtime, stylesheet isolation
 in a real page and narrow-container acceptance are explicitly not verified in this stage.
 No SharePoint test deployment has been authorized.
 
