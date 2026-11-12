@@ -1,0 +1,21 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "graph-permissions-explorer-client-side-solution",
+    "id": "6b548792-d67e-40d6-8bea-9050d4a80656",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "Graph Permissions Explorer contributors",
+      "websiteUrl": "https://github.com/VigilanteWang/graphpermlist",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.0.0"
+    }
+  },
+  "paths": {
+    "zippedPackage": "solution/graph-permissions-explorer.sppkg"
+  }
+}

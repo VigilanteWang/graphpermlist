@@ -1,0 +1,62 @@
+{
+  "id": "125b85bf-862e-4c47-b499-c56fc875169c",
+  "alias": "PermissionsExplorerWebPart",
+  "componentType": "WebPart",
+  "version": "0.1.0",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": [
+    "SharePointWebPart"
+  ],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": {
+        "default": "Other"
+      },
+      "title": {
+        "default": "Graph Permissions Explorer"
+      },
+      "description": {
+        "default": "Read-only local Microsoft Graph permissions catalog"
+      },
+      "officeFabricIconFontName": "Permissions",
+      "properties": {
+        "apiBaseUrl": "http://localhost:3000/api/v1"
+      }
+    }
+  ],
+  "loaderConfig": {
+    "internalModuleBaseUrls": [
+      "https://localhost:4321/dist/"
+    ],
+    "entryModuleId": "permissions-explorer-web-part",
+    "scriptResources": {
+      "permissions-explorer-web-part": {
+        "type": "path",
+        "path": "permissions-explorer-web-part_7637ccdf1d1e3e9404cd.js"
+      },
+      "react": {
+        "type": "component",
+        "id": "0d910c1c-13b9-4e1c-9aa4-b008c5e42d7d",
+        "version": "18.3.1"
+      },
+      "react-dom/client": {
+        "type": "component",
+        "id": "3cadd7f5-5449-49c4-a153-1beb8facd90a",
+        "version": "18.3.1"
+      },
+      "@microsoft/sp-webpart-base": {
+        "type": "component",
+        "id": "974a7777-0990-4136-8fa6-95d80114c2e0",
+        "version": "1.24.1"
+      },
+      "@microsoft/sp-property-pane": {
+        "type": "component",
+        "id": "f9e737b7-f0df-4597-ba8c-3060f82380db",
+        "version": "1.24.1"
+      }
+    }
+  }
+}

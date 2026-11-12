@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "125b85bf-862e-4c47-b499-c56fc875169c",
+  "alias": "PermissionsExplorerWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": [
+    "SharePointWebPart"
+  ],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": {
+        "default": "Other"
+      },
+      "title": {
+        "default": "Graph Permissions Explorer"
+      },
+      "description": {
+        "default": "Read-only local Microsoft Graph permissions catalog"
+      },
+      "officeFabricIconFontName": "Permissions",
+      "properties": {
+        "apiBaseUrl": "http://localhost:3000/api/v1"
+      }
+    }
+  ]
+}

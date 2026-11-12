@@ -1,0 +1,21 @@
+node_modules/
+dist/
+lib/
+lib-commonjs/
+lib-esm/
+temp/
+release/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+*.sppkg
+*.sqlite*
+.env
+.env.local
+.DS_Store
+# Preserve the user-provided export locally; only the sanitized data/ input is versioned.
+/commercial-graph-permlist.json
+lib-dts/
+jest-output/
+/apps/spfx/sharepoint/solution/
