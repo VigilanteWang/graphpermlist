@@ -31,4 +31,6 @@ use GPT-6.1 Sol / high for the main conversation and GPT-6.1 Sol / low or medium
 for execution subagents where supported. Verify overrides or report limitations; do not
 change global agent settings.
 Update the plan with actual commands, results, limitations and handoff before stopping.
+At every stage completion, comment an actionable human-review checklist on that stage
+issue and record it in the plan; include steps, expected results and unverified scope.
 SPFx package build success is not proof of runtime acceptance in SharePoint.

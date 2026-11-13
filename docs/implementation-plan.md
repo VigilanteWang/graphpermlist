@@ -15,6 +15,27 @@ Initial checkout had only LICENSE at `475693b`; no existing plan/AGENTS or PR.
 The untracked source export is preserved and ignored; sanitized input is versioned under data/.
 Do not merge, close issues, deploy or automatically begin #5.
 
+## Human review at every stage completion
+
+At the end of each stage, publish an actionable human-review checklist as a comment
+on that stage's GitHub issue and retain it (or a durable link) in the implementation
+plan. This is a required handoff deliverable for subsequent stages #5 and #6 as well.
+Do this before stopping; automated test success does not replace human acceptance.
+
+Each checklist must state what to read, exact setup/commands or UI actions, expected
+observable results, configuration and data prerequisites, unresolved decisions and
+unverified scope. Distinguish isolated test data from the reviewer's local database,
+and build success from actual host runtime. Link the PR, evidence and relevant files;
+ask reviewers to record pass/change-needed/blocked with reproducible, sanitized evidence.
+Do not infer permission to merge, deploy, close issues or start the next stage.
+
+- #4: [manual review checklist](verification/phase-2-human-review.md); publish to issue #4.
+- #5: include both hosts' same-data behavior, search/category/count/detail/disabled
+  states, keyboard/focus/reduced motion, narrow containers and style isolation. State
+  whether actual SharePoint testing is available/authorized; otherwise record the gap.
+- #6: include parent #2 acceptance mapping, independent findings and resolutions,
+  reproducible end-to-end regression, remaining runtime gaps and the user's release decision.
+
 ## Environment and agents
 
 Node 22.16.0 / npm 10.9.2 are pinned to the actual supported local environment.
@@ -161,3 +182,8 @@ was performed. SPFx only built/packaged; actual SharePoint page runtime, style i
 and narrow Web Part acceptance still require the authorized test tenant in later stages.
 No hosted CI, other OS/architectures or live Graph/tenant enforcement was verified.
 Stop here; do not start #5 automatically.
+
+Human-review follow-up: added the #4 reviewer checklist and the recurring stage handoff
+requirement. Documentation/instructions only; checked commands and expected results
+against the current API contract and verification record, plus `git diff --check`.
+No application tests repeated and no local database was migrated/imported by this update.
