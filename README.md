@@ -1,120 +1,108 @@
 # Microsoft Graph Permissions Explorer
 
-Stage 1 foundation for [#2](https://github.com/VigilanteWang/graphpermlist/issues/2)
-and [#3](https://github.com/VigilanteWang/graphpermlist/issues/3): a read-only Nest API,
-shared Fluent UI v9 shell, Vite standalone host and SPFx 1.24.1 Web Part.
-The catalog is **not imported yet**. Full import/API/UI behavior belongs to stages 2/3.
-No login, live Graph requests, grants, RSC display or deployment is included.
+## 项目介绍
 
-## Prerequisites and installation
+Microsoft Graph Permissions Explorer 是一个面向 Microsoft Graph 全球云权限目录的只读应用，以仓库中的权限定义快照作为数据输入，不在线采集租户数据，也不执行权限授予或撤销。
 
-Use Node **22.16.0**, npm **10.9.2** (.nvmrc/.node-version). No global CLI is needed.
-macOS arm64 is verified. Native better-sqlite3 may need Python 3 and C/C++ build tools
-if a prebuilt binary cannot be downloaded on your platform; other OS/architectures
-have not been exercised here. No database server or Docker is required.
+- **独立网站前端**：Vite + React + TypeScript，可在浏览器中独立运行。
+- **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、数据类型和 API client。
+- **共享界面**：Fluent UI React v9，React 18.3.1；提供目录 API 连接状态、未导入提示和错误重试。
+- **后端**：NestJS，使用默认 Express adapter，通过 HTTP API 为前端提供数据。
+- **数据库**：TypeORM + better-sqlite3，本地运行无需单独安装数据库服务或 Docker。
+- **数据输入**：`data/commercial-graph-permlist.json`，保留权限定义及独立的 RSC 集合；来源说明见 `data/README.md`。
 
-From the repository root:
+## 文件夹结构和关键文件
+
+```text
+graphpermlist/
+├── apps/
+│   ├── api/                              NestJS 后端
+│   │   ├── src/
+│   │   │   ├── main.ts                   启动 HTTP 服务
+│   │   │   ├── app.module.ts             组装应用模块
+│   │   │   ├── bootstrap.ts              API 前缀、参数校验和 CORS
+│   │   │   ├── configuration.ts          环境变量读取与校验
+│   │   │   ├── catalog/                  目录路由、业务服务和查询参数 DTO
+│   │   │   └── database/                 TypeORM / SQLite 连接配置
+│   │   └── tsconfig.json                 后端 TypeScript 配置
+│   ├── web/                              Vite 独立网站
+│   │   ├── src/main.tsx                  创建 React 根节点，加载共享界面
+│   │   ├── index.html                    网站 HTML 入口
+│   │   ├── vite.config.ts                网站构建配置
+│   │   └── .env.example                  前端 API 地址配置示例
+│   └── spfx/                             SharePoint Web Part
+│       ├── src/webparts/permissionsExplorer/
+│       │   ├── PermissionsExplorerWebPart.ts
+│       │   │                             生命周期、属性面板和 React 接入
+│       │   └── PermissionsExplorerWebPart.manifest.json
+│       │                                 组件标识、显示信息和默认属性
+│       └── config/
+│           ├── config.json               组件入口与打包配置
+│           ├── package-solution.json     Solution 标识、版本和包输出设置
+│           ├── rig.json                  官方 SPFx Heft 工具链配置入口
+│           └── serve.json                SPFx 开发服务配置
+├── packages/
+│   ├── ui/src/index.tsx                  两个前端共用的 Fluent UI 界面
+│   ├── api-client/src/index.ts           HTTP 请求、查询参数和错误处理
+│   └── contracts/src/index.ts            前后端共用的 API 数据类型
+├── data/
+│   ├── commercial-graph-permlist.json    版本化的安全权限快照
+│   └── README.md                         数据来源、字段说明和校验值
+├── docs/
+│   ├── api-contract.md                   API 请求、响应及错误语义
+│   ├── implementation-plan.md            实施计划与交接说明
+│   └── verification/                     验证记录与截图
+├── scripts/
+│   ├── verify-data.mjs                   数据结构和快照完整性检查
+│   └── check-boundaries.mjs              React 依赖与共享代码边界检查
+├── tests/                                API、客户端、数据和浏览器测试
+│   └── fixtures/                         仅供测试的契约样例
+├── package.json                          npm workspaces、依赖和命令入口
+├── package-lock.json                     锁定依赖版本
+├── tsconfig.base.json                    共享 TypeScript 配置
+├── playwright.config.ts                  浏览器测试配置
+├── .nvmrc / .node-version                Node.js 版本
+├── .npmrc                                npm 安装规则
+├── .env.example                          后端环境变量配置示例
+├── .gitignore                            排除依赖、构建产物和本地数据库
+└── AGENTS.md                             Coding agent 项目指引
+```
+
+## 快速安装和运行
+
+使用 **Node.js 22.16.0、npm 10.9.2**。以下命令均从仓库根目录执行，无需全局安装 SPFx 或 Heft CLI。如果 SQLite 原生模块无法下载预编译文件，需要本机提供 Python 3 和 C/C++ 编译工具。
+
+**安装依赖并编译运行所需代码：**
 
 ```sh
 npm ci
 npm run verify:data
-npm run typecheck
-npm test
-npm run build
-npm run check:react
-```
-
-The root npm workspaces lockfile pins all dependencies. SPFx keeps its own official
-Heft/Webpack rig, while the standalone host uses Vite. Shared packages compile first.
-Heft uses its documented `--unmanaged` option because its version-selector assumes a
-project-local node_modules folder; npm resolves the pinned 1.3.2 binary from the root.
-No global Heft or symlink setup is needed.
-
-## Run locally
-
-In terminal 1, from the root (build first after source changes):
-
-```sh
 npm run build:shared
 npm run build:api
+```
+
+**终端 1：启动后端，保持运行。**
+
+```sh
 npm run start:api
 ```
 
-In terminal 2, from the root:
+**终端 2：启动独立网站，保持运行。**
 
 ```sh
 npm run dev:web
 ```
 
-Open [the Vite host](http://localhost:5173). It loads the exact ExplorerShell exported
-by packages/ui, calls the real local API and displays “No catalog imported yet.”
-The default API listens at 127.0.0.1:3000. Probe [health](http://localhost:3000/api/v1/health)
-and [resources](http://localhost:3000/api/v1/resources). Ctrl+C stops each process.
-`npm run build:web` produces static output under apps/web/dist; it still needs the API.
+打开 [http://localhost:5173](http://localhost:5173)。页面显示 **No catalog imported yet.** 表示已连接 API，但没有已导入的目录。启动命令不会自动导入 JSON；当前不提供完整权限列表、搜索和详情浏览。
 
-Optional API settings: copy .env.example to .env or set environment variables.
-ConfigModule reads .env when the root start command runs:
+后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| PORT / HOST | 3000 / 127.0.0.1 | Local listener |
-| CORS_ORIGINS | http://localhost:5173 | Comma-separated exact HTTP(S) origins, no trailing slash; use http://127.0.0.1:5173 if browsing by IP |
-| SQLITE_PATH | ./var/catalog.sqlite | Relative to process working directory, or :memory: for isolated tests |
-| PERMISSIONS_SOURCE | data/commercial-graph-permlist.json | Validated by verify:data now; import uses it in stage 2 |
+默认配置即可本地运行。如需调整，复制根目录 `.env.example` 为 `.env`，设置端口、CORS 来源和 SQLite 路径；复制 `apps/web/.env.example` 为 `apps/web/.env.local`，设置 `VITE_API_BASE_URL`，然后重启相应服务。使用默认配置时，请通过 `localhost:5173` 访问网站。
 
-For the web host, copy apps/web/.env.example to apps/web/.env.local and set
-VITE_API_BASE_URL (including /api/v1). Restart Vite after changing it; production
-values are build-time settings. The shared component never reads environment variables.
-The SQLite file/directory is created on connection; no catalog tables are created in
-this stage. synchronize:false and migrationsRun:false are explicit. **No migration or
-import command is claimed yet**; implement versioned migrations and the Nest application-
-context import CLI in #4 before loading data. Browser code never opens SQLite.
-
-## SPFx build and future runtime verification
+**构建独立网站和 SharePoint 解决方案：**
 
 ```sh
-npm run build:shared
-npm run build:spfx
+npm run build
 ```
 
-Output: apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg.
-This is a production build/package only; it does not upload or deploy anything.
-SPFx source and compiled manifest externalize React and react-dom/client as 18.3.1.
-Published SPFx internal packages still install isolated React 17.0.1 dependencies;
-they are host externals, not bundled into the shared UI/Vite or this Web Part.
-`npm run check:react` verifies both host/UI resolutions, expected isolated copies,
-compiled host externals and shared-package boundaries. Do not claim every installed
-transitive package uses React 18 or infer runtime acceptance from the manifest alone.
-
-The Web Part's **API base URL** property configures the client. The local default is
-http://localhost:3000/api/v1; an HTTPS SharePoint page will need a reachable HTTPS API
-and an allowed CORS origin. No test tenant/HTTPS endpoint/deployment is provisioned.
-`npm run dev:spfx` starts the official Heft development workflow, which additionally
-requires its development certificate and a test-tenant workbench URL in serve.json.
-Do not run trust/deploy steps without appropriate local/test authorization.
-The dev workflow itself and real SharePoint package loading are not verified here.
-Real tenant tests (including styles, narrow containers and lifecycle disposal) remain
-for #5/#6 after the user authorizes test deployment.
-
-## Browser smoke tests
-
-```sh
-npx playwright install chromium
-npm run test:browser
-```
-
-Tests start/stop isolated local API (:memory: SQLite) and Vite servers. Ports 3000
-and 5173 must be free. Chromium checks the real connection, narrow 360px layout,
-JavaScript errors and an injected API failure followed by recovery. Generated screenshots
-are under test-results/ (ignored). This does not simulate SharePoint acceptance.
-
-## Data and handoff
-
-The sanitized versioned source is data/commercial-graph-permlist.json; see
-[data provenance](data/README.md). No personal absolute path is required. Missing or
-invalid input fails explicitly; there is no synthetic fallback. Test-only contract
-examples are under tests/fixtures and are never served/imported as catalog data.
-
-See [wire contract](docs/api-contract.md), [stage plan/evidence](docs/implementation-plan.md)
-and [repository instructions](AGENTS.md). The next stage starts only after this stage's
-independent PR is reviewed, merged by the user and its main result verified.
+独立网站输出到 `apps/web/dist/`，SharePoint 包输出到 `apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg`。构建不会自动部署；在 SharePoint 中运行还需要部署到 App Catalog，并为 Web Part 配置可访问的 HTTPS API 地址和对应 CORS 来源。

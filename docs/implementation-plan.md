@@ -102,3 +102,9 @@ Then start #4 from updated main in a new stage branch. Implement versioned migra
 entities, offline import via Nest application context and the four real read-only queries
 using these contracts; preserve transactional replacement and classification versioning.
 Do not enable fixture serving or schema synchronization. #4 has not been started here.
+
+README review update: replaced the development-oriented README with three user-facing
+sections: solution overview, folder/key-file tree, and quick installation/run instructions.
+Removed stage history and validation transcripts from README; existing evidence remains in
+docs/verification/. Checked documented npm scripts, listed paths and Markdown whitespace;
+no runtime source or dependency changes, so builds/tests were not repeated.
