@@ -1,0 +1,5 @@
+
+> graph-permissions-explorer@0.1.0 check:react
+> node scripts/check-boundaries.mjs
+
+PASS: UI/host imports resolve to React 18.3.1; SPFx runtime externals are pinned; shared boundaries are clean. Legacy SPFx internal build dependencies are isolated.

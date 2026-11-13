@@ -6,7 +6,7 @@ import { CatalogModule } from './catalog/catalog.module';
 
 @Controller('health')
 class HealthController {
-  @Get() health() { return { status: 'ok', stage: 'foundation' }; }
+  @Get() health() { return { status: 'ok', stage: 'catalog-api' }; }
 }
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }), DatabaseModule, CatalogModule],
