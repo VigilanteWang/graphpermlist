@@ -144,7 +144,12 @@ or SQL Server provider acceptance is claimed. No new dependencies or lockfile ch
 
 ## Stage 2 handoff
 
-Implementation commit / stage PR: publication pending; updated after push.
+Implementation commit: [`e8224f8`](https://github.com/VigilanteWang/graphpermlist/commit/e8224f88483b262c064b388c1c0828cea2f35c8c).
+Stage PR: [#8](https://github.com/VigilanteWang/graphpermlist/pull/8), base main,
+head codex/phase-2-catalog-api. Created as Draft; after this documentation-only handoff
+is pushed and verified, it is marked Ready for review. Consult the live PR for current state.
+The verification evidence covers the implementation commit; this follow-up changes only
+handoff documentation, so no runtime checks are repeated.
 
 The stage 2 code and local checks are complete. Review and merge this independent PR
 into main, then start #5 in a new chat/branch from updated main after verifying the merge.

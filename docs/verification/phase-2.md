@@ -1,5 +1,7 @@
 # Stage 2 verification — 2026-11-13/14
 
+Implementation: `e8224f88483b262c064b388c1c0828cea2f35c8c`, [PR #8](https://github.com/VigilanteWang/graphpermlist/pull/8).
+
 Environment: macOS arm64, Node v22.16.0, npm 10.9.2. Commands below were executed.
 Retained transcripts normalize the repository path to `<repo>` and home to `<home>`.
 No credentials, tenant source metadata or generated databases are committed.
