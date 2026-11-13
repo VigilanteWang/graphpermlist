@@ -1,0 +1,41 @@
+{
+  "name": "graph-permissions-explorer",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": "22.16.0",
+    "npm": "10.9.2"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "verify:data": "node scripts/verify-data.mjs",
+    "build:shared": "npm run build -w @graph/contracts && npm run build -w @graph/api-client && npm run build -w @graph/ui",
+    "build:api": "npm run build -w @graph/api",
+    "build:web": "npm run build -w @graph/web",
+    "build:spfx": "npm run build -w @graph/spfx",
+    "build": "npm run build:shared && npm run build:api && npm run build:web && npm run build:spfx",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present && tsc -p tsconfig.tests.json",
+    "pretest": "npm run build:shared && npm run build:api",
+    "test": "node --test tests/*.test.mjs",
+    "start:api": "node apps/api/dist/main.js",
+    "dev:web": "npm run dev -w @graph/web",
+    "dev:spfx": "npm run start -w @graph/spfx",
+    "test:browser": "playwright test",
+    "check:react": "node scripts/check-boundaries.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "@types/node": "22.15.30",
+    "@types/react": "18.2.79",
+    "@types/react-dom": "18.2.25",
+    "@playwright/test": "1.56.1"
+  },
+  "overrides": {
+    "@types/react": "18.2.79",
+    "@types/react-dom": "18.2.25"
+  }
+}

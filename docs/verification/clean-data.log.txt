@@ -1,0 +1,23 @@
+
+> graph-permissions-explorer@0.1.0 verify:data
+> node scripts/verify-data.mjs
+
+{
+  "status": "ok",
+  "sha256": "d566bed3c4d7a4cf09ec54d35c25aee7b232df5b46c765af7a377dd9fe0b96a0",
+  "counts": {
+    "appRoles": {
+      "total": 788,
+      "disabled": 2
+    },
+    "oauth2PermissionScopes": {
+      "total": 876,
+      "disabled": 2
+    },
+    "resourceSpecificApplicationPermissions": {
+      "total": 60,
+      "disabled": 0
+    },
+    "applicationPermissions": 788
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "extends": "@microsoft/spfx-web-build-rig/profiles/default/tsconfig-base.json",
+  "compilerOptions": {
+    "types": [
+      "webpack-env"
+    ],
+    "skipLibCheck": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "rootDirs": [
+      "src",
+      "temp/loc-ts",
+      "temp/sass-ts",
+      "temp/static-asset-ts"
+    ],
+    "typeRoots": [
+      "../../node_modules/@types"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ]
+}

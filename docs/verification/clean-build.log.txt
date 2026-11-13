@@ -1,0 +1,127 @@
+
+> graph-permissions-explorer@0.1.0 build
+> npm run build:shared && npm run build:api && npm run build:web && npm run build:spfx
+
+
+> graph-permissions-explorer@0.1.0 build:shared
+> npm run build -w @graph/contracts && npm run build -w @graph/api-client && npm run build -w @graph/ui
+
+
+> @graph/contracts@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @graph/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @graph/ui@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> graph-permissions-explorer@0.1.0 build:api
+> npm run build -w @graph/api
+
+
+> @graph/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> graph-permissions-explorer@0.1.0 build:web
+> npm run build -w @graph/web
+
+
+> @graph/web@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v7.3.8 building client environment for production...
+transforming...
+✓ 2203 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  0.31 kB │ gzip:  0.24 kB
+dist/assets/index-CAyfsRpV.js  268.37 kB │ gzip: 83.25 kB
+✓ built in 1.80s
+
+> graph-permissions-explorer@0.1.0 build:spfx
+> npm run build -w @graph/spfx
+
+
+> @graph/spfx@0.1.0 build
+> heft --unmanaged test --clean --production && heft --unmanaged package-solution --production
+
+Bypassing the Heft version selector because "--unmanaged" was specified.
+
+ ---- build started ----
+[build:set-browserslist-ignore-old-data-env-var] Setting environment variable BROWSERSLIST_IGNORE_OLD_DATA=1
+[build:sass] Starting...
+[build:static-asset-typings] Processing static assets...
+[build:sass] No SCSS files to process.
+[build:static-asset-typings] Finished processing static assets.
+[build:typescript] Using TypeScript version 5.8.3
+[build:typescript] Copied 2 files and linked 0 files
+[build:lint] Using ESLint version 9.37.0
+[build:webpack] Using Webpack version 5.105.4
+[build:webpack] Running Webpack compilation
+ ---- build finished (5.294s) ----
+ ---- test started ----
+[test:jest] Using Jest version 30.2.0
+No tests found, exiting with code 0
+[test:jest]
+[test:jest] Run start. 0 test suites
+[test:jest]
+[test:jest] Tests finished:
+[test:jest]   Successes: 0
+[test:jest]   Failures: 0
+[test:jest]   Total: 0
+ ---- test finished (0.882s) ----
+-------------------- Finished (6.179s) --------------------
+Bypassing the Heft version selector because "--unmanaged" was specified.
+
+ ---- package-solution started ----
+Found manifest: 125b85bf-862e-4c47-b499-c56fc875169c.manifest.json
+Found client-side build resource: permissions-explorer-web-part_7637ccdf1d1e3e9404cd.js
+Found client-side build resource: permissions-explorer-web-part_7637ccdf1d1e3e9404cd.js.LICENSE.txt
+Verifying configuration...
+Done!
+
+Normalizing solution information...
+Attempting creating component definitions for {1} manifests
+Created component definitions for {1} manifests
+config.solution.features not set! Instead generating a feature for each component.
+Creating feature for Graph Permissions Explorer...
+Done!
+
+Reading custom Feature XML...
+Done!
+
+Validating App Package...
+Done!
+
+Reading resources...
+Done!
+
+Reading Sharepoint Assets & Creating XML...
+Done!
+
+Writing solution XML to <repo>/apps/spfx/sharepoint/solution/debug...
+Cleaned <repo>/apps/spfx/sharepoint/solution/debug
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/AppManifest.xml
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/_rels/AppManifest.xml.rels
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/_rels/.rels
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/[Content_Types].xml
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/feature_125b85bf-862e-4c47-b499-c56fc875169c.xml
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/_rels/feature_125b85bf-862e-4c47-b499-c56fc875169c.xml.rels
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/feature_125b85bf-862e-4c47-b499-c56fc875169c.xml.config.xml
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/125b85bf-862e-4c47-b499-c56fc875169c/WebPart_125b85bf-862e-4c47-b499-c56fc875169c.xml
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/ClientSideAssets.xml
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/_rels/ClientSideAssets.xml.rels
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/ClientSideAssets.xml.config.xml
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/ClientSideAssets/permissions-explorer-web-part_7637ccdf1d1e3e9404cd.js
+Created file: <repo>/apps/spfx/sharepoint/solution/debug/ClientSideAssets/permissions-explorer-web-part_7637ccdf1d1e3e9404cd.js.LICENSE.txt
+Done!
+
+ALL DONE!
+
+ ---- package-solution finished (0.150s) ----
+-------------------- Finished (0.151s) --------------------
