@@ -1,0 +1,127 @@
+
+> graph-permissions-explorer@0.1.0 pretest
+> npm run build:shared && npm run build:api
+
+
+> graph-permissions-explorer@0.1.0 build:shared
+> npm run build -w @graph/contracts && npm run build -w @graph/api-client && npm run build -w @graph/ui
+
+
+> @graph/contracts@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @graph/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @graph/ui@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> graph-permissions-explorer@0.1.0 build:api
+> npm run build -w @graph/api
+
+
+> @graph/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> graph-permissions-explorer@0.1.0 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: Nest resolves modules and real SQLite driver; four catalog routes honor unimported state after explicit migration
+ok 1 - Nest resolves modules and real SQLite driver; four catalog routes honor unimported state after explicit migration
+  ---
+  duration_ms: 130.382542
+  type: 'test'
+  ...
+# Subtest: boolean query strings remain false; invalid and repeated inputs fail validation
+ok 2 - boolean query strings remain false; invalid and repeated inputs fail validation
+  ---
+  duration_ms: 0.271167
+  type: 'test'
+  ...
+# Subtest: real snapshot, four HTTP APIs, matching definitions and consistent filtered counts
+    # Subtest: import preserves all ordinary fields and excludes RSC
+    ok 1 - import preserves all ordinary fields and excludes RSC
+      ---
+      duration_ms: 133.360209
+      type: 'test'
+      ...
+    # Subtest: Mail.Read and User.Read merge correctly; details retain both GUIDs
+    ok 2 - Mail.Read and User.Read merge correctly; details retain both GUIDs
+      ---
+      duration_ms: 19.050667
+      type: 'test'
+      ...
+    # Subtest: filters, all search fields and category totals match an independent oracle
+    ok 3 - filters, all search fields and category totals match an independent oracle
+      ---
+      duration_ms: 728.892583
+      type: 'test'
+      ...
+    # Subtest: disabled-only values, no matches and unknown/case-sensitive routes
+    ok 4 - disabled-only values, no matches and unknown/case-sensitive routes
+      ---
+      duration_ms: 50.143041
+      type: 'test'
+      ...
+    1..4
+ok 3 - real snapshot, four HTTP APIs, matching definitions and consistent filtered counts
+  ---
+  duration_ms: 1002.8255
+  type: 'test'
+  ...
+# Subtest: transactional publication, updated versions, corrupt input, rollback after partial writes and concurrency
+ok 4 - transactional publication, updated versions, corrupt input, rollback after partial writes and concurrency
+  ---
+  duration_ms: 208.853583
+  type: 'test'
+  ...
+# Subtest: CLI initializes, imports and closes on success/failure; separate HTTP context reads persisted database
+ok 5 - CLI initializes, imports and closes on success/failure; separate HTTP context reads persisted database
+  ---
+  duration_ms: 1476.906792
+  type: 'test'
+  ...
+# Subtest: classification exact overrides, OIDC, complete prefixes and conservative fallback
+ok 6 - classification exact overrides, OIDC, complete prefixes and conservative fallback
+  ---
+  duration_ms: 0.682958
+  type: 'test'
+  ...
+# Subtest: client encodes route segments and false filters without sending credentials
+ok 7 - client encodes route segments and false filters without sending credentials
+  ---
+  duration_ms: 17.261125
+  type: 'test'
+  ...
+# Subtest: client preserves Nest HTTP errors and rejects network errors
+ok 8 - client preserves Nest HTTP errors and rejects network errors
+  ---
+  duration_ms: 0.832625
+  type: 'test'
+  ...
+# Subtest: client keeps HTTP status when an intermediary sends malformed JSON errors
+ok 9 - client keeps HTTP status when an intermediary sends malformed JSON errors
+  ---
+  duration_ms: 1.370375
+  type: 'test'
+  ...
+# Subtest: versioned snapshot digest verifies all collections; partial and missing sources fail
+ok 10 - versioned snapshot digest verifies all collections; partial and missing sources fail
+  ---
+  duration_ms: 14.614958
+  type: 'test'
+  ...
+1..10
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3046.678916

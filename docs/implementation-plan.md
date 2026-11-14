@@ -5,15 +5,36 @@ The latest issue body is authoritative. This plan records implementation evidenc
 
 ## Stages and workflow
 
-1. [#3 Foundation](https://github.com/VigilanteWang/graphpermlist/issues/3): implementation and local validation complete on `codex/phase-1-foundation`; awaiting independent PR review.
-2. [#4 Data and API](https://github.com/VigilanteWang/graphpermlist/issues/4): not started; requires stage 1 merged into main and verified.
+1. [#3 Foundation](https://github.com/VigilanteWang/graphpermlist/issues/3): merged via [PR #7](https://github.com/VigilanteWang/graphpermlist/pull/7) into main at `81682a9`; code and baseline reverified before #4.
+2. [#4 Data and API](https://github.com/VigilanteWang/graphpermlist/issues/4): implemented and locally verified on `codex/phase-2-catalog-api`; publication recorded in the handoff below.
 3. [#5 Shared UI](https://github.com/VigilanteWang/graphpermlist/issues/5): not started.
 4. [#6 Review and delivery](https://github.com/VigilanteWang/graphpermlist/issues/6): not started.
 
 Option A: independent stage PRs against updated main. Stage 1 has no predecessor.
 Initial checkout had only LICENSE at `475693b`; no existing plan/AGENTS or PR.
 The untracked source export is preserved and ignored; sanitized input is versioned under data/.
-Do not merge, close issues, deploy or automatically begin stage 2.
+Do not merge, close issues, deploy or automatically begin #5.
+
+## Human review at every stage completion
+
+At the end of each stage, publish an actionable human-review checklist as a comment
+on that stage's GitHub issue and retain it (or a durable link) in the implementation
+plan. This is a required handoff deliverable for subsequent stages #5 and #6 as well.
+Do this before stopping; automated test success does not replace human acceptance.
+
+Each checklist must state what to read, exact setup/commands or UI actions, expected
+observable results, configuration and data prerequisites, unresolved decisions and
+unverified scope. Distinguish isolated test data from the reviewer's local database,
+and build success from actual host runtime. Link the PR, evidence and relevant files;
+ask reviewers to record pass/change-needed/blocked with reproducible, sanitized evidence.
+Do not infer permission to merge, deploy, close issues or start the next stage.
+
+- #4: [manual review checklist](verification/phase-2-human-review.md); publish to issue #4.
+- #5: include both hosts' same-data behavior, search/category/count/detail/disabled
+  states, keyboard/focus/reduced motion, narrow containers and style isolation. State
+  whether actual SharePoint testing is available/authorized; otherwise record the gap.
+- #6: include parent #2 acceptance mapping, independent findings and resolutions,
+  reproducible end-to-end regression, remaining runtime gaps and the user's release decision.
 
 ## Environment and agents
 
@@ -21,9 +42,12 @@ Node 22.16.0 / npm 10.9.2 are pinned to the actual supported local environment.
 Host: macOS arm64, Xcode command line tools available for native fallback builds.
 Only project AGENTS.md is configured; no global settings, credentials or additional skills installed.
 The main agent owns dependency/contract/build/Git integration. A bounded subagent
-was successfully launched with GPT-6.1 Sol / medium for data inspection and sanitization.
+was successfully launched in stage 1 with GPT-6.1 Sol / medium for data inspection and sanitization.
 The main agent's effective model cannot be independently changed/verified through this task's tools.
-No model preference is persisted in project instructions.
+At the user's request, AGENTS.md now records GPT-6.1 Sol/high for the main conversation
+and Sol/low or medium for execution subagents, where supported. Stage 2 used an explicit
+GPT-6.1 Sol/medium spawn for bounded classification and a read-only review; no global settings changed.
+Code, docs and retained logs must exclude personal data, tenant identifiers and personal paths.
 
 ## Compatibility decisions
 
@@ -49,14 +73,21 @@ No model preference is persisted in project instructions.
 See docs/api-contract.md and packages/contracts/src/index.ts. resourceId is Resource App ID.
 Nest ConfigModule owns API port, allowed origins and SQLite path. Browser API URL is a
 Vite build variable or SPFx Web Part property; the UI/client have no host identity dependency.
-Four routes are contracted. Stage 1 serves an honest unimported empty resource list;
-per-resource routes return 404 until a resource is imported in stage 2. No fixture catalog
-is served as real data. The test-only fixtures demonstrate merged rows and type-specific fields.
-Migrations, entities, transactional import and business queries are stage 2 work.
+Four routes now query the active imported snapshot using injected TypeORM repositories.
+A migrated, unimported database returns an honest empty resource list; unknown resources
+return 404. CLI uses a Nest application context with the same modules and configuration,
+explicit versioned migration, and transactional import. No fixture catalog is served.
 
-## Validation evidence
+Definition identity is resource/version + type + GUID, with merged rows by value. Even
+distinct GUIDs of one type sharing a value survive. Matching definitions determine row
+fields/labels/counts; details separately retain all definitions. Same-definition filters,
+source fields, admin-consent mapping and default disabled exclusion match the shared contract.
+Provider DDL remains in database/; no HTTP objects enter business query/import services.
+See [operations](catalog-operations.md) and [classification](classification.md).
 
-Verified on 2026-11-13 (Asia/Shanghai). See [evidence](verification/phase-1.md) and
+## Stage 1 evidence and merged-main baseline
+
+Originally verified on 2026-11-13 (Asia/Shanghai). See [evidence](verification/phase-1.md) and
 sanitized command transcripts in docs/verification/.
 
 - Clean source-only directory: npm ci succeeded (1424 packages), verify:data passed,
@@ -86,25 +117,100 @@ Installation emits upstream deprecation notices from SPFx/tooling/native depende
 these do not fail the verified builds. No broad dependency upgrades were made outside
 the compatible pinned baseline. Other OS/architectures and hosted CI are unverified.
 
-## Handoff
+## Stage 2 implementation and verification
 
-Implementation commit: [`dc8346f`](https://github.com/VigilanteWang/graphpermlist/commit/dc8346f1f634366fbb179a575fc04bd05cdf7eea).
-Stage PR: [#7](https://github.com/VigilanteWang/graphpermlist/pull/7), base main,
-head codex/phase-1-foundation. Code and local checks are ready for review; the PR is
-transitioned out of Draft after the final handoff push is verified. No merge is authorized.
-This follow-up commit records publication and handoff only; validation evidence above
-covers the implementation commit. Consult the live PR for its current review state. SharePoint tenant runtime, stylesheet isolation
-in a real page and narrow-container acceptance are explicitly not verified in this stage.
-No SharePoint test deployment has been authorized.
+Prerequisite: live PR #7 was confirmed merged and `git fetch origin` verified main
+`81682a92b6280d425b06e05c9d1c303e3e8c8d63`. Created this phase's new branch from that
+main; did not reuse the phase 1 branch. Before implementation, reran `npm ci`,
+`npm run verify:data`, `npm run typecheck`, `npm test` (6/6), `npm run build` and
+`npm run test:browser` (2/2). All passed. Chromium initially failed under the sandbox's
+macOS process restrictions; the permitted browser rerun passed. Retained baseline
+transcripts are under docs/verification/phase-2/.
 
-After user review/merge, verify the merged main with the documented stage 1 commands.
-Then start #4 from updated main in a new stage branch. Implement versioned migrations,
-entities, offline import via Nest application context and the four real read-only queries
-using these contracts; preserve transactional replacement and classification versioning.
-Do not enable fixture serving or schema synchronization. #4 has not been started here.
+Delivered resource/import/category/family/definition entities, a versioned SQLite
+migration, offline import and four real read-only APIs. Import retains safe raw fields,
+excludes RSC and user/group-only app roles, publishes atomically, retains history,
+and reuses the active identical source/classification. Classification hashes include
+rules' resulting assignments and category metadata; changes require reimport.
+A shared CJS source loader serves both prebuild verification and the Nest importer.
 
-README review update: replaced the development-oriented README with three user-facing
-sections: solution overview, folder/key-file tree, and quick installation/run instructions.
-Removed stage history and validation transcripts from README; existing evidence remains in
-docs/verification/. Checked documented npm scripts, listed paths and Markdown whitespace;
-no runtime source or dependency changes, so builds/tests were not repeated.
+Final checks on 2026-11-13/14 (Asia/Shanghai):
+
+- `npm run verify:data`: pinned digest and 788/876/60 collections; four disabled ordinary definitions.
+- `npm run db:migrate`, `npm run import:data` twice against an isolated file database:
+  migration applied, 1,664 definitions, repeated import reused the version.
+- `npm test`: 14 tests pass, 0 fail. Includes isolated SQLite/Nest HTTP integration,
+  all official fields/raw definitions, 1,036 merged names, 1,660 default definitions,
+  same-definition filters and independent expected-result comparisons, category totals,
+  GUID search/full details, disabled states, false/invalid/repeated parameters,
+  unknown/empty/error states, actual partial-write and publication-failure rollback,
+  updated snapshots, same-type duplicate-value preservation and concurrent-call serialization.
+- CLI tests spawn independent processes for migration/import/duplicate import/failures,
+  then a new HTTP context reads the same persisted database. Success and failure exit,
+  including initialization failure, are bounded and path output is redacted.
+- `npm run typecheck`, `npm run build`, `npm run check:react`: all pass; Vite and SPFx
+  production packages remain buildable, same React/host boundaries as stage 1.
+- `npm run test:browser`: 2/2 pass with real migrated, unimported Nest and Vite;
+  the browser fixture only initializes test :memory: schema, never serves fixture data.
+- `git diff --check` and source/document/retained-log personal-path checks pass.
+- Independent Sol/medium review found one CLI initialization-path disclosure; fixed
+  with non-aborting, quiet Nest context initialization and a fixed CLI error. Reviewer
+  rechecked the reproducer and transactional/CLI test design with no remaining blockers.
+
+Complete evidence and test mapping: [stage 2 verification](verification/phase-2.md).
+The 189 definitions / 113 values conservatively classified Uncategorized are preserved,
+not omitted. Classification is editorial navigation, not an authorization boundary.
+Cross-process writer contention can fail and be retried; no history pruning/rollback CLI
+or SQL Server provider acceptance is claimed. No new dependencies or lockfile changes.
+
+## Stage 2 handoff
+
+Implementation commit: [`e8224f8`](https://github.com/VigilanteWang/graphpermlist/commit/e8224f88483b262c064b388c1c0828cea2f35c8c).
+Stage PR: [#8](https://github.com/VigilanteWang/graphpermlist/pull/8), base main,
+head codex/phase-2-catalog-api. Created as Draft; after this documentation-only handoff
+is pushed and verified, it is marked Ready for review. Consult the live PR for current state.
+The verification evidence covers the implementation commit; this follow-up changes only
+handoff documentation, so no runtime checks are repeated.
+
+The stage 2 code and local checks are complete. Review and merge this independent PR
+into main, then start #5 in a new chat/branch from updated main after verifying the merge.
+#5 owns full shared UI and Vite/SPFx browser acceptance. Preserve the matching-subset
+versus allDefinitions contract, same-filter category totals, source state and disabled labels.
+
+No merge, issue closure, SharePoint test deployment, Azure or production deployment
+was performed. SPFx only built/packaged; actual SharePoint page runtime, style isolation
+and narrow Web Part acceptance still require the authorized test tenant in later stages.
+No hosted CI, other OS/architectures or live Graph/tenant enforcement was verified.
+Stop here; do not start #5 automatically.
+
+Human-review follow-up: added the #4 reviewer checklist and the recurring stage handoff
+requirement. Documentation/instructions only; checked commands and expected results
+against the current API contract and verification record, plus `git diff --check`.
+No application tests repeated and no local database was migrated/imported by this update.
+
+## Stage 2 review follow-up: explicit family arrays
+
+Review baseline: `08e0b33`, PR #8 remains open; changes stay on the same stage branch.
+Replaced each FAMILY_GROUPS whitespace-delimited string with a readonly string array
+and removed trim/split from FAMILY_CATEGORIES construction. Each family is now an
+explicit quoted entry. No dependency, contract or classification-assignment change.
+
+Validation under Node 22.16.0 / npm 10.9.2:
+
+- An isolated Node/TypeScript in-memory comparison of the before/after modules
+  deep-compared all 341 family mappings (15 groups), 8 exact overrides, category
+  metadata, the version, all 1,664 ordinary source definitions and OIDC/unknown/
+  case-sensitive/prototype-like probes. All matched.
+- Recomputed the importer's classification hash for the real source in both modules:
+  `e2d88c4fa606f54a84619f75bb29644cd55dbde73e58bcbecbf7a4ace4378016` in both cases.
+  The representation-only change keeps classification version `2026-11-13.1`.
+- `npm run typecheck`: passed across all workspaces.
+- `npm test`: 14 passed, 0 failed; pretest rebuilt shared packages and the API.
+- `git diff --check`: passed. Full frontend bundles/browser acceptance were not
+  repeated for this isolated representation change; previous stage evidence remains
+  above. No migration/import was run against the local working database.
+
+Human review follow-up for issue #4: inspect FAMILY_GROUPS entries as category plus
+family arrays, confirm FAMILY_CATEGORIES directly maps entries without whitespace
+parsing, and check mapping/output/hash equivalence above. Existing stage checklist
+still applies; this follow-up does not add deployment or next-stage authorization.

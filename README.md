@@ -19,11 +19,12 @@ graphpermlist/
 │   ├── api/                              NestJS 后端
 │   │   ├── src/
 │   │   │   ├── main.ts                   启动 HTTP 服务
+│   │   │   ├── catalog-cli.ts            离线迁移与数据导入
 │   │   │   ├── app.module.ts             组装应用模块
 │   │   │   ├── bootstrap.ts              API 前缀、参数校验和 CORS
 │   │   │   ├── configuration.ts          环境变量读取与校验
-│   │   │   ├── catalog/                  目录路由、业务服务和查询参数 DTO
-│   │   │   └── database/                 TypeORM / SQLite 连接配置
+│   │   │   ├── catalog/                  目录路由、实体、分类、导入和查询服务
+│   │   │   └── database/                 TypeORM / SQLite 配置与版本化迁移
 │   │   └── tsconfig.json                 后端 TypeScript 配置
 │   ├── web/                              Vite 独立网站
 │   │   ├── src/main.tsx                  创建 React 根节点，加载共享界面
@@ -50,6 +51,8 @@ graphpermlist/
 │   └── README.md                         数据来源、字段说明和校验值
 ├── docs/
 │   ├── api-contract.md                   API 请求、响应及错误语义
+│   ├── catalog-operations.md             迁移、导入与 API 示例
+│   ├── classification.md                 分类规则、依据和未分类项
 │   ├── implementation-plan.md            实施计划与交接说明
 │   └── verification/                     验证记录与截图
 ├── scripts/
@@ -79,6 +82,8 @@ npm ci
 npm run verify:data
 npm run build:shared
 npm run build:api
+npm run db:migrate
+npm run import:data
 ```
 
 **终端 1：启动后端，保持运行。**
@@ -93,7 +98,7 @@ npm run start:api
 npm run dev:web
 ```
 
-打开 [http://localhost:5173](http://localhost:5173)。页面显示 **No catalog imported yet.** 表示已连接 API，但没有已导入的目录。启动命令不会自动导入 JSON；当前不提供完整权限列表、搜索和详情浏览。
+打开 [http://localhost:5173](http://localhost:5173)。导入成功后页面显示 **Catalog connected: 1 resource(s).**。当前界面仍是连接骨架；权限分类、搜索和详情已通过四个只读 API 提供，完整浏览界面将在后续阶段实现。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。
 
 后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
