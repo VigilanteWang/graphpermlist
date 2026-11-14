@@ -33,6 +33,16 @@ persisted rows and source metadata agree. Classification does not filter disable
 permissions, combine consent types or remove definitions. RSC exclusion belongs to
 import validation, before ordinary catalog classification.
 
+## Mapping representation
+
+`FAMILY_GROUPS` stores each category alongside a readonly array of family strings,
+for example `['exchange', ['Calendars', 'Contacts', 'Mail']]`. Each family is a
+separate quoted entry; whitespace is formatting rather than a delimiter.
+`FAMILY_CATEGORIES` flattens these entries into a family-to-category Map for lookup.
+There is no runtime whitespace splitting. This representation change preserves all
+341 family mappings, exact overrides and classification outputs, so the classification
+version remains `2026-11-13.1`.
+
 ## Evidence and boundaries
 
 The primary evidence is the real source export's permission values, application

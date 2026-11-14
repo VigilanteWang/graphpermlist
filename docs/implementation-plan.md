@@ -187,3 +187,30 @@ Human-review follow-up: added the #4 reviewer checklist and the recurring stage 
 requirement. Documentation/instructions only; checked commands and expected results
 against the current API contract and verification record, plus `git diff --check`.
 No application tests repeated and no local database was migrated/imported by this update.
+
+## Stage 2 review follow-up: explicit family arrays
+
+Review baseline: `08e0b33`, PR #8 remains open; changes stay on the same stage branch.
+Replaced each FAMILY_GROUPS whitespace-delimited string with a readonly string array
+and removed trim/split from FAMILY_CATEGORIES construction. Each family is now an
+explicit quoted entry. No dependency, contract or classification-assignment change.
+
+Validation under Node 22.16.0 / npm 10.9.2:
+
+- An isolated Node/TypeScript in-memory comparison of the before/after modules
+  deep-compared all 341 family mappings (15 groups), 8 exact overrides, category
+  metadata, the version, all 1,664 ordinary source definitions and OIDC/unknown/
+  case-sensitive/prototype-like probes. All matched.
+- Recomputed the importer's classification hash for the real source in both modules:
+  `e2d88c4fa606f54a84619f75bb29644cd55dbde73e58bcbecbf7a4ace4378016` in both cases.
+  The representation-only change keeps classification version `2026-11-13.1`.
+- `npm run typecheck`: passed across all workspaces.
+- `npm test`: 14 passed, 0 failed; pretest rebuilt shared packages and the API.
+- `git diff --check`: passed. Full frontend bundles/browser acceptance were not
+  repeated for this isolated representation change; previous stage evidence remains
+  above. No migration/import was run against the local working database.
+
+Human review follow-up for issue #4: inspect FAMILY_GROUPS entries as category plus
+family arrays, confirm FAMILY_CATEGORIES directly maps entries without whitespace
+parsing, and check mapping/output/hash equivalence above. Existing stage checklist
+still applies; this follow-up does not add deployment or next-stage authorization.
