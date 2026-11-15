@@ -1,4 +1,4 @@
-/** Editorial navigation taxonomy; never used to infer authorization or API support. */
+/** permission 的目录导航分类表和分类函数；这些分类不代表授权要求或 API 支持情况。 */
 export const CLASSIFICATION_VERSION = '2026-11-13.1';
 
 export const CATEGORIES = [
@@ -21,7 +21,7 @@ export const CATEGORIES = [
   { category: 'uncategorized', displayName: 'Uncategorized', description: 'Unknown families or permissions with insufficient evidence for a product assignment.' },
 ];
 
-// Exact values win over family rules, including cross-product families such as RoleManagement.
+// 完整 permission value 优先于 family 规则，用于处理 RoleManagement 等跨产品 family。
 const EXACT_CATEGORIES: ReadonlyMap<string, string> = new Map([
   ['Group.ManageProtection.All', 'security-compliance'],
   ['RoleManagement.Read.All', 'platform'],
@@ -33,9 +33,9 @@ const EXACT_CATEGORIES: ReadonlyMap<string, string> = new Map([
   ['RoleManagement.ReadWrite.Exchange', 'exchange'],
 ]);
 
-// Each token is the complete, case-sensitive first segment, not a startsWith pattern.
-// Lists deliberately enumerate observed families so a future similarly named family
-// cannot silently inherit a category. Evidence and conservative exclusions: docs/classification.md.
+// 每个 family 都是区分大小写的完整首段，不使用 startsWith 前缀匹配。
+// 显式列出已观察到的 family，避免将来名称相似的 family 自动继承分类。
+// 分类依据及保守排除项见 docs/classification.md。
 const FAMILY_GROUPS: ReadonlyArray<readonly [category: string, families: readonly string[]]> = [
   ['entra', [
     'APIConnectors',
@@ -416,8 +416,10 @@ const FAMILY_CATEGORIES: ReadonlyMap<string, string> = new Map(
 );
 const OPENID_VALUES: ReadonlySet<string> = new Set(['openid', 'profile', 'email', 'offline_access']);
 
+/** permission value 到 category、family 的分类函数；优先识别 OpenID 和精确名称，未知项归入 Uncategorized。 */
 export function classifyPermission(value: string): { category: string; family: string } {
   if (OPENID_VALUES.has(value)) return { category: 'openid', family: 'OpenID permissions' };
+  // family 取 permission value 的第一个点号之前的部分。
   const family = value.split('.')[0] ?? value;
   return {
     category: EXACT_CATEGORIES.get(value) ?? FAMILY_CATEGORIES.get(family) ?? 'uncategorized',

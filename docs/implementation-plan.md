@@ -214,3 +214,55 @@ Human review follow-up for issue #4: inspect FAMILY_GROUPS entries as category p
 family arrays, confirm FAMILY_CATEGORIES directly maps entries without whitespace
 parsing, and check mapping/output/hash equivalence above. Existing stage checklist
 still applies; this follow-up does not add deployment or next-stage authorization.
+
+## 中文源码注释要求更新（2026-11-16）
+
+本次为阶段 2 的注释维护，沿用当前阶段分支，不启动 #5。已为 22 个手写
+程序源码文件补充面向初学者的中文 TSDoc/JSDoc，涵盖 API 模块、实体、迁移、
+导入/查询服务、契约、client、UI、两个宿主入口及工具脚本。每个文件说明用途，
+类、接口、函数和方法说明职责，关键逻辑说明规则或边界。Graph 领域词
+resource、Application、Delegated、permission、scope、appRole、admin consent、
+RSC、family 等保留英文。配置（含环境配置源码）、测试/夹具、编译产物和
+HTML 等静态文件未修改。产品文本、契约和运行逻辑保持原样。
+
+已将新要求写入 AGENTS.md，并直接替换后续 issue
+[#5](https://github.com/VigilanteWang/graphpermlist/issues/5) 与
+[#6](https://github.com/VigilanteWang/graphpermlist/issues/6) 的原有“中文源码注释要求”
+段落，保留原有阶段范围和新对话入口；写入后重新读取，两份正文均与预期一致。
+
+验证环境为 Node 22.16.0 / npm 10.9.2：
+
+- 使用 TypeScript parser 与 removeComments printer 对比 HEAD 和工作区，
+  22 个源码文件去注释后的输出完全相同；77 处类、接口、函数及方法声明均有中文
+  TSDoc/JSDoc，并人工复核具名箭头函数及关键逻辑说明。
+- `node --check scripts/permissions-source.cjs`、
+  `node --check scripts/verify-data.mjs`、
+  `node --check scripts/check-boundaries.mjs` 通过。
+- `npm run typecheck`：全部 workspace 和测试类型检查通过。
+- `npm test`：14 项通过，0 失败（含 pretest 的共享包与 API 编译）。
+- `git diff --check` 通过。没有新增依赖，未改 manifests 或 lockfile。
+
+本次仅修改源码注释与维护文档，因此未重复安装依赖、执行本地数据库迁移/导入、
+完整双宿主打包或浏览器验收；不增加任何 SharePoint 运行验收结论。
+交接检查：对照 AGENTS.md 检查声明用途、关键逻辑和英文术语保留，确认排除文件
+未被修改；可运行上述命令复核。变更保留在当前工作区供审阅，本次未提交或推送，
+未合并、关闭 issue、部署或启动下一阶段。
+
+后续注释反馈（2026-11-16）：调整 `packages/contracts/src/index.ts` 的全部
+18 个接口和类型说明，先描述其代表的数据、结构或取值，再按需说明用途和规则。
+保留 Graph 英文术语。使用 TypeScript parser 和 removeComments printer 与本次
+修改前内容对比，去注释后的代码完全一致；18 个声明均有中文 TSDoc，
+`git diff --check` 通过。此次仅调整注释措辞，未重复运行应用测试；变更仍待审阅，
+未提交或推送。
+
+全量注释复核（2026-11-16）：检查本次对话修改的全部 22 个源码文件，将
+90 处文件、类、接口、函数及方法说明调整为先讲“是什么”，再按需补充职责、
+规则或边界。contracts 中已有的数据结构说明予以保留；关键逻辑行注释继续解释
+规则和原因，不强制改成名词说明。AGENTS.md 及后续 #5、#6 的旧规则已同步替换，
+两个 issue 写入后回读一致。
+
+验证：以本轮修改前快照和 Git HEAD 分别为基准，使用 TypeScript parser 与
+removeComments printer 对比，22 个文件的去注释输出均完全一致且无解析错误；
+80 处类、接口、类型、函数和方法声明均具备中文 TSDoc/JSDoc（包含 3 个类型别名），
+并人工复核声明语义及具名箭头函数。`git diff --check` 通过。仅注释和文档措辞
+变化，未重复应用测试、构建或数据库操作；无新增运行验收结论，仍未提交或推送。
