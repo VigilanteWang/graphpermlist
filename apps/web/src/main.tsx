@@ -9,4 +9,7 @@ const client = createCatalogClient(import.meta.env.VITE_API_BASE_URL || 'http://
 const root = document.getElementById('root');
 // 页面必须提供 React 挂载容器，否则明确报告启动错误。
 if (!root) throw new Error('Missing root element');
-createRoot(root).render(<ExplorerShell client={client} hostLabel="Standalone website" />);
+const reactRoot = createRoot(root);
+reactRoot.render(<ExplorerShell client={client} hostLabel="Standalone website" />);
+// Vite 热更新替换入口时卸载 React，让组件取消请求并断开 ResizeObserver。
+if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());

@@ -6,14 +6,14 @@ The latest issue body is authoritative. This plan records implementation evidenc
 ## Stages and workflow
 
 1. [#3 Foundation](https://github.com/VigilanteWang/graphpermlist/issues/3): merged via [PR #7](https://github.com/VigilanteWang/graphpermlist/pull/7) into main at `81682a9`; code and baseline reverified before #4.
-2. [#4 Data and API](https://github.com/VigilanteWang/graphpermlist/issues/4): implemented and locally verified on `codex/phase-2-catalog-api`; publication recorded in the handoff below.
-3. [#5 Shared UI](https://github.com/VigilanteWang/graphpermlist/issues/5): not started.
+2. [#4 Data and API](https://github.com/VigilanteWang/graphpermlist/issues/4): merged via PR #8 at `b13d5c9`; #3/#4 closed on explicit user authorization when starting #5.
+3. [#5 Shared UI](https://github.com/VigilanteWang/graphpermlist/issues/5): implemented and locally verified on `codex/phase-3-permissions-ui`; stage 3 handoff below.
 4. [#6 Review and delivery](https://github.com/VigilanteWang/graphpermlist/issues/6): not started.
 
 Option A: independent stage PRs against updated main. Stage 1 has no predecessor.
 Initial checkout had only LICENSE at `475693b`; no existing plan/AGENTS or PR.
 The untracked source export is preserved and ignored; sanitized input is versioned under data/.
-Do not merge, close issues, deploy or automatically begin #5.
+Do not merge, close current/parent issues, deploy or automatically begin #6.
 
 ## Human review at every stage completion
 
@@ -294,3 +294,46 @@ CommonJS，共享包保持 ESM，SPFx 保留官方 rig。安装、数据校验�
 `git diff --check`，均通过；完整构建、
 浏览器、安装及隔离数据库验证沿用上方本次配置维护的验证记录，不重复声明新结果。
 保留正式版本优化重复快照存储的后续需求。未经授权不合并、关闭 issue 或部署。
+
+
+## Stage 3 implementation and handoff — 2026-11-17
+
+Started after live GitHub confirmed #7/#8 merged and fetch confirmed clean
+main/origin/main `b13d5c94887061f57e14c165fbc37cff45a57663`. Reused the only clean
+checkout and created new `codex/phase-3-permissions-ui`; no old branch or user edits
+were reused. Read current #2/#5, AGENTS.md and this plan before implementation.
+At the user's explicit request, closed completed #3/#4 and checked their stage entries
+in #2; #5/#2 remain open. This does not certify deferred SharePoint runtime acceptance.
+
+Delivered the complete English shared Fluent UI catalog, real API search/filters/counts,
+family DataGrid and all-definition modal details, Clipboard fallback, navigation/search
+state restoration, cancellation/obsolete-response isolation, container layout and reduced
+motion. Both adapters use the same component/client; SPFx has cached client, one root,
+disposal and light/dark theme integration. Added the local HTTPS API proxy/guide.
+No permissions data, API contract, classification or production database was changed.
+
+Actual final checks: clean `npm ci` using a disposable cache, `npm run verify:data`,
+`npm run typecheck`, `npm test` (14 pass), `npm run build` (Vite/SPFx package included),
+`npm run check:react`, `npm run test:browser` (18 Chromium pass), HTTPS utility syntax,
+`git diff --check`. Disposable-file CLI migration/import/reimport and real HTTP through
+TLS proxy passed certificate verification, GET/CORS, OPTIONS and rejected-write checks.
+Full commands, sanitized logs, screenshots, independent review corrections and limits:
+[stage 3 verification](verification/phase-3.md).
+
+Chinese source-comment acceptance: 6 source files, 28/28 named declarations with Chinese
+TSDoc/JSDoc plus module headers; manually checked scope, “what it is” first, key rules,
+English domain terminology and accuracy. Configuration/tests/fixtures/generated/static
+files excluded by purpose. Product/API/official text remains English.
+
+SPFx production build/package succeeds; **SharePoint page runtime remains unverified**.
+No tenant/test deployment authority was available. Actual same-data host comparisons,
+SharePoint package load/lifecycle/theme contrast/style isolation/narrow columns require
+the authorized test environment. Other browser versions/platforms and hosted CI are
+unverified. The Vite >500 kB advisory and upstream tooling deprecations are non-fatal.
+No Azure, tenant or production deployment and no merge were performed.
+
+Human handoff: [review checklist](verification/phase-3-human-review.md) must also be
+published as a comment on #5 before stopping, with the stage PR and durable evidence.
+Publication and commit identifiers are recorded below after push. Review the independent
+stage PR, request any fixes on this same branch, and merge only with user authorization.
+After merge, verify main and wait for the user to start #6; do not start it automatically.

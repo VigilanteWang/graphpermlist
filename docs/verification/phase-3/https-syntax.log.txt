@@ -1,0 +1,3 @@
+$ node --check scripts/serve-api-https.mjs
+
+Exit: 0
