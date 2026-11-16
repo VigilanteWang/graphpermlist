@@ -111,3 +111,46 @@ belongs to #5. Browser tests start a migrated, unimported :memory: database expl
 No SQL Server runtime, cross-process concurrent-writer success, history pruning,
 hosted CI, other platforms, live Graph collection or tenant authorization behavior
 is claimed. No issue was closed, PR merged or deployment performed.
+
+## TypeScript configuration follow-up — 2026-11-16
+
+Applied on the existing stage 2 branch under Node 22.16.0 / npm 10.9.2 /
+TypeScript 5.8.3. See the [maintained configuration baseline](../../README.md#typescript-与浏览器兼容基线).
+The root config no longer selects one module system for every host. API and typed
+fixtures use NodeNext; API explicitly retains CommonJS. Shared packages use NodeNext
+with `type: module` and retain ES2020 output. Web uses ESNext/Bundler, ES2022 target
+and its existing ES2020/DOM libraries, with Vite's previous browser targets made
+explicit. SPFx's official rig and its additional CommonJS output are unchanged.
+No dependencies, lockfile, application source, API contracts or production data changed.
+
+| Executed check | Result |
+| --- | --- |
+| `npm ci` | Passed; lockfile accepted, 1,424 packages installed |
+| `npm run verify:data` | Passed; source digest and 788/876/60 collection counts preserved |
+| `npm run typecheck` | Passed; all workspaces and typed fixtures |
+| `npm test` | 14 passed, 0 failed; includes Node ESM client loading, HTTP, CLI and transactional tests |
+| `npm run build` | Shared/API/Vite/SPFx production build, lint and solution packaging passed |
+| `npm run check:react` | Passed; shared boundaries and React 18.3.1 externals preserved |
+| `npm run test:browser` | 2 Chromium tests passed against real Nest/Vite; narrow layout and error/retry |
+| `git diff --check` | Passed |
+
+Additional smoke used an automatically removed temporary SQLite file: executed
+`npm run db:migrate`, then `npm run import:data` twice. The first import wrote
+1,664 definitions; the second returned `reused:true`. Started the real
+`node apps/api/dist/main.js` entry against that database on an available loopback
+port, then verified health, `dataState:ready`, 1,660 visible definitions and
+1,664 definitions / 1,036 merged names with disabled entries included. The process
+was stopped and temporary files removed; the working database was not changed.
+Parsed effective configs and inspected emitted code: API retains `require`, shared
+client retains ESM exports, and API contract type imports are erased. An independent
+read-only review found no actionable defects. No new program source needed comment changes.
+
+The first browser attempt was blocked before assertions by the execution sandbox's
+macOS Mach port restriction; rerunning with permission to launch Chromium passed.
+SPFx's Jest phase has no test suites; package success is not SharePoint runtime proof.
+Chrome 107/Edge 107/Firefox 104/Safari 16 are configured targets, not tested versions.
+Stage #5 must verify the full shared UI and both hosts, including actual authorized
+SharePoint execution. Stage #6 must repeat clean-install and end-to-end acceptance
+from the merged baseline and keep unavailable host/browser coverage explicit.
+Publication is authorized on the existing stage branch for PR #8; see the plan's
+publication follow-up. No merge, issue closure or deployment is authorized.

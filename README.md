@@ -111,3 +111,21 @@ npm run build
 ```
 
 独立网站输出到 `apps/web/dist/`，SharePoint 包输出到 `apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg`。构建不会自动部署；在 SharePoint 中运行还需要部署到 App Catalog，并为 Web Part 配置可访问的 HTTPS API 地址和对应 CORS 来源。
+
+## TypeScript 与浏览器兼容基线
+
+根 `tsconfig.base.json` 提供通用类型检查选项和 ES2020 语法基线；模块规则由各 workspace 明确选择，SPFx 单独继承官方 rig。
+
+| 范围 | module / moduleResolution | target | 实际模块格式 |
+| --- | --- | --- | --- |
+| API | NodeNext / NodeNext | ES2020 | `apps/api/package.json` 显式 `type: commonjs`，输出 CommonJS，由 Node 直接执行 |
+| contracts、api-client、ui | NodeNext / NodeNext | ES2020 | 各包保留 `type: module`，输出 ESM 与类型声明 |
+| Web | ESNext / Bundler | ES2022 | TypeScript 只检查类型，Vite 构建浏览器产物 |
+| 测试夹具 | NodeNext / NodeNext | ES2020 | 只做类型检查，不输出代码 |
+| SPFx | ESNext / node（官方 rig） | ES5 | Heft 额外输出 CommonJS，Webpack 负责打包 |
+
+Web 在 `vite.config.ts` 显式保留 Chrome 107、Edge 107、Firefox 104、Safari 16 的构建目标；这与 TypeScript 的 ES2022 target 分开管理。Web 的 `lib` 仍为 ES2020 / DOM，避免仅因提高语法目标而开放更多内置 API 类型。`lib` 不提供 polyfill，构建目标也不等于对应浏览器已经完成实测。
+
+共享包使用 NodeNext 检查模块加载规则，以兼容 Node ESM 测试及 Vite/Webpack 消费；新增相对运行时导入时使用输出对应的 `.js` 扩展名。API 对 contracts 使用 type-only imports，不产生运行时 ESM 依赖。不要把 `NodeNext` 等同于 ESM 迁移，也不要直接修改 `node_modules` 中的 SPFx 配置。
+
+后续 #5/#6 应保留这组宿主边界，新增共享代码时分别验证 Node、Vite 和 SPFx 消费；真实 SharePoint、目标浏览器版本和完整 UI 的验收仍需单列。配置修改的实际验证结果见[阶段 2 验证补充](docs/verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。

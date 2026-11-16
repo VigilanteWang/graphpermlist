@@ -266,3 +266,31 @@ removeComments printer 对比，22 个文件的去注释输出均完全一致且
 80 处类、接口、类型、函数和方法声明均具备中文 TSDoc/JSDoc（包含 3 个类型别名），
 并人工复核声明语义及具名箭头函数。`git diff --check` 通过。仅注释和文档措辞
 变化，未重复应用测试、构建或数据库操作；无新增运行验收结论，仍未提交或推送。
+
+导入设计说明与后续优化记录（2026-11-16）：核对 `catalog-cli.ts`，当前 CLI
+一次调用只导入一个配置文件、调用一次 `importFile()`；服务内队列用于同实例
+重叠调用时避免事务冲突，不是多文件批处理，也不协调独立 CLI 进程。现有测试
+`tests/catalog.test.mjs` 包含同实例两个并发调用。此次只读核对，未修改导入逻辑。
+按用户要求在 [issue #4 评论](https://github.com/VigilanteWang/graphpermlist/issues/4#issuecomment-6912792842)
+记录正式版本需优化整版快照造成的重复保存及历史数据增长，评估定义复用、增量
+存储和历史保留/清理策略，保持事务发布、失败回滚及来源追溯。本次仅记录后续
+需求，不提前实施；文档执行 `git diff --check`，无需重复运行应用测试。
+
+模块配置维护（2026-11-16）：已按宿主明确 NodeNext / Bundler 规则，API 保持
+CommonJS，共享包保持 ESM，SPFx 保留官方 rig。安装、数据校验、类型检查、
+14 项测试、完整构建/打包、React 边界及 2 项浏览器测试均通过；隔离数据库的
+迁移、两次导入和 HTTP 启动通过。最终基线见 [README](../README.md#typescript-与浏览器兼容基线)，
+命令、限制和后续 #5/#6 验收见[验证补充](verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。
+后续基线和待验项已同步到 [#5](https://github.com/VigilanteWang/graphpermlist/issues/5)
+及 [#6](https://github.com/VigilanteWang/graphpermlist/issues/6)，写入后回读一致。
+已移除本次调查记录，仅保留实施交接；后续发布授权与操作见下文，未启动后续阶段。
+
+提交与 PR 更新（2026-11-16）：用户授权提交当前改动并写入现有 PR。确认中文
+源码注释已包含于 `400b493`，远端 PR #8 已包含该提交；当前 12 个待提交文件为
+模块配置及对应文档。沿用 `codex/phase-2-catalog-api`，提交说明为
+`build: align TypeScript module settings with each host`，推送至同名 origin 分支，
+在 [PR #8](https://github.com/VigilanteWang/graphpermlist/pull/8) 正文和评论记录更新。
+发布前再次运行 `npm run typecheck`、`npm test`（14 通过，0 失败）和
+`git diff --check`，均通过；完整构建、
+浏览器、安装及隔离数据库验证沿用上方本次配置维护的验证记录，不重复声明新结果。
+保留正式版本优化重复快照存储的后续需求。未经授权不合并、关闭 issue 或部署。
