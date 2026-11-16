@@ -107,6 +107,10 @@ host dark/light/theme contrast, neighboring Web Parts and narrow SharePoint colu
 require the explicit tenant checklist. No Firefox/Safari/Edge version, other platform,
 hosted CI, assistive-technology certification or tenant consent behavior is claimed.
 
-Use the [human-review checklist](phase-3-human-review.md) and stage PR for acceptance.
+Implementation: [`f6c8074`](https://github.com/VigilanteWang/graphpermlist/commit/f6c807494fa88e940eefaa6ba62df47054fe9db8),
+[PR #9](https://github.com/VigilanteWang/graphpermlist/pull/9) against main.
+Use the [human-review checklist](phase-3-human-review.md), also published in
+[issue #5](https://github.com/VigilanteWang/graphpermlist/issues/5#issuecomment-6922262201),
+and the stage PR for acceptance.
 Review/merge is a separate user decision. Keep #5 and #2 open; do not start #6 until
 this PR merges and the user explicitly starts that stage.

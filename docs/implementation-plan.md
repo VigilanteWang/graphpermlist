@@ -332,8 +332,17 @@ the authorized test environment. Other browser versions/platforms and hosted CI 
 unverified. The Vite >500 kB advisory and upstream tooling deprecations are non-fatal.
 No Azure, tenant or production deployment and no merge were performed.
 
-Human handoff: [review checklist](verification/phase-3-human-review.md) must also be
-published as a comment on #5 before stopping, with the stage PR and durable evidence.
-Publication and commit identifiers are recorded below after push. Review the independent
-stage PR, request any fixes on this same branch, and merge only with user authorization.
+Implementation commit: [`f6c8074`](https://github.com/VigilanteWang/graphpermlist/commit/f6c807494fa88e940eefaa6ba62df47054fe9db8).
+Independent [PR #9](https://github.com/VigilanteWang/graphpermlist/pull/9), base main,
+head `codex/phase-3-permissions-ui`. Created Draft; this documentation-only handoff is
+pushed before marking Ready for review. Consult the live PR for current state.
+The implementation commit is covered by the final checks above; this follow-up changes
+only publication records, so runtime checks are not repeated.
+
+Human handoff: [review checklist](verification/phase-3-human-review.md) published in
+[issue #5 comment](https://github.com/VigilanteWang/graphpermlist/issues/5#issuecomment-6922262201),
+including exact setup/UI steps, expected results and the unresolved SharePoint scope.
+The issue's local verification items are checked; actual SharePoint/same-data comparison
+remains unchecked. Review this PR, request fixes on the same branch, and merge only
+with user authorization.
 After merge, verify main and wait for the user to start #6; do not start it automatically.
