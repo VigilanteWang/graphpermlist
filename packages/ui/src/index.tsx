@@ -1,3 +1,4 @@
+/** 独立网站与 SharePoint 共用的目录连接界面模块。 */
 import * as React from 'react';
 import {
   FluentProvider, webLightTheme, makeStyles, tokens,
@@ -6,6 +7,7 @@ import {
 import type { CatalogClient } from '@graph/api-client';
 import type { ResourcesResponse } from '@graph/contracts';
 
+// 样式只通过组件生成的类名生效；窄容器中改为单列布局。
 const useStyles = makeStyles({
   root: { boxSizing: 'border-box', minWidth: '0', width: '100%', padding: tokens.spacingHorizontalL, borderRadius: tokens.borderRadiusLarge, backgroundColor: tokens.colorNeutralBackground1, color: tokens.colorNeutralForeground1 },
   layout: { display: 'grid', gap: tokens.spacingVerticalL, gridTemplateColumns: 'minmax(0, 160px) minmax(0, 1fr)', '@media (max-width: 560px)': { gridTemplateColumns: 'minmax(0, 1fr)' } },
@@ -14,20 +16,24 @@ const useStyles = makeStyles({
   heading: { margin: '0' },
   notice: { padding: tokens.spacingHorizontalM, backgroundColor: tokens.colorNeutralBackground2, borderRadius: tokens.borderRadiusMedium }
 });
+/** 目录连接组件的属性接口，包含宿主提供的客户端和显示名称。 */
 export interface ExplorerShellProps { client: CatalogClient; hostLabel: string; }
 
-/** Stage 1 connectivity shell shared unchanged by Vite and SPFx. No fixture data. */
+/** 阶段 1 的目录连接 React 组件，展示两个宿主共用的骨架及 API 加载、空数据和错误状态。 */
 export function ExplorerShell({ client, hostLabel }: ExplorerShellProps): React.ReactElement {
   const styles = useStyles();
   const [response, setResponse] = React.useState<ResourcesResponse>();
   const [error, setError] = React.useState<string>();
   const [attempt, setAttempt] = React.useState(0);
+  // 首次加载、客户端变化或点击 Retry 时重新请求。
   React.useEffect(() => {
     const abort = new AbortController();
     setResponse(undefined); setError(undefined);
     client.resources(abort.signal).then(setResponse).catch((err: unknown) => {
+      // 主动取消不代表 API 出错，避免组件卸载后显示错误。
       if (!abort.signal.aborted) setError(err instanceof Error ? err.message : 'Catalog API is unavailable');
     });
+    // 卸载或重新请求前取消旧请求，防止过期结果继续更新界面。
     return () => abort.abort();
   }, [client, attempt]);
   return <FluentProvider theme={webLightTheme} className={styles.root}>

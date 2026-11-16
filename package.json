@@ -25,7 +25,9 @@
     "dev:web": "npm run dev -w @graph/web",
     "dev:spfx": "npm run start -w @graph/spfx",
     "test:browser": "playwright test",
-    "check:react": "node scripts/check-boundaries.mjs"
+    "check:react": "node scripts/check-boundaries.mjs",
+    "db:migrate": "node apps/api/dist/catalog-cli.js migrate",
+    "import:data": "node apps/api/dist/catalog-cli.js import"
   },
   "devDependencies": {
     "typescript": "5.8.3",

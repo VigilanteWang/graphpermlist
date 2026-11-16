@@ -1,0 +1,43 @@
+
+> graph-permissions-explorer@0.1.0 typecheck
+> npm run build:shared && npm run typecheck --workspaces --if-present && tsc -p tsconfig.tests.json
+
+
+> graph-permissions-explorer@0.1.0 build:shared
+> npm run build -w @graph/contracts && npm run build -w @graph/api-client && npm run build -w @graph/ui
+
+
+> @graph/contracts@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @graph/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @graph/ui@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @graph/api-client@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @graph/contracts@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @graph/ui@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @graph/api@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @graph/spfx@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @graph/web@0.1.0 typecheck
+> tsc --noEmit

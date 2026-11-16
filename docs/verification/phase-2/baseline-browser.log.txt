@@ -1,0 +1,17 @@
+
+> graph-permissions-explorer@0.1.0 test:browser
+> playwright test
+
+[WebServer] (node:21870) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:21885) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21885) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/shell.spec.ts:2:5 › Vite renders the shared shell against real Nest and fits a narrow container (618ms)
+  ✓  2 tests/browser/shell.spec.ts:14:5 › API errors remain distinct and can be retried (535ms)
+
+  2 passed (3.0s)

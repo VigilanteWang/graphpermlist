@@ -19,11 +19,12 @@ graphpermlist/
 │   ├── api/                              NestJS 后端
 │   │   ├── src/
 │   │   │   ├── main.ts                   启动 HTTP 服务
+│   │   │   ├── catalog-cli.ts            离线迁移与数据导入
 │   │   │   ├── app.module.ts             组装应用模块
 │   │   │   ├── bootstrap.ts              API 前缀、参数校验和 CORS
 │   │   │   ├── configuration.ts          环境变量读取与校验
-│   │   │   ├── catalog/                  目录路由、业务服务和查询参数 DTO
-│   │   │   └── database/                 TypeORM / SQLite 连接配置
+│   │   │   ├── catalog/                  目录路由、实体、分类、导入和查询服务
+│   │   │   └── database/                 TypeORM / SQLite 配置与版本化迁移
 │   │   └── tsconfig.json                 后端 TypeScript 配置
 │   ├── web/                              Vite 独立网站
 │   │   ├── src/main.tsx                  创建 React 根节点，加载共享界面
@@ -50,6 +51,8 @@ graphpermlist/
 │   └── README.md                         数据来源、字段说明和校验值
 ├── docs/
 │   ├── api-contract.md                   API 请求、响应及错误语义
+│   ├── catalog-operations.md             迁移、导入与 API 示例
+│   ├── classification.md                 分类规则、依据和未分类项
 │   ├── implementation-plan.md            实施计划与交接说明
 │   └── verification/                     验证记录与截图
 ├── scripts/
@@ -79,6 +82,8 @@ npm ci
 npm run verify:data
 npm run build:shared
 npm run build:api
+npm run db:migrate
+npm run import:data
 ```
 
 **终端 1：启动后端，保持运行。**
@@ -93,7 +98,7 @@ npm run start:api
 npm run dev:web
 ```
 
-打开 [http://localhost:5173](http://localhost:5173)。页面显示 **No catalog imported yet.** 表示已连接 API，但没有已导入的目录。启动命令不会自动导入 JSON；当前不提供完整权限列表、搜索和详情浏览。
+打开 [http://localhost:5173](http://localhost:5173)。导入成功后页面显示 **Catalog connected: 1 resource(s).**。当前界面仍是连接骨架；权限分类、搜索和详情已通过四个只读 API 提供，完整浏览界面将在后续阶段实现。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。
 
 后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
@@ -106,3 +111,21 @@ npm run build
 ```
 
 独立网站输出到 `apps/web/dist/`，SharePoint 包输出到 `apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg`。构建不会自动部署；在 SharePoint 中运行还需要部署到 App Catalog，并为 Web Part 配置可访问的 HTTPS API 地址和对应 CORS 来源。
+
+## TypeScript 与浏览器兼容基线
+
+根 `tsconfig.base.json` 提供通用类型检查选项和 ES2020 语法基线；模块规则由各 workspace 明确选择，SPFx 单独继承官方 rig。
+
+| 范围 | module / moduleResolution | target | 实际模块格式 |
+| --- | --- | --- | --- |
+| API | NodeNext / NodeNext | ES2020 | `apps/api/package.json` 显式 `type: commonjs`，输出 CommonJS，由 Node 直接执行 |
+| contracts、api-client、ui | NodeNext / NodeNext | ES2020 | 各包保留 `type: module`，输出 ESM 与类型声明 |
+| Web | ESNext / Bundler | ES2022 | TypeScript 只检查类型，Vite 构建浏览器产物 |
+| 测试夹具 | NodeNext / NodeNext | ES2020 | 只做类型检查，不输出代码 |
+| SPFx | ESNext / node（官方 rig） | ES5 | Heft 额外输出 CommonJS，Webpack 负责打包 |
+
+Web 在 `vite.config.ts` 显式保留 Chrome 107、Edge 107、Firefox 104、Safari 16 的构建目标；这与 TypeScript 的 ES2022 target 分开管理。Web 的 `lib` 仍为 ES2020 / DOM，避免仅因提高语法目标而开放更多内置 API 类型。`lib` 不提供 polyfill，构建目标也不等于对应浏览器已经完成实测。
+
+共享包使用 NodeNext 检查模块加载规则，以兼容 Node ESM 测试及 Vite/Webpack 消费；新增相对运行时导入时使用输出对应的 `.js` 扩展名。API 对 contracts 使用 type-only imports，不产生运行时 ESM 依赖。不要把 `NodeNext` 等同于 ESM 迁移，也不要直接修改 `node_modules` 中的 SPFx 配置。
+
+后续 #5/#6 应保留这组宿主边界，新增共享代码时分别验证 Node、Vite 和 SPFx 消费；真实 SharePoint、目标浏览器版本和完整 UI 的验收仍需单列。配置修改的实际验证结果见[阶段 2 验证补充](docs/verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。

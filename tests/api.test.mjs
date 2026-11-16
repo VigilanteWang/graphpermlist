@@ -14,7 +14,7 @@ const { validateSync } = require('class-validator');
 
 const graph = '00000003-0000-0000-c000-000000000000';
 
-test('Nest resolves modules and real SQLite driver; four catalog routes honor foundation state', async () => {
+test('Nest resolves modules and real SQLite driver; four catalog routes honor unimported state after explicit migration', async () => {
   const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = module.createNestApplication({ logger: false });
   configureApp(app);
@@ -24,6 +24,8 @@ test('Nest resolves modules and real SQLite driver; four catalog routes honor fo
     assert.equal(app.get(DataSource).options.synchronize, false);
     assert.deepEqual(await app.get(DataSource).query('SELECT 1 AS loaded'), [{ loaded: 1 }]);
     assert.deepEqual(await app.get(DataSource).query("SELECT name FROM sqlite_master WHERE type='table'"), []);
+    await app.get(DataSource).runMigrations();
+    assert.deepEqual(await app.get(DataSource).runMigrations(), [], 'migration is repeatable');
     const health = await fetch(`${base}/api/v1/health`);
     assert.equal(health.status, 200);
     const response = await fetch(`${base}/api/v1/resources`, { headers: { Origin: 'http://localhost:5173' } });

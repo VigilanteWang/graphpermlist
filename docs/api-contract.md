@@ -1,8 +1,9 @@
 # Read-only API v1 contract
 
-Stage 1 fixes this wire contract for #4/#5. Types: packages/contracts/src/index.ts.
-The stage 1 server exposes an empty, **not imported** state. No catalog fixtures are
-served. Data import, filtering, grouping and detail queries are implemented in #4.
+Implemented in #4. Types: packages/contracts/src/index.ts.
+Migrate, import and start using [catalog operations](catalog-operations.md).
+A migrated database without an import exposes **not imported** state. No catalog
+fixtures are served. Classification and active snapshot data are persisted at import.
 
 ## Routes
 
@@ -10,12 +11,12 @@ Base URL includes `/api/v1`. `resourceId` is the resource **App ID**, not the ex
 service principal Object ID. A malformed UUID returns 400; unknown/unimported resource 404.
 The path permission value is case-sensitive and URL encoded as one path segment.
 
-| GET path | Response type | Stage 1 behavior |
+| GET path | Response type | Behavior |
 | --- | --- | --- |
-| `/resources` | ResourcesResponse | 200, items=[], dataState=not-imported, source=null |
-| `/resources/{resourceId}/categories` | CategoriesResponse | Validated query then 404 (no imported resource) |
-| `/resources/{resourceId}/permissions` | PermissionsResponse | Validated query then 404 |
-| `/resources/{resourceId}/permissions/{permissionValue}` | PermissionDetailResponse | Validated query then 404 |
+| `/resources` | ResourcesResponse | Imported resource summaries; otherwise items=[], dataState=not-imported, source=null |
+| `/resources/{resourceId}/categories` | CategoriesResponse | Filtered category counts; unknown/unimported resource 404 |
+| `/resources/{resourceId}/permissions` | PermissionsResponse | Filtered merged rows; unknown/unimported resource 404 |
+| `/resources/{resourceId}/permissions/{permissionValue}` | PermissionDetailResponse | Visible item plus all definitions; unknown/hidden value 404 |
 
 `GET /health` under the same prefix is an additional startup probe, not a fifth catalog API.
 No credential is sent by the shared client; browser CORS origins are explicitly configured.
@@ -57,13 +58,14 @@ RSC is excluded, never mapped into ordinary Application.
 
 Every successful response carries `dataState` and `source`. `not-imported` means no
 successful import and source=null. `ready` means an active import exists even if filtering
-returns zero rows. `source` contains safe source filename (no absolute path), SHA256,
+returns zero rows. `source` contains logical source filename `commercial-graph-permlist.json` (no operator filename/path), SHA256,
 ISO 8601 UTC import time, classification version and excluded RSC count.
 
 `permissionCount` counts merged names; `definitionCount` counts matching definitions.
 Resource counts use default filters. Categories/list aggregate and category item counts
 use the exact current filter; empty categories are omitted. Details retain all type status
-separately. Counts are never inferred by adding label counts or hardcoded snapshot totals.
+separately. Distinct GUIDs sharing a value, including within one permission type,
+remain distinct definitions in the merged row; visibleTypes contains no duplicates. Counts are never inferred by adding label counts or hardcoded snapshot totals.
 
 Examples (illustrative, not live catalog responses):
 
