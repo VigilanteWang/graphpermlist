@@ -382,7 +382,12 @@ Verification under Node 22.16.0/npm 10.9.2:
 
 No dependency/data changes, so no repeat install or production database migration/import.
 SharePoint actual page remains unverified; no tenant deployment, merge, issue closure
-or next-stage work was performed. Append the fix to PR #9 and publish the updated
-review steps on #5: visit Exchange once, return, select Delegated/EWS, enter again;
+or next-stage work was performed. The fix was published in PR #9 as
+[`fe0a91e`](https://github.com/VigilanteWang/graphpermlist/commit/fe0a91e66f872dee3092e7512c49f4317bc58eb6);
+the [updated #5 checklist](https://github.com/VigilanteWang/graphpermlist/issues/5#issuecomment-6938657482)
+was posted and supersedes the original query-restoration step: visit Exchange once, return, select Delegated/EWS, enter again;
 expect unchanged criteria and exactly the matching EWS result. Edit controls on level
 two and return; expect the same current criteria, with only search scope broadened.
+
+The following handoff update changes documentation only; checked `git diff --check`
+and did not repeat runtime tests. PR #9 remains Ready for review and unmerged.
