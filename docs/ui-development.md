@@ -32,8 +32,9 @@ Power BI navigation entries remain disabled Coming soon items.
 Search covers all Graph services on the category page and the selected service on its
 family page. The type/admin consent/family/Show disabled controls share the API query.
 Search automatically opens matching families; clearing it restores the previous
-non-search expansion state. Returning to categories restores that page's query and
-focuses the card that opened the service. State persists during component navigation,
+non-search expansion state. Both levels share the current search criteria; entering a
+service only narrows the search scope. Returning to categories retains those criteria
+and focuses the card that opened the service. State persists during component navigation,
 not across browser refreshes or host disposal.
 
 Each DataGrid row uses only matching definitions. A GUID search or Delegated filter
@@ -104,8 +105,15 @@ npm run test:browser
 ```
 
 Install Playwright Chromium with `npx playwright install chromium` if needed.
-Browser tests launch real Nest with an isolated, migrated in-memory SQLite database
-and import the real versioned snapshot. They do not touch the reviewer's local database.
+When the default development ports are occupied, run tests in isolation:
+
+```sh
+CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser
+```
+
+Both the browser client and API checks use these ports; existing development services
+are not reused or stopped. Browser tests launch real Nest with an isolated, migrated
+in-memory SQLite database and import the real versioned snapshot. They do not touch the reviewer's local database.
 Only loading/failure/not-imported tests intercept responses; successful catalog, count,
 filter, detail and layout acceptance use real HTTP responses. Browser results are
 Chromium evidence, not proof of every configured target browser/version.

@@ -35,7 +35,9 @@ snapshot, not tenant authorization state.
    a manual selection field, never a false success. Check long official text.
 5. **Browsing and keyboard.** Open/collapse individual families and Expand all/Collapse
    all; search should hide non-matching groups and open matches. Clear search restores
-   the prior expansion state. Return restores the category-page query and card focus.
+   the prior expansion state. Entering/returning keeps all current criteria and restores
+   card focus on return. Revisit Exchange after selecting Delegated + EWS globally;
+   the family/type/text/admin/disabled controls must not revert to old category values.
    Type continuously without losing focus. Use Tab, Shift+Tab, grid arrow keys, Enter,
    Escape and Close; modal focus stays inside, and closing restores the permission
    trigger. Inspect visible focus and keyboard-only navigation.

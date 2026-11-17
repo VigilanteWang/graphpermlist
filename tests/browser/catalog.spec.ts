@@ -2,7 +2,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 import type { CategoriesResponse, PermissionsResponse, PermissionDetailResponse, PermissionQuery } from '../../packages/contracts/src/index.js';
 
 const resourceId = '00000003-0000-0000-c000-000000000000';
-const api = `http://127.0.0.1:3000/api/v1/resources/${resourceId}`;
+const api = `http://127.0.0.1:${Number(process.env.CATALOG_TEST_API_PORT ?? 3000)}/api/v1/resources/${resourceId}`;
 
 async function readApi<T>(request: APIRequestContext, path: string, query: PermissionQuery = {}): Promise<T> {
   const response = await request.get(`${api}/${path}`, { params: Object.fromEntries(Object.entries(query).map(([key, value]) => [key, String(value)])) });
@@ -68,7 +68,7 @@ test('category totals and global search use current real API filters', async ({ 
   await assertCounts(page, initial);
 });
 
-test('category search stays scoped, filters definitions together and returns with its state', async ({ page, request }) => {
+test('category search stays scoped, filters definitions together and shares current criteria on return', async ({ page, request }) => {
   await openGraph(page);
   await page.getByRole('textbox', { name: 'Search permissions', exact: true }).fill('Mail');
   await page.getByLabel('Permission type', { exact: true }).selectOption('Delegated');
@@ -85,16 +85,66 @@ test('category search stays scoped, filters definitions together and returns wit
   expect(delegated.items.some(row => row.value === 'Mail.Read')).toBeTruthy();
   await assertRows(page, delegated);
   await page.getByRole('button', { name: 'Back to categories', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Search permissions', exact: true })).toHaveValue('Mail');
+  await expect(page.getByRole('textbox', { name: 'Search permissions', exact: true })).toHaveValue('Mail.Read');
   await expect(page.getByLabel('Permission type', { exact: true })).toHaveValue('Delegated');
   await expect(page.getByLabel('Admin consent', { exact: true })).toHaveValue('false');
-  const global = await readApi<CategoriesResponse>(request, 'categories', { q: 'Mail', permissionType: 'Delegated', adminConsentRequired: false });
+  const global = await readApi<CategoriesResponse>(request, 'categories', { q: 'Mail.Read', permissionType: 'Delegated', adminConsentRequired: false });
   await assertCounts(page, global);
   await openCategory(page, 'Exchange');
   await page.getByRole('textbox', { name: 'Search permissions', exact: true }).fill('User.Read');
   const scoped = await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange', q: 'User.Read', permissionType: 'Delegated', adminConsentRequired: false });
   expect(scoped.items).toEqual([]);
   await assertCounts(page, scoped);
+});
+
+test('criteria stay synchronized when revisiting a category after changing all global filters', async ({ page, request }) => {
+  await openGraph(page);
+  // Seed an old Exchange view before reproducing the reported EWS navigation.
+  await openCategory(page, 'Exchange');
+  const search = page.getByRole('textbox', { name: 'Search permissions', exact: true });
+  await search.fill('Mail.Read');
+  await page.getByLabel('Permission type', { exact: true }).selectOption('Application');
+  await page.getByLabel('Admin consent', { exact: true }).selectOption('true');
+  await page.getByLabel('Permission family', { exact: true }).selectOption('Mail');
+  await page.getByRole('button', { name: 'Back to categories', exact: true }).click();
+
+  // The category card and its destination must consume identical current criteria.
+  await search.fill('');
+  await page.getByLabel('Permission type', { exact: true }).selectOption('Delegated');
+  await page.getByLabel('Admin consent', { exact: true }).selectOption('');
+  await page.getByLabel('Permission family', { exact: true }).selectOption('EWS');
+  await page.getByRole('checkbox', { name: 'Show disabled', exact: true }).check();
+  const criteria: PermissionQuery = { q: '', permissionType: 'Delegated', family: 'EWS', showDisabled: true };
+  const global = await readApi<CategoriesResponse>(request, 'categories', criteria);
+  expect(global.permissionCount).toBe(1);
+  await assertCounts(page, global);
+  await openCategory(page, 'Exchange');
+  await expect(search).toHaveValue('');
+  await expect(page.getByLabel('Permission type', { exact: true })).toHaveValue('Delegated');
+  await expect(page.getByLabel('Admin consent', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Permission family', { exact: true })).toHaveValue('EWS');
+  await expect(page.getByRole('checkbox', { name: 'Show disabled', exact: true })).toBeChecked();
+  const scoped = await readApi<PermissionsResponse>(request, 'permissions', { ...criteria, category: 'exchange' });
+  await assertRows(page, scoped);
+  await expect(page.getByRole('button', { name: /^Mail \(/ })).toHaveCount(0);
+
+  // Changes on the category page also remain current after Back and resource navigation.
+  await search.fill('EWS.AccessAsUser.All');
+  await page.getByLabel('Admin consent', { exact: true }).selectOption('false');
+  await page.getByRole('checkbox', { name: 'Show disabled', exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Back to categories', exact: true }).click();
+  await expect(search).toHaveValue('EWS.AccessAsUser.All');
+  await expect(page.getByLabel('Admin consent', { exact: true })).toHaveValue('false');
+  await expect(page.getByRole('checkbox', { name: 'Show disabled', exact: true })).not.toBeChecked();
+  const updated: PermissionQuery = { q: 'EWS.AccessAsUser.All', permissionType: 'Delegated', family: 'EWS', adminConsentRequired: false, showDisabled: false };
+  await assertCounts(page, await readApi<CategoriesResponse>(request, 'categories', updated));
+  await openCategory(page, 'Exchange');
+  await expect(search).toHaveValue('EWS.AccessAsUser.All');
+  await assertCounts(page, await readApi<PermissionsResponse>(request, 'permissions', { ...updated, category: 'exchange' }));
+  await page.getByRole('navigation', { name: 'Resources' }).getByRole('button', { name: 'Microsoft Graph', exact: true }).click();
+  await expect(search).toHaveValue('EWS.AccessAsUser.All');
+  await expect(page.getByLabel('Permission family', { exact: true })).toHaveValue('EWS');
+  await assertCounts(page, await readApi<CategoriesResponse>(request, 'categories', updated));
 });
 
 test('disabled definitions are excluded by default and become inspectable when requested', async ({ page, request }) => {
@@ -288,7 +338,8 @@ test('320/360px screens and a 320px embedded host wrap long real details without
   await expect.poll(() => drawer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBeTruthy();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await expect.poll(() => drawer.evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0);
-  await expect.poll(() => drawer.evaluate(element => Math.round(element.getBoundingClientRect().right))).toBe(320);
+  await expect(drawer).toHaveCSS('right', '0px');
+  await expect.poll(() => drawer.evaluate(element => element.getBoundingClientRect().left >= -1 && element.getBoundingClientRect().right <= innerWidth + 1)).toBe(true);
   await expect.poll(() => drawer.evaluate(element => Math.round(element.getBoundingClientRect().height))).toBe(800);
   await drawer.evaluate(element => Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished)));
   await page.screenshot({ path: 'test-results/catalog-details-narrow.png', fullPage: false });

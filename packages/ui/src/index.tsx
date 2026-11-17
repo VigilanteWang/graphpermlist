@@ -36,8 +36,8 @@ const useStyles = makeStyles({
 
 /** 目录共享组件的宿主参数，包含 HTTP client、宿主标识及可选 Fluent theme。 */
 export interface ExplorerShellProps { client: CatalogClient; hostLabel: string; theme?: Theme; themeMode?: 'light' | 'dark'; }
-/** 一个服务页面的浏览状态；搜索时的展开状态不覆盖非搜索状态。 */
-interface BrowseState { query: PermissionQuery; open: string[]; }
+/** 一个服务页面的 Accordion 浏览状态；展开项按 category 保存，不缓存搜索条件。 */
+interface BrowseState { open: string[]; }
 
 /** API 错误提示组件，允许在原位置重试失败的请求。 */
 function RequestError({ error, retry }: { error: string; retry: () => void }): React.ReactElement {
@@ -54,12 +54,14 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }:
   const [narrow, setNarrow] = React.useState(false);
   const [page, setPage] = React.useState<'home' | 'graph'>('home');
   const [category, setCategory] = React.useState<CategorySummary>();
-  const [states, setStates] = React.useState<Record<string, BrowseState>>({ all: { query: {}, open: [] } });
+  // 两级页面共享当前条件；进入或返回 category 只改变查询范围。
+  const [criteria, setCriteria] = React.useState<PermissionQuery>({});
+  const [states, setStates] = React.useState<Record<string, BrowseState>>({});
   const [searchOpen, setSearchOpen] = React.useState<string[]>([]);
   const [detail, setDetail] = React.useState<string>();
   const viewKey = category?.category ?? 'all';
-  const browse = states[viewKey] ?? { query: {}, open: [] };
-  const query = React.useMemo(() => ({ ...browse.query, category: category?.category }), [browse.query, category]);
+  const browse = states[viewKey] ?? { open: [] };
+  const query = React.useMemo(() => ({ ...criteria, category: category?.category }), [criteria, category]);
   const resourcesLoad = React.useCallback((signal: AbortSignal) => client.resources(signal), [client]);
   const resources = useCatalogRequest(resourcesLoad);
   // 固定全球云 Graph Resource App ID，不能使用来源 Service Principal Object ID。
@@ -98,15 +100,14 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }:
     categoryTrigger.current = undefined;
   }, [page, category, categories.data]);
 
-  /** 当前页面查询条件的更新函数；关闭详情以免旧行与新筛选的内容混淆。 */
+  /** 两级页面共用的搜索条件更新函数；关闭详情以免旧行与新筛选混淆。 */
   function updateQuery(patch: Partial<PermissionQuery>): void {
     setDetail(undefined);
-    setStates(previous => ({ ...previous, [viewKey]: { ...browse, query: { ...browse.query, ...patch } } }));
+    setCriteria(previous => ({ ...previous, ...patch }));
   }
-  /** category 导航入口，保留一级查询并为首次进入的 category 复制筛选条件。 */
+  /** category 导航入口，仅改变搜索范围，不恢复该 category 以前使用的条件。 */
   function openCategory(item: CategorySummary): void {
     categoryTrigger.current = item.category;
-    setStates(previous => previous[item.category] ? previous : { ...previous, [item.category]: { query: { ...browse.query }, open: [] } });
     setCategory(item);
   }
   /** 详情关闭回调，把键盘焦点交还给仍存在的 permission 按钮。 */
@@ -154,14 +155,14 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }:
         {enabled && <>
           <div className={styles.toolbar}>
             <Field label="Search permissions" hint={category ? `Search within ${category.displayName}: name, GUID, official title or consent message.` : 'Search all Microsoft Graph services: name, GUID, official title or consent message.'}>
-              <Input className={styles.search} value={browse.query.q ?? ''} onChange={(_, data) => updateQuery({ q: data.value })} placeholder="Search name, GUID or official wording" />
+              <Input className={styles.search} value={criteria.q ?? ''} onChange={(_, data) => updateQuery({ q: data.value })} placeholder="Search name, GUID or official wording" />
             </Field>
             <div className={styles.filters}>
               <Field label="Permission type"><Select value={query.permissionType ?? ''} onChange={(_, data) => updateQuery({ permissionType: (data.value || undefined) as PermissionType | undefined })}><option value="">All</option><option>Delegated</option><option>Application</option></Select></Field>
               <Field label="Admin consent"><Select value={query.adminConsentRequired === undefined ? '' : String(query.adminConsentRequired)} onChange={(_, data) => updateQuery({ adminConsentRequired: data.value === '' ? undefined : data.value === 'true' })}><option value="">All</option><option value="true">Required</option><option value="false">Not required</option></Select></Field>
               <Field label="Permission family"><Select value={query.family ?? ''} onChange={(_, data) => updateQuery({ family: data.value || undefined })}><option value="">All families</option>{families.map(family => <option key={family}>{family}</option>)}</Select></Field>
               <Checkbox label="Show disabled" checked={query.showDisabled ?? false} onChange={(_, data) => updateQuery({ showDisabled: data.checked === true })} />
-              <Button disabled={!browse.query.q} onClick={() => updateQuery({ q: '' })}>Clear search</Button>
+              <Button disabled={!criteria.q} onClick={() => updateQuery({ q: '' })}>Clear search</Button>
             </div>
           </div>
           <div key={viewKey} className={mergeClasses(styles.stack, styles.body)} data-testid="catalog-body">

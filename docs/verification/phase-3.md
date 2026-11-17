@@ -13,8 +13,7 @@ The single existing checkout was reused; no user edits or other worktrees were p
 - API matching definitions drive rows/labels; `allDefinitions` drives complete details,
   including hidden types, disabled definitions and Delegated user consent wording.
   Official titles/descriptions are never replaced with generated summaries.
-- Abort plus success/error guards isolate obsolete responses. Root and category query
-  state are separate; search expansion is temporary and clearing restores browsing.
+- Abort plus success/error guards isolate obsolete responses. Root and category levels share the current query criteria (updated in the follow-up below); search expansion is temporary and clearing restores browsing.
   Details provide loading/error/Retry, Clipboard success and manual-copy fallback.
 - Scoped styles, container-width adaptation, visible keyboard focus, modal focus
   containment, trigger/card focus restoration and reduced motion support.
@@ -114,3 +113,30 @@ Use the [human-review checklist](phase-3-human-review.md), also published in
 and the stage PR for acceptance.
 Review/merge is a separate user decision. Keep #5 and #2 open; do not start #6 until
 this PR merges and the user explicitly starts that stage.
+
+
+## Review follow-up: synchronized search criteria — 2026-11-17
+
+The reported sequence was reproduced against the pre-fix UI: visit Exchange, use
+Mail.Read/Application/Mail, return to categories, change to Delegated/EWS, then re-enter
+Exchange. The regression failed because the search field reverted to Mail.Read.
+The initial design cached query criteria per category and only copied the root query
+on the first visit, so later visits restored obsolete criteria. That behavior is superseded.
+
+The toolbar now owns one shared criteria state for text/type/admin consent/family/
+Show disabled. Navigation only adds/removes the category scope; entering, returning,
+and using the resource navigation retain the current criteria in both directions.
+Only Accordion expansion remains category-specific; search/clear restoration is preserved.
+The existing return-state assertion was corrected to this behavior, and a real-API
+regression covers repeated visits, every control, current counts and scoped rows.
+
+The regression environment used ports 3100/5273 because the user's 3000/5173 services
+were already running. Test ports are now configurable and propagate to Nest, Vite and
+HTTP oracle checks; the user's services were not stopped or reused. During regression,
+the old narrow-layout assertion exposed modal scrollbar locking reserving 15px while
+Drawer width still used vw; max-width now uses the containing width and the test checks
+both panel edges stay visible rather than assuming an overlay-scrollbar configuration.
+
+Validation and the review handoff are recorded in the implementation plan; current
+browser evidence: [search-criteria regression](phase-3/search-criteria-browser.log.txt).
+SharePoint page runtime remains unverified, and no deployment/merge is authorized.

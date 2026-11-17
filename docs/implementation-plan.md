@@ -346,3 +346,43 @@ The issue's local verification items are checked; actual SharePoint/same-data co
 remains unchecked. Review this PR, request fixes on the same branch, and merge only
 with user authorization.
 After merge, verify main and wait for the user to start #6; do not start it automatically.
+
+
+## Stage 3 review fix: shared search criteria — 2026-11-17
+
+Continued on the existing, unmerged PR #9 branch from clean `34bce1e`; no branch switch
+or user changes were involved. The latest #2/#5 and current AGENTS.md were checked.
+Reproduced the user's EWS case with real imported Nest data: after an earlier Exchange
+visit, re-entry restored old Mail.Read/Application/Mail criteria despite new global
+Delegated/EWS criteria. The added regression failed on the old implementation.
+
+Removed per-category query caching. Both levels now share text/type/admin consent/
+family/disabled criteria; navigation only changes the category scope, and changes on
+level two also remain current on return. Per-category Accordion expansion and search
+clear restoration remain independent of this shared query. Updated the guide and
+human checklist to supersede the earlier independent-query behavior.
+
+Tests now support CATALOG_TEST_API_PORT / CATALOG_TEST_WEB_PORT. Used 3100/5273 to
+preserve the already running API/Vite at 3000/5173, including their PIDs and databases.
+A full browser regression also exposed narrow modal clipping with non-overlay scrollbar
+locking; Drawer max-width now respects its containing width and both edges are checked.
+
+Verification under Node 22.16.0/npm 10.9.2:
+- `npm run typecheck`: passed after final source changes.
+- `npm test`: 14/14 passed; no backend/data/client contracts changed.
+- `npm run build`: shared/API/Vite/SPFx production build, lint and package passed.
+- `npm run check:react`: passed; no dependency/host-boundary changes.
+- `CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser`:
+  19/19 passed after compilation finished, including EWS repeated visits, all criteria
+  in both directions, counts/rows against real HTTP, expansion, focus and narrow modal.
+  [Sanitized browser log](verification/phase-3/search-criteria-browser.log.txt).
+- `git diff --check`: passed. Source-comment audit: both changed source modules retain
+  Chinese headers and 18/18 named declarations with Chinese TSDoc; purpose-first text,
+  state ownership, key rules and retained domain terminology manually checked.
+
+No dependency/data changes, so no repeat install or production database migration/import.
+SharePoint actual page remains unverified; no tenant deployment, merge, issue closure
+or next-stage work was performed. Append the fix to PR #9 and publish the updated
+review steps on #5: visit Exchange once, return, select Delegated/EWS, enter again;
+expect unchanged criteria and exactly the matching EWS result. Edit controls on level
+two and return; expect the same current criteria, with only search scope broadened.
