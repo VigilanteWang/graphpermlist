@@ -14,10 +14,20 @@ import { useCatalogRequest } from './useCatalogRequest.js';
 const useStyles = makeStyles({
   root: { boxSizing: 'border-box', minWidth: '0', width: '100%', color: tokens.colorNeutralForeground1, backgroundColor: tokens.colorNeutralBackground2, borderRadius: tokens.borderRadiusXLarge, overflowWrap: 'anywhere', fontFamily: tokens.fontFamilyBase },
   layout: { display: 'grid', gridTemplateColumns: '200px minmax(0, 1fr)', minHeight: '680px' },
+  // 仅独立网站启用 viewport 布局；SPFx 默认让宿主页面决定高度与滚动。
+  viewportRoot: { height: '100dvh', overflow: 'hidden', borderRadius: '0' },
+  viewportLayout: { height: '100%', minHeight: '0', gridTemplateRows: 'minmax(0, 1fr)' },
   narrowLayout: { gridTemplateColumns: 'minmax(0, 1fr)', minHeight: '0' },
+  narrowViewportLayout: { gridTemplateRows: 'auto minmax(0, 1fr)' },
   nav: { display: 'flex', flexDirection: 'column', alignSelf: 'start', position: 'sticky', top: '0', gap: '8px', padding: '24px 16px', minWidth: '0' },
+  viewportNav: { position: 'static', alignSelf: 'stretch', minHeight: '0', overflowY: 'auto', boxSizing: 'border-box' },
+  navTitle: { fontSize: tokens.fontSizeBase500, lineHeight: tokens.lineHeightBase500, marginBottom: '8px' },
+  navButton: { backgroundColor: tokens.colorNeutralBackground3, '&:hover': { backgroundColor: tokens.colorNeutralBackground3Hover } },
+  navFooter: { marginTop: 'auto', paddingTop: '16px' },
+  narrowFooter: { gridColumn: '1 / -1', marginTop: '0', paddingTop: '4px' },
   narrowNav: { position: 'static', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', padding: '12px', '& > strong': { gridColumn: '1 / -1' } },
   main: { minWidth: '0', padding: '24px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: tokens.borderRadiusXLarge },
+  viewportMain: { minHeight: '0', overflowY: 'auto', scrollbarGutter: 'stable', borderRadius: '0' },
   narrowMain: { padding: '12px' },
   stack: { display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '0' },
   toolbar: { display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '20px', borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, marginBottom: '24px' },
@@ -30,6 +40,10 @@ const useStyles = makeStyles({
   search: { width: '100%', minWidth: '0', boxSizing: 'border-box' },
   cards: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: '14px' },
   card: { display: 'flex', flexDirection: 'column', alignItems: 'start', textAlign: 'left', whiteSpace: 'normal', padding: '20px', gap: '12px', minHeight: '170px', border: `1px solid ${tokens.colorNeutralStroke2}`, borderRadius: tokens.borderRadiusLarge, backgroundColor: tokens.colorNeutralBackground1, boxShadow: tokens.shadow2 },
+  // resource 卡片保持 240–340px；容器更窄时允许收缩，避免横向滚动。
+  resourceCards: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', maxWidth: '1052px', gap: '16px' },
+  resourceCard: { boxSizing: 'border-box', width: '100%', maxWidth: '340px', height: '200px', justifyContent: 'space-between' },
+  comingSoonCard: { backgroundColor: tokens.colorNeutralBackground3 },
   heading: { margin: '0', outlineOffset: '4px' },
   stats: { display: 'flex', flexWrap: 'wrap', gap: '12px' },
   stat: { flex: '1 1 180px', padding: '20px', backgroundColor: tokens.colorNeutralBackground3, borderRadius: tokens.borderRadiusLarge },
@@ -39,8 +53,8 @@ const useStyles = makeStyles({
   group: { minWidth: '0', '& > div': { minWidth: '0' } }
 });
 
-/** 目录共享组件的宿主参数，包含 HTTP client、宿主标识及可选 Fluent theme。 */
-export interface ExplorerShellProps { client: CatalogClient; hostLabel: string; theme?: Theme; themeMode?: 'light' | 'dark'; }
+/** 目录共享组件的宿主参数，包含 HTTP client、宿主标识、可选 Fluent theme 和独立网站的 viewport 布局开关。 */
+export interface ExplorerShellProps { client: CatalogClient; hostLabel: string; theme?: Theme; themeMode?: 'light' | 'dark'; viewportLayout?: boolean; }
 /** 一个服务页面的 Accordion 浏览状态；展开项按 category 保存，不缓存搜索条件。 */
 interface BrowseState { open: string[]; }
 
@@ -50,10 +64,11 @@ function RequestError({ error, retry }: { error: string; retry: () => void }): R
 }
 
 /** 两个宿主共用的完整目录组件；宿主只提供配置、主题和 React 生命周期。 */
-export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }: ExplorerShellProps): React.ReactElement {
+export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light', viewportLayout = false }: ExplorerShellProps): React.ReactElement {
   const styles = useStyles();
   const root = React.useRef<HTMLDivElement>(null);
   const heading = React.useRef<HTMLHeadingElement>(null);
+  const main = React.useRef<HTMLElement>(null);
   const detailTrigger = React.useRef<HTMLElement | null>(null);
   const categoryTrigger = React.useRef<string>();
   const [narrow, setNarrow] = React.useState(false);
@@ -95,9 +110,10 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }:
     return () => observer.disconnect();
   }, []);
   React.useEffect(() => {
-    // 只在导航时聚焦标题；筛选响应到达时不能夺走搜索框焦点。
+    // 导航后从新页面顶部浏览；筛选响应不能重置滚动或夺走搜索框焦点。
+    if (viewportLayout) main.current?.scrollTo({ top: 0 });
     if (page === 'graph' && category) heading.current?.focus();
-  }, [page, category]);
+  }, [page, category, viewportLayout]);
   React.useEffect(() => {
     if (page !== 'graph' || category || !categories.data || !categoryTrigger.current) return;
     const button = root.current?.querySelector<HTMLButtonElement>(`[data-category="${categoryTrigger.current}"]`);
@@ -122,16 +138,16 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }:
   }
   const contentError = categories.error ?? rows.error ?? familySource.error;
   const count = category ? rows.data : categories.data;
-  return <FluentProvider ref={root} theme={theme ?? (themeMode === 'dark' ? webDarkTheme : webLightTheme)} className={styles.root} data-testid="explorer-root">
-    <div className={mergeClasses(styles.layout, narrow && styles.narrowLayout)}>
-      <nav aria-label="Resources" className={mergeClasses(styles.nav, narrow && styles.narrowNav)}>
-        <strong>Permissions Explorer</strong>
-        <Button appearance={page === 'home' ? 'primary' : 'subtle'} aria-current={page === 'home' ? 'page' : undefined} onClick={() => { setPage('home'); setDetail(undefined); }}>Home</Button>
-        <Button appearance={page === 'graph' ? 'primary' : 'subtle'} aria-current={page === 'graph' ? 'page' : undefined} onClick={() => { setPage('graph'); setCategory(undefined); setDetail(undefined); }}>Microsoft Graph</Button>
-        <Button disabled>Power BI · Coming soon</Button><Button disabled>SharePoint · Coming soon</Button>
-        <Caption1>{hostLabel} · Global cloud · Read-only</Caption1>
+  return <FluentProvider ref={root} theme={theme ?? (themeMode === 'dark' ? webDarkTheme : webLightTheme)} className={mergeClasses(styles.root, viewportLayout && styles.viewportRoot)} data-testid="explorer-root">
+    <div className={mergeClasses(styles.layout, viewportLayout && styles.viewportLayout, narrow && styles.narrowLayout, narrow && viewportLayout && styles.narrowViewportLayout)}>
+      <nav aria-label="Resources" className={mergeClasses(styles.nav, viewportLayout && styles.viewportNav, narrow && styles.narrowNav)}>
+        <strong className={styles.navTitle}>Permissions Explorer</strong>
+        <Button className={page === 'home' ? undefined : styles.navButton} appearance={page === 'home' ? 'primary' : 'secondary'} aria-current={page === 'home' ? 'page' : undefined} onClick={() => { setPage('home'); setDetail(undefined); }}>Home</Button>
+        <Button className={page === 'graph' ? undefined : styles.navButton} appearance={page === 'graph' ? 'primary' : 'secondary'} aria-current={page === 'graph' ? 'page' : undefined} onClick={() => { setPage('graph'); setCategory(undefined); setDetail(undefined); }}>Microsoft Graph</Button>
+        <Button className={styles.navButton} disabled>Power BI · Coming soon</Button><Button className={styles.navButton} disabled>SharePoint · Coming soon</Button>
+        <Caption1 className={mergeClasses(styles.navFooter, narrow && styles.narrowFooter)}>{hostLabel} · Global cloud · Read-only</Caption1>
       </nav>
-      <main className={mergeClasses(styles.main, narrow && styles.narrowMain)}>
+      <main ref={main} className={mergeClasses(styles.main, viewportLayout && styles.viewportMain, narrow && styles.narrowMain)}>
         {resources.loading && <Spinner label="Loading catalog" />}
         {resources.error && <RequestError error={resources.error} retry={resources.retry} />}
         {resources.data?.dataState === 'not-imported' && <div role="status"><Title2 as="h1">No catalog imported yet.</Title2><p>Run the offline migration and import commands, then retry.</p><Button onClick={resources.retry}>Retry</Button></div>}
@@ -144,17 +160,31 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }:
             <div className={styles.stat}><Title2>{familySource.data?.definitionCount ?? '…'}</Title2><p>Ordinary definitions include enabled and disabled entries. Use Show disabled in Microsoft Graph to include them.</p></div>
             <div className={styles.stat}><Title2>{resources.data.source?.excludedRscCount ?? 0}</Title2><p>RSC definitions excluded</p></div>
           </div>
-          <Button appearance="primary" onClick={() => { setPage('graph'); setCategory(undefined); }}>Browse Microsoft Graph</Button>
+          <div className={styles.resourceCards} aria-label="API resources">
+            <Button className={mergeClasses(styles.card, styles.resourceCard)} aria-label="Browse Microsoft Graph" onClick={() => { setPage('graph'); setCategory(undefined); }}>
+              <Title2>Microsoft Graph</Title2><Body1>Explore permissions across Microsoft 365 services.</Body1><span>Browse Microsoft Graph →</span>
+            </Button>
+            <Button disabled className={mergeClasses(styles.card, styles.resourceCard, styles.comingSoonCard)}><Title2>Power BI</Title2><Body1>Power BI permission catalog</Body1><Caption1>Coming soon</Caption1></Button>
+            <Button disabled className={mergeClasses(styles.card, styles.resourceCard, styles.comingSoonCard)}><Title2>SharePoint</Title2><Body1>Separate SharePoint resource catalog</Body1><Caption1>Coming soon</Caption1></Button>
+          </div>
           {familySource.error && <RequestError error={familySource.error} retry={familySource.retry} />}
           <Title2 as="h2">About this catalog</Title2>
-          <Body1>This is a versioned snapshot of permission definitions, not tenant grants or an API endpoint list. No live Graph requests are made. A tenant's consent policies may further restrict user consent.</Body1>
-          <Body1>SharePoint / OneDrive inside Microsoft Graph is a service category. The separate SharePoint resource in navigation is coming soon.</Body1>
-          {resources.data.source && <dl className={styles.meta}>
+          <Body1>Permissions Explorer helps you browse and understand the Microsoft Graph API permissions in this catalog. Search for a permission, explore services and compare official descriptions and consent requirements.</Body1>
+          <dl className={styles.meta}>
+            <dt>Catalog</dt><dd>The collection of permission definitions available to browse for an API resource, such as Microsoft Graph.</dd>
+            <dt>Permission</dt><dd>A named access capability, such as Mail.Read. Application permissions let an app act without a signed-in user; Delegated permissions let an app act on behalf of a signed-in user.</dd>
+            <dt>Definition</dt><dd>An individual Application or Delegated entry, with its own GUID, official title, description and enabled state. A permission name can have more than one definition.</dd>
+            <dt>How permissions are organized</dt><dd>Choose an API resource, then a service category such as Exchange or Microsoft Entra ID. Within each service, permissions are grouped into families, usually by the name before the first dot: Mail.Read and Mail.Send belong to Mail. OpenID scopes have their own family.</dd>
+            <dt>One name, one row</dt><dd>Within the same resource, Application and Delegated definitions with the same permission name appear in one row. Their types, GUIDs, official wording and consent requirements remain separate. Permission counts refer to merged names; definition counts refer to individual entries.</dd>
+            <dt>Catalog boundaries</dt><dd>Disabled definitions are hidden until you select Show disabled. RSC permissions are excluded. This read-only explorer does not show your tenant’s granted permissions. Tenant policies may further restrict user consent.</dd>
+            <dt>SharePoint and Microsoft Graph</dt><dd>SharePoint / OneDrive is a service category inside Microsoft Graph. The separate SharePoint API resource is coming soon.</dd>
+          </dl>
+          {resources.data.source && <details><summary>Catalog data details</summary><dl className={styles.meta}>
             <dt>Source snapshot</dt><dd>{resources.data.source.fileName}</dd>
             <dt>Imported at (UTC)</dt><dd>{resources.data.source.importedAt}</dd>
             <dt>SHA-256</dt><dd>{resources.data.source.sha256}</dd>
             <dt>Classification version</dt><dd>{resources.data.source.classificationVersion}</dd>
-          </dl>}
+          </dl></details>}
         </div>}
         {resources.data?.dataState === 'ready' && page === 'graph' && !graph && <p role="status">Microsoft Graph is not available in this imported catalog.</p>}
         {enabled && <>

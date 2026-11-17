@@ -427,3 +427,59 @@ in PR #9. Posted the [updated #5 review steps](https://github.com/VigilanteWang/
 verify no helper text or select-width jump on category entry/return. This final
 publication update changes documentation only; `git diff --check` passed.
 No data/API/dependency changes; no install or local database migration/import needed.
+
+
+## Stage 3 review follow-up: Home and fixed sidebar — 2026-11-17
+
+Continued on the clean existing `codex/phase-3-permissions-ui` branch for PR #9.
+Read live #2/#5 and the current project instructions. Enlarged the navigation title
+from the inherited 14px to 20px, added gray inactive/disabled button surfaces, and
+moved host/cloud/read-only text to the desktop sidebar bottom. The standalone host
+opts into a full-viewport shell with an independently scrolling main area; navigation
+resets main scroll to the new page top. Narrow containers use a compact top navigation
+and scroll main below it. SPFx retains host-owned sizing by default; no document-wide
+shared styles or changes to its adapter were introduced.
+
+Home now explains Catalog, Permission, Definition, resource/service/family grouping,
+same-name Application/Delegated merged rows and catalog boundaries in English.
+Source metadata is preserved in collapsed Catalog data details rather than occupying
+the main introduction. Replaced the long Browse button with keyboard-accessible
+resource cards: Microsoft Graph opens the catalog, Power BI/SharePoint are disabled
+Coming soon placeholders. Cards wrap at 240–340px width and share 200px height;
+containers smaller than the minimum may shrink them to avoid horizontal overflow.
+
+Final verification with Node 22.16.0 / npm 10.9.2:
+- `npm run typecheck`: passed.
+- `npm run build`: shared/API/Vite/SPFx build, lint and package passed.
+- `CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser`:
+  22/22 Chromium tests passed. Includes viewport-height/sidebar/footer geometry while
+  scrolling, navigation scroll reset, resource widths at 1754/1000/800/360/320px,
+  equal heights, disabled cards, keyboard entry and the prior catalog regressions.
+  [Sanitized final log](verification/phase-3/home-sidebar-browser.log.txt) and
+  [Home screenshot](verification/phase-3/home-sidebar.png).
+- In-app browser visually confirmed the updated Home and stationary sidebar during
+  main scrolling. Original API/Vite processes at 3000/5173 were preserved.
+- `git diff --check`: passed. Chinese comment audit: both changed source modules
+  retain headers; 7/7 named declarations retain Chinese TSDoc. Manually checked
+  purpose-first explanations, viewport/host boundaries and English domain terms.
+  HTML and browser tests are excluded by purpose.
+
+Execution limitations: sandbox Chromium could not initialize its macOS MachPort;
+reran the local tests with approved sandbox escalation. A run overlapping the final
+build had one EWS regression failure (the search retained Mail.Read); build/HMR
+interference is a possible explanation, not proven. The final isolated full run above
+passed after builds finished. No dependency, data or API logic changes: no reinstall,
+local database migration/import or backend unit-test repetition. Test setup still uses
+isolated imported data. SPFx actual SharePoint runtime remains unverified; successful
+packaging is not runtime acceptance. Main model routing cannot be changed/independently
+verified through this session; no global settings were changed and no subagents used.
+
+Human handoff: updated step 2 of [the stage review checklist](verification/phase-3-human-review.md).
+On desktop verify larger title, gray buttons, full-height stationary sidebar and bottom
+labels; scroll the right area, then switch Home/Graph and expect the top of the new
+page. Resize to narrow widths and verify wrapping, no horizontal overflow and keyboard
+entry through the Graph card. Read the terminology/grouping text; expand data details
+only when source metadata is needed. Record pass/change-needed/blocked with sanitized
+evidence. This is a local review follow-up, not a new stage completion. Changes remain
+uncommitted/unpushed for review; no external issue/PR writes, merge, issue closure,
+deployment or next-stage work were performed.

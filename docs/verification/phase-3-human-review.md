@@ -17,10 +17,19 @@ snapshot, not tenant authorization state.
    `npm run import:data` twice. Expect 1,664 ordinary definitions and second-import
    reuse for the versioned input. Start `npm run start:api` and `npm run dev:web`
    separately with the same database and matching API/CORS configuration.
-2. **Home and navigation.** Expect English text, source hash/import time/classification,
+2. **Home and navigation.** Expect English introductory text explaining Catalog,
+   Permission, Definition, service/family grouping and same-name Application/Delegated
+   rows. Expand **Catalog data details** to inspect source hash/import time/classification,
    1,660 enabled and 1,664 all ordinary definitions, and 60 excluded RSC definitions.
    Open Graph and inspect categories/counts; Power BI and resource SharePoint cannot
    be entered. Graph SharePoint / OneDrive remains an ordinary Graph category.
+   On the standalone desktop, expect a larger sidebar title, gray inactive navigation
+   buttons, full-viewport sidebar and bottom host/cloud/read-only label. Scroll the
+   right main content; the sidebar must stay put. Resource cards wrap with 240–340px
+   widths (shrink only in smaller containers), equal 200px height and keyboard access
+   to Microsoft Graph; the other two cards are disabled Coming soon placeholders.
+   At 320/360px, navigation becomes a compact header and main content scrolls below.
+   Navigate from the bottom of Graph to Home; the new page starts at the top.
 3. **Search/filters/counts.** Search `Mail.Read` globally, then open Exchange.
    Compare `/categories` and `/permissions` with the same query. GUID
    `e1fe6dd8-ba31-4d61-89e7-88639da4683d` must find User.Read in Entra, but not Exchange.
