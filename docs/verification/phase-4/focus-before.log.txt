@@ -16,7 +16,7 @@ Running 1 test using 1 worker
   ✘  1 tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category (6.3s)
 
 
-  1) tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category 
+  1) tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category
 
     Error: expect(locator).toBeFocused() failed
 
@@ -43,6 +43,6 @@ Running 1 test using 1 worker
     Error Context: test-results/focus-review-return-retain-fed9f-ve-the-originating-category/error-context.md
 
   1 failed
-    tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category 
+    tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category
 
 Exit: 1 (expected regression reproduction)

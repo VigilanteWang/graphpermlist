@@ -58,7 +58,7 @@ dist/assets/index-CNKphtHw.js  530.04 kB │ gzip: 152.08 kB
 
 Bypassing the Heft version selector because "--unmanaged" was specified.
 
- ---- build started ---- 
+ ---- build started ----
 [build:clean] Deleted 0 files and 5 folders
 [build:set-browserslist-ignore-old-data-env-var] Setting environment variable BROWSERSLIST_IGNORE_OLD_DATA=1
 [build:sass] Starting...
@@ -70,23 +70,23 @@ Bypassing the Heft version selector because "--unmanaged" was specified.
 [build:lint] Using ESLint version 9.37.0
 [build:webpack] Using Webpack version 5.105.4
 [build:webpack] Running Webpack compilation
- ---- build finished (7.614s) ---- 
- ---- test started ---- 
+ ---- build finished (7.614s) ----
+ ---- test started ----
 [test:clean] Deleted 11 files and 3 folders
 [test:jest] Using Jest version 30.2.0
 No tests found, exiting with code 0
-[test:jest] 
+[test:jest]
 [test:jest] Run start. 0 test suites
-[test:jest] 
+[test:jest]
 [test:jest] Tests finished:
 [test:jest]   Successes: 0
 [test:jest]   Failures: 0
 [test:jest]   Total: 0
- ---- test finished (0.186s) ---- 
+ ---- test finished (0.186s) ----
 -------------------- Finished (7.803s) --------------------
 Bypassing the Heft version selector because "--unmanaged" was specified.
 
- ---- package-solution started ---- 
+ ---- package-solution started ----
 Found manifest: 125b85bf-862e-4c47-b499-c56fc875169c.manifest.json
 Found client-side build resource: permissions-explorer-web-part_53c42f482f2ecefb807d.js
 Found client-side build resource: permissions-explorer-web-part_53c42f482f2ecefb807d.js.LICENSE.txt
@@ -131,7 +131,7 @@ Done!
 
 ALL DONE!
 
- ---- package-solution finished (0.173s) ---- 
+ ---- package-solution finished (0.173s) ----
 -------------------- Finished (0.176s) --------------------
 
 Exit: 0

@@ -627,3 +627,8 @@ scan and `git diff --check`; no runtime tests repeated. Next action belongs to t
 user: review PR #10, record pass/change needed/blocked and decide separately on merge
 and SharePoint test authorization. #2/#6 remain open; no merge, issue closure,
 deployment or further stage work was performed. Stop at this handoff boundary.
+
+Final commit-range hygiene follow-up: `git diff --check origin/main...HEAD` exposed
+upstream tool output trailing spaces in retained build/reproduction logs. Normalized
+only those logs, preserving command results; checked the staged whole-stage diff
+against main. No source change or runtime rerun was needed.
