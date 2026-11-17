@@ -180,3 +180,22 @@ package; those #11 deliverables belong to #14. JSON validators/export/loader/ref
 file permissions/HTML/digest failure handling and publication/rollback are contracts
 only here and require implementation in #13. No tenant access, uploads, permissions,
 app registrations, deployment, merge, issue closure or next-stage work performed.
+
+### Stage 1 publication and stop
+
+Implementation/evidence commit:
+[ac70855](https://github.com/VigilanteWang/graphpermlist/commit/ac70855115ed9dc53668e4e265bffaf6bd0d78c2).
+[PR #16](https://github.com/VigilanteWang/graphpermlist/pull/16) targets main from
+codex/spfx-json-1-query-core and is Ready for review. Published the actionable
+[#12 human-review checklist](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6951418159),
+including prerequisites, exact commands/actions, expected counts/behavior, isolated
+data handling, pending runtime scope and pass/change-needed/blocked reporting.
+The same checklist is retained locally above. Pre-existing research/planning notes
+in the V1 plan were preserved in the implementation commit.
+
+This publication follow-up changes documentation only. Relative links, retained
+path/privacy scan and full commit-range whitespace checks pass; no runtime rerun
+is warranted. The implementation, required local verification and #12 handoff are
+complete. #11 remains an ongoing increment and actual SharePoint is still pending.
+User review and merge are next; after that, verify updated main and start #13 in a
+new chat. No automatic merge, closure, tenant upload/deployment or #13 work. Stop here.

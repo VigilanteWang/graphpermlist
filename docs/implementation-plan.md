@@ -723,3 +723,15 @@ increment over the merged V1 baseline. [Increment decisions, commands and handof
 record #12 contracts/query-core work and the #13–#15 stop boundaries. Preserve all
 V1 records and actual SharePoint runtime gaps. The earlier uncommitted planning
 appendices above were present before #12 and are retained with this stage.
+
+#12 delivered the neutral contracts/core and preserved current HTTP/Vite/API SPFx
+behavior in implementation commit
+[ac70855](https://github.com/VigilanteWang/graphpermlist/commit/ac70855115ed9dc53668e4e265bffaf6bd0d78c2).
+[PR #16](https://github.com/VigilanteWang/graphpermlist/pull/16) is Ready for review.
+[Stage review comment](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6951418159)
+and [retained checklist](verification/spfx-json-1-human-review.md) provide reproducible
+manual acceptance. npm ci/verify:data/typecheck, 26 Node tests, full Vite/SPFx build,
+React/shared dependency checks, isolated CLI + standalone HTTP and 26 Chromium cases
+passed; complete commands/results/limits are in the increment plan. JSON runtime,
+second SPFx and actual SharePoint remain future/pending scope. No merge, issue closure,
+tenant upload or deployment; stop at #12 and wait for user review/merge/new-chat #13.
