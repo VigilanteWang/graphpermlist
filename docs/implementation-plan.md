@@ -735,3 +735,35 @@ React/shared dependency checks, isolated CLI + standalone HTTP and 26 Chromium c
 passed; complete commands/results/limits are in the increment plan. JSON runtime,
 second SPFx and actual SharePoint remain future/pending scope. No merge, issue closure,
 tenant upload or deployment; stop at #12 and wait for user review/merge/new-chat #13.
+
+## Shared UI organization follow-up — 2026-11-17
+
+On the existing #12 stage branch, the user requested a responsibility-based UI
+refactor and durable local conventions. See the
+[follow-up scope, verification and review handoff](sharepoint-json-plan.md#12-follow-up-shared-ui-organization--2026-11-17),
+[packages/ui rules](../packages/ui/AGENTS.md) and
+[source map](ui-development.md#source-organization). The public shell/props and
+host usage stay compatible; current criteria, expansion and focus remain with the
+same state owner. This maintenance does not start #13 or resolve actual SharePoint
+runtime gaps. Changes remain local for review; no merge/deployment/issue closure.
+
+## Shared UI component/Fluent follow-up — 2026-11-18
+
+The user requested deeper shell extraction, component-local components/hooks folders
+and Fluent UI replacements after inspecting the first refactor. See
+[final structure, component audit, references and verification](sharepoint-json-plan.md#12-follow-up-component-local-folders-and-fluent-ui--2026-11-18).
+The shell now composes focused children and Hooks; Home, DetailsPanel and PermissionGrid
+have local subdirectories. Controlled Fluent Nav, shared metadata Table, source
+Accordion, Card surfaces and typography preserve existing data and interactions.
+Typecheck, 26 Node tests, full Vite/API SPFx build, React/dependency checks and 28
+Chromium cases passed; Chinese-comment/visual/read-only reviews and remaining
+SharePoint limits are recorded in the increment plan. Local reviewable changes only;
+no merge, deployment, issue closure or #13 work.
+
+## Shared UI follow-up submission — 2026-11-18
+
+The user authorized submitting the conversation's UI/source/test/documentation
+changes on the existing #12 branch and updating PR #16. See the
+[publication record](sharepoint-json-plan.md#shared-ui-follow-up-publication--2026-11-18)
+for identifiers and the updated review handoff. This supersedes the earlier local-only
+notes; no merge, issue closure, tenant deployment or #13 work is authorized.

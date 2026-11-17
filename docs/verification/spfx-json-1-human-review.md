@@ -60,3 +60,38 @@ result and sanitized evidence. Do not include local paths, credentials or tenant
    #15 owns final independent/runtime acceptance. No CDN/Lists/Azure/deployment.
    Review/merge decision belongs to the user. After merge, verify updated main and
    start #13 in a new chat. Do not merge, close issues or begin #13 automatically.
+
+## UI maintenance follow-up — 2026-11-18
+
+This supplements the historical stage checks above with the current component-local
+folder refactor and Fluent UI controls. See [final evidence](../sharepoint-json-plan.md#12-follow-up-component-local-folders-and-fluent-ui--2026-11-18)
+and [UI rules](../../packages/ui/AGENTS.md). Record pass/change-needed/blocked with
+expected/actual behavior and sanitized reproduction details.
+
+1. Inspect src/explorer/ExplorerShell, src/explorer/HomePage and
+   src/permissions/DetailsPanel/PermissionGrid under packages/ui. Expect composition
+   entries, internal components and purpose-named Hooks. The shell's mounted Hooks
+   retain shared state; no duplicate client/service/store or host-specific UI.
+2. Run npm run typecheck, npm test, npm run build and npm run check:react. Expect
+   success, 26 Node tests and the existing API SPFx package. On available Chromium
+   reserve ports 3227/5327 and run
+   `CATALOG_TEST_API_PORT=3227 CATALOG_TEST_WEB_PORT=5327 npm run test:browser`.
+   Expect 28 passes using isolated migrated/imported in-memory SQLite.
+3. On Home, keyboard-activate Graph using Enter, search Mail.Read, open Exchange,
+   then keyboard-activate Home with Space and return to Graph. Expect the selected
+   navigation item/aria-current to follow the page, disabled Coming soon items to
+   stay disabled, and Mail.Read criteria to survive. Repeatedly choosing Graph
+   returns to categories. Resource requests do not repeat merely on page navigation.
+4. Expand Catalog data details using Enter. Expect aria-expanded to change,
+   accessible field-table row headers and the actual Imported at (UTC) or Generated
+   at (UTC) value; collapse with Enter. Home glossary uses the same field-table
+   presentation. Inspect the source SHA-256 at 320px: no page horizontal overflow.
+5. Open Mail.Read details with a Delegated filter. Expect both complete definitions,
+   official wording, enabled/consent fields and GUID copy controls in Fluent Card/
+   Table surfaces. Verify Clipboard success/failure fallback, modal keyboard focus,
+   Escape/Close trigger restoration, search expansion memory and Retry as before.
+6. Review 320/360px and embedded-width layouts, desktop sidebar scrolling, dark
+   theme and reduced motion. Local Chromium/build results are provided; actual
+   SharePoint, screen readers and other browser engines remain pending. This
+   follow-up does not authorize tenant upload, deployment, merge, issue closure or
+   next-stage implementation.

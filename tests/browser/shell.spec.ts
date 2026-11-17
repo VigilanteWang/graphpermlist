@@ -75,8 +75,9 @@ test('desktop sidebar spans the viewport and stays put when the main catalog scr
   const buttonSize = await nav.getByRole('button', { name: 'Home', exact: true }).evaluate(el => parseFloat(getComputedStyle(el).fontSize));
   expect(titleSize).toBeGreaterThan(buttonSize);
   const inactive = nav.getByRole('button', { name: 'Microsoft Graph', exact: true });
-  expect(await inactive.evaluate(el => getComputedStyle(el).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+  await expect(inactive).toHaveAttribute('aria-current', 'false');
   await inactive.click();
+  await expect(inactive).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('button', { name: 'Open Exchange', exact: true })).toBeVisible();
   await main.evaluate(el => { el.scrollTop = el.scrollHeight; });
   expect(await main.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
@@ -107,7 +108,7 @@ test('Home explains permissions and resource cards resize within bounds with key
     if (width === 800) expect(boxes[0].width).toBeLessThan(340);
   }
   for (const term of ['Catalog', 'Permission', 'Definition', 'How permissions are organized', 'One name, one row']) {
-    await expect(page.getByRole('term').filter({ hasText: new RegExp(`^${term}$`) })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Catalog glossary', exact: true }).getByRole('rowheader', { name: term, exact: true })).toBeVisible();
   }
   await expect(page.getByText('Source snapshot', { exact: true })).not.toBeVisible();
   const cards = page.getByLabel('API resources');
@@ -133,4 +134,50 @@ test('neutral source metadata shows generation time without inventing an import 
   await expect(page.getByText('2026-11-17T00:00:00Z', { exact: true })).toBeVisible();
   await expect(page.getByText('Imported at (UTC)', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Source SHA-256', { exact: true })).toBeVisible();
+});
+
+
+test('Fluent resource navigation supports keyboard selection and preserves catalog state across Home', async ({ page }) => {
+  let resourceReads = 0;
+  page.on('request', request => {
+    if (new URL(request.url()).pathname === '/api/v1/resources') resourceReads++;
+  });
+  await page.goto('/');
+  const nav = page.getByRole('navigation', { name: 'Resources' });
+  const home = nav.getByRole('button', { name: 'Home', exact: true });
+  const graph = nav.getByRole('button', { name: 'Microsoft Graph', exact: true });
+  await expect(home).toHaveAttribute('aria-current', 'page');
+  await expect(nav.getByRole('button', { name: 'Power BI · Coming soon', exact: true })).toBeDisabled();
+  await expect(nav.getByRole('button', { name: 'SharePoint · Coming soon', exact: true })).toBeDisabled();
+  await graph.focus();
+  await page.keyboard.press('Enter');
+  await expect(graph).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('textbox', { name: 'Search permissions', exact: true }).fill('Mail.Read');
+  await page.getByRole('button', { name: 'Open Exchange', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Mail.Read', exact: true })).toBeVisible();
+  await home.focus();
+  await page.keyboard.press('Space');
+  await expect(home).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'Microsoft Graph Permissions Explorer', exact: true })).toBeVisible();
+  await graph.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('textbox', { name: 'Search permissions', exact: true })).toHaveValue('Mail.Read');
+  await expect(page.getByRole('button', { name: 'Open Exchange', exact: true })).toBeVisible();
+  expect(resourceReads).toBe(1);
+});
+
+test('Fluent source accordion exposes keyboard expansion and accessible metadata row headers', async ({ page }) => {
+  await page.goto('/');
+  const toggle = page.getByRole('button', { name: 'Catalog data details', exact: true });
+  const source = page.getByRole('table', { name: 'Catalog data details', exact: true });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(source).not.toBeVisible();
+  await toggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(source.getByRole('rowheader', { name: 'Source snapshot', exact: true })).toBeVisible();
+  await expect(source.getByRole('rowheader', { name: 'Imported at (UTC)', exact: true })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(source).not.toBeVisible();
 });
