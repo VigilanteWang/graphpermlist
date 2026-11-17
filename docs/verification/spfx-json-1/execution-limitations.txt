@@ -1,0 +1,4 @@
+Initial added browser smoke test used import.meta.url inside a Playwright-transformed CommonJS test file and failed collection with ReferenceError: require is not defined. Replaced test-only path derivation with node:path resolve; no application change required.
+Sandboxed Chromium then failed initialization before application execution:
+FATAL:base/apple/mach_port_rendezvous_mac.cc:156: bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer: Permission denied (1100).
+An approved rerun of the same complete suite outside that macOS sandbox restriction passed 26/26. See browser.log.txt. No tenant/network deployment was used.

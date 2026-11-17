@@ -1,6 +1,6 @@
 /** 目录 HTTP API 的共享客户端模块，供 Vite 和 SPFx 使用。 */
 import type {
-  ApiErrorBody, CategoriesResponse, PermissionDetailResponse,
+  CatalogClient, ApiErrorBody, CategoriesResponse, PermissionDetailResponse,
   PermissionQuery, PermissionsResponse, ResourcesResponse
 } from '@graph/contracts';
 
@@ -13,17 +13,8 @@ export class CatalogApiError extends Error {
   }
 }
 
-/** 只读目录客户端的接口，约定两个宿主共用的查询方法；signal 可用于取消请求。 */
-export interface CatalogClient {
-  /** resource 列表查询方法，返回列表与导入状态。 */
-  resources(signal?: AbortSignal): Promise<ResourcesResponse>;
-  /** category 查询方法，返回指定 resource 在筛选条件下的分类列表和数量。 */
-  categories(resourceId: string, query?: PermissionQuery, signal?: AbortSignal): Promise<CategoriesResponse>;
-  /** permission 列表查询方法，返回指定 resource 中按名称合并的行。 */
-  permissions(resourceId: string, query?: PermissionQuery, signal?: AbortSignal): Promise<PermissionsResponse>;
-  /** permission 详情查询方法，返回命中行及全部类型定义。 */
-  detail(resourceId: string, permissionValue: string, query?: PermissionQuery, signal?: AbortSignal): Promise<PermissionDetailResponse>;
-}
+// 保留旧入口的类型导出，已有宿主无需同步修改调用方式。
+export type { CatalogClient } from '@graph/contracts';
 
 /**
  * 目录客户端的工厂函数，返回不依赖宿主身份信息的客户端对象。

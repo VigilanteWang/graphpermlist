@@ -1,0 +1,2 @@
+Command: npx tsc -p tsconfig.tests.json
+Result: exit 0; no compiler output.

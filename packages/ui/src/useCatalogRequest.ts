@@ -18,7 +18,7 @@ export function useCatalogRequest<T>(load: ((signal: AbortSignal) => Promise<T>)
       // 某些宿主 fetch 实现可能忽略取消，成功回调也必须检查 signal。
       if (!abort.signal.aborted) setState({ key: load, data });
     }).catch((error: unknown) => {
-      if (!abort.signal.aborted) setState({ key: load, error: error instanceof Error ? error.message : 'Catalog API is unavailable' });
+      if (!abort.signal.aborted) setState({ key: load, error: error instanceof Error ? error.message : 'Catalog is unavailable' });
     });
     return () => abort.abort();
   }, [load, attempt]);

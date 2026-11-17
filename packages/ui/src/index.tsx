@@ -6,7 +6,7 @@ import {
   MessageBar, MessageBarBody, Select, Spinner, Title1, Title2, tokens, webDarkTheme, webLightTheme,
   type Theme
 } from '@fluentui/react-components';
-import type { CatalogClient } from '@graph/api-client';
+import type { CatalogClient } from '@graph/contracts';
 import type { CategorySummary, PermissionQuery, PermissionRow, PermissionType } from '@graph/contracts';
 import { PermissionGrid, DetailsPanel } from './PermissionViews.js';
 import { useCatalogRequest } from './useCatalogRequest.js';
@@ -53,17 +53,17 @@ const useStyles = makeStyles({
   group: { minWidth: '0', '& > div': { minWidth: '0' } }
 });
 
-/** 目录共享组件的宿主参数，包含 HTTP client、宿主标识、可选 Fluent theme 和独立网站的 viewport 布局开关。 */
+/** 目录共享组件的宿主参数，包含数据源无关的 client、宿主标识、可选 Fluent theme 和独立网站的 viewport 布局开关。 */
 export interface ExplorerShellProps { client: CatalogClient; hostLabel: string; theme?: Theme; themeMode?: 'light' | 'dark'; viewportLayout?: boolean; }
 /** 一个服务页面的 Accordion 浏览状态；展开项按 category 保存，不缓存搜索条件。 */
 interface BrowseState { open: string[]; }
 
-/** API 错误提示组件，允许在原位置重试失败的请求。 */
+/** 目录请求错误提示组件，允许在原位置重试失败的请求。 */
 function RequestError({ error, retry }: { error: string; retry: () => void }): React.ReactElement {
-  return <MessageBar intent="error"><MessageBarBody>Catalog API error: {error} <Button onClick={retry}>Retry</Button></MessageBarBody></MessageBar>;
+  return <MessageBar intent="error"><MessageBarBody>Catalog error: {error} <Button onClick={retry}>Retry</Button></MessageBarBody></MessageBar>;
 }
 
-/** 两个宿主共用的完整目录组件；宿主只提供配置、主题和 React 生命周期。 */
+/** 各宿主共用的完整目录组件；宿主只提供配置、主题和 React 生命周期。 */
 export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light', viewportLayout = false }: ExplorerShellProps): React.ReactElement {
   const styles = useStyles();
   const root = React.useRef<HTMLDivElement>(null);
@@ -151,7 +151,7 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light', v
       <main ref={main} className={mergeClasses(styles.main, viewportLayout && styles.viewportMain, narrow && styles.narrowMain)}>
         {resources.loading && <Spinner label="Loading catalog" />}
         {resources.error && <RequestError error={resources.error} retry={resources.retry} />}
-        {resources.data?.dataState === 'not-imported' && <div role="status"><Title2 as="h1">No catalog imported yet.</Title2><p>Run the offline migration and import commands, then retry.</p><Button onClick={resources.retry}>Retry</Button></div>}
+        {resources.data?.dataState === 'not-imported' && <div role="status"><Title2 as="h1">No catalog imported yet.</Title2><p>Prepare a catalog in the configured data source, then retry.</p><Button onClick={resources.retry}>Retry</Button></div>}
         {resources.data?.dataState === 'ready' && page === 'home' && <div className={styles.stack}>
           <Badge appearance="tint" color="brand">LOCAL PERMISSION CATALOG</Badge>
           <Title1 as="h1" className={styles.heading}>Microsoft Graph Permissions Explorer</Title1>
@@ -182,12 +182,14 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light', v
           </dl>
           {resources.data.source && <details><summary>Catalog data details</summary><dl className={styles.meta}>
             <dt>Source snapshot</dt><dd>{resources.data.source.fileName}</dd>
-            <dt>Imported at (UTC)</dt><dd>{resources.data.source.importedAt}</dd>
-            <dt>SHA-256</dt><dd>{resources.data.source.sha256}</dd>
+            {'importedAt' in resources.data.source
+              ? <><dt>Imported at (UTC)</dt><dd>{resources.data.source.importedAt}</dd></>
+              : <><dt>Generated at (UTC)</dt><dd>{resources.data.source.generatedAt}</dd></>}
+            <dt>Source SHA-256</dt><dd>{resources.data.source.sha256}</dd>
             <dt>Classification version</dt><dd>{resources.data.source.classificationVersion}</dd>
           </dl></details>}
         </div>}
-        {resources.data?.dataState === 'ready' && page === 'graph' && !graph && <p role="status">Microsoft Graph is not available in this imported catalog.</p>}
+        {resources.data?.dataState === 'ready' && page === 'graph' && !graph && <p role="status">Microsoft Graph is not available in this catalog.</p>}
         {enabled && <>
           <div className={styles.toolbar}>
             <Field label="Search permissions">

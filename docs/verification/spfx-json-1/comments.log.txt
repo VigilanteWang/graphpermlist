@@ -1,0 +1,9 @@
+packages/contracts/src/index.ts: header PASS; 36/36 declarations documented
+packages/api-client/src/index.ts: header PASS; 5/5 declarations documented
+packages/catalog-core/src/index.ts: header PASS; 5/5 declarations documented
+apps/api/src/catalog/catalog.service.ts: header PASS; 8/8 declarations documented
+packages/ui/src/index.tsx: header PASS; 7/7 declarations documented
+packages/ui/src/PermissionViews.tsx: header PASS; 11/11 declarations documented
+packages/ui/src/useCatalogRequest.ts: header PASS; 2/2 declarations documented
+scripts/check-boundaries.mjs: header PASS; 4/4 declarations documented
+PASS: 8 source modules, 78/78 named declarations; tests/config/generated/static excluded by purpose.

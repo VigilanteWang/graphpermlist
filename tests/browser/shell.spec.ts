@@ -24,7 +24,7 @@ test('not-imported remains distinct from the real ready catalog', async ({ page 
   }));
   await page.goto('/');
   await expect(page.getByText('No catalog imported yet.', { exact: false })).toBeVisible();
-  await expect(page.getByText('Catalog API error:', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('Catalog error:', { exact: false })).toHaveCount(0);
 });
 
 test('resource errors remain errors and Retry loads the real catalog', async ({ page }) => {
@@ -117,4 +117,20 @@ test('Home explains permissions and resource cards resize within bounds with key
   await page.getByRole('button', { name: 'Browse Microsoft Graph', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Microsoft Graph', exact: true })).toBeVisible();
+});
+
+test('neutral source metadata shows generation time without inventing an import time', async ({ page }) => {
+  await page.route('**/api/v1/resources', async route => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const { importedAt: _importedAt, ...source } = body.source;
+    body.source = { ...source, generatedAt: '2026-11-17T00:00:00Z' };
+    await route.fulfill({ response, json: body });
+  });
+  await page.goto('/');
+  await page.getByText('Catalog data details', { exact: true }).click();
+  await expect(page.getByText('Generated at (UTC)', { exact: true })).toBeVisible();
+  await expect(page.getByText('2026-11-17T00:00:00Z', { exact: true })).toBeVisible();
+  await expect(page.getByText('Imported at (UTC)', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Source SHA-256', { exact: true })).toBeVisible();
 });

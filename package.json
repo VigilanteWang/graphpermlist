@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "verify:data": "node scripts/verify-data.mjs",
-    "build:shared": "npm run build -w @graph/contracts && npm run build -w @graph/api-client && npm run build -w @graph/ui",
+    "build:shared": "npm run build -w @graph/contracts && npm run build -w @graph/catalog-core && npm run build -w @graph/api-client && npm run build -w @graph/ui",
     "build:api": "npm run build -w @graph/api",
     "build:web": "npm run build -w @graph/web",
     "build:spfx": "npm run build -w @graph/spfx",

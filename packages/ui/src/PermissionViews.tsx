@@ -1,11 +1,11 @@
-/** permission 列表和详情的共享 React 视图；官方文案只取自 API 的定义，不生成摘要。 */
+/** permission 列表和详情的共享 React 视图；官方文案只取自目录定义，不生成摘要。 */
 import * as React from 'react';
 import {
   Badge, Button, Caption1, DataGrid, DataGridBody, DataGridCell, DataGridHeader,
   DataGridHeaderCell, DataGridRow, Drawer, DrawerBody, DrawerHeader, DrawerHeaderTitle,
   Input, MessageBar, MessageBarBody, Spinner, Text, createTableColumn, makeStyles, tokens
 } from '@fluentui/react-components';
-import type { CatalogClient } from '@graph/api-client';
+import type { CatalogClient } from '@graph/contracts';
 import type { PermissionDefinition, PermissionDetailResponse, PermissionQuery, PermissionRow } from '@graph/contracts';
 
 // 生成的类名只作用于当前组件；长文案换行，表格在窄容器中提供局部横向滚动。
