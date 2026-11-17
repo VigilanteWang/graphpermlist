@@ -98,7 +98,7 @@ npm run start:api
 npm run dev:web
 ```
 
-打开 [http://localhost:5173](http://localhost:5173)。导入成功后 Home 显示来源、导入时间、普通定义和排除的 RSC 数量；点击 **Microsoft Graph** 浏览分类、搜索筛选、permission family 和完整详情。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和双宿主配置见 [共享 UI 开发与验收](docs/ui-development.md)。
+打开 [http://localhost:5173](http://localhost:5173)。导入成功后 Home 显示普通定义和排除的 RSC 数量；展开 **Catalog data details** 查看来源、导入时间和分类版本。点击 **Microsoft Graph** 浏览分类、搜索筛选、permission family 和完整详情。两级页面保留当前筛选条件，导航仅改变服务范围。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和双宿主配置见 [共享 UI 开发与验收](docs/ui-development.md)。
 
 后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
@@ -111,6 +111,25 @@ npm run build
 ```
 
 独立网站输出到 `apps/web/dist/`，SharePoint 包输出到 `apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg`。构建不会自动部署；在 SharePoint 中运行还需要部署到 App Catalog，并为 Web Part 配置可访问的 HTTPS API 地址和对应 CORS 来源。
+
+## 本地验证与交付状态
+
+完成安装后，从仓库根目录运行：
+
+```sh
+npm run typecheck
+npm test
+npm run build
+npm run check:react
+npx playwright install chromium
+npm run test:browser
+```
+
+默认开发端口已占用时，使用 `CATALOG_TEST_API_PORT=3216 CATALOG_TEST_WEB_PORT=5316 npm run test:browser`。浏览器测试启动独立 API/Vite，并将真实快照导入隔离内存数据库，不复用本地 SQLite。手工评审时可设置 `SQLITE_PATH=./var/review.sqlite`，迁移、导入和 API 启动必须使用同一路径。
+
+阶段 [PR #7](https://github.com/VigilanteWang/graphpermlist/pull/7)、[PR #8](https://github.com/VigilanteWang/graphpermlist/pull/8)、[PR #9](https://github.com/VigilanteWang/graphpermlist/pull/9) 已合入 main。最终独立审查、#2 逐项验收、干净安装回归及修复见[阶段 4 交付记录](docs/verification/phase-4.md)，人工操作见[交付审查清单](docs/verification/phase-4-human-review.md)。
+
+**当前为本地 Demo 与双宿主构建/打包交付。实际 SharePoint 页面及双宿主同数据对比仍待授权测试环境；#2 尚未全部验收，未部署。** Heft 没有 Web Part 专属 Jest 套件；其他目标浏览器版本、平台及 hosted CI 未验证。
 
 ## TypeScript 与浏览器兼容基线
 

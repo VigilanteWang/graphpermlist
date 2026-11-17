@@ -1,0 +1,6 @@
+{
+  "path": "apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg",
+  "bytes": 111911,
+  "sha256": "f8b04d3a4a5605cf1e53c3d795cb21f8385446d4a4390131cfc157d4182c29b6",
+  "runtimeAcceptance": "pending authorized SharePoint environment"
+}

@@ -1,0 +1,8 @@
+$ npm run db:migrate
+
+> graph-permissions-explorer@0.1.0 db:migrate
+> node apps/api/dist/catalog-cli.js migrate
+
+{"status":"ok","migrations":["CatalogSchema1794528000000"]}
+
+Exit: 0

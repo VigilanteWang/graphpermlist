@@ -7,13 +7,15 @@ The latest issue body is authoritative. This plan records implementation evidenc
 
 1. [#3 Foundation](https://github.com/VigilanteWang/graphpermlist/issues/3): merged via [PR #7](https://github.com/VigilanteWang/graphpermlist/pull/7) into main at `81682a9`; code and baseline reverified before #4.
 2. [#4 Data and API](https://github.com/VigilanteWang/graphpermlist/issues/4): merged via PR #8 at `b13d5c9`; #3/#4 closed on explicit user authorization when starting #5.
-3. [#5 Shared UI](https://github.com/VigilanteWang/graphpermlist/issues/5): implemented and locally verified on `codex/phase-3-permissions-ui`; stage 3 handoff below.
-4. [#6 Review and delivery](https://github.com/VigilanteWang/graphpermlist/issues/6): not started.
+3. [#5 Shared UI](https://github.com/VigilanteWang/graphpermlist/issues/5): merged via [PR #9](https://github.com/VigilanteWang/graphpermlist/pull/9) at `53d85a1`; includes the shared-criteria, toolbar and Home/sidebar follow-ups. SharePoint runtime remains pending.
+4. [#6 Review and delivery](https://github.com/VigilanteWang/graphpermlist/issues/6): independent review and clean regression performed; final handoff below and [acceptance mapping](verification/phase-4.md). Actual SharePoint and cross-host runtime comparison remain unverified.
 
 Option A: independent stage PRs against updated main. Stage 1 has no predecessor.
 Initial checkout had only LICENSE at `475693b`; no existing plan/AGENTS or PR.
 The untracked source export is preserved and ignored; sanitized input is versioned under data/.
-Do not merge, close current/parent issues, deploy or automatically begin #6.
+Do not merge, close current/parent issues, deploy or start further work without authorization.
+Earlier sections below are chronological records; their historical unmerged/uncommitted
+states are superseded by the stage summary and latest handoff.
 
 ## Human review at every stage completion
 
@@ -483,3 +485,150 @@ only when source metadata is needed. Record pass/change-needed/blocked with sani
 evidence. This is a local review follow-up, not a new stage completion. Changes remain
 uncommitted/unpushed for review; no external issue/PR writes, merge, issue closure,
 deployment or next-stage work were performed.
+
+
+## Research: SharePoint-hosted static catalog — 2026-11-17
+
+Research requested separately from V1 stage delivery. Read the latest parent #2,
+current stage #6, project instructions, shared contracts/client/UI, SPFx host,
+query service and data documentation. No implementation stage was started.
+
+- Feasible direction: retain the shared React/Fluent UI, provide a CatalogClient
+  implementation backed by a validated JSON snapshot and browser-side queries.
+  SharePoint-specific file access remains in the host adapter. No runtime Nest
+  server, SQLite server or customer-provisioned Azure resource is required for
+  this mode; the existing API mode can remain available.
+- Preferred option: a versioned JSON snapshot in a dedicated SharePoint document
+  library, read with SPHttpClient under the current user's SharePoint permissions.
+  Prefer the same SharePoint origin; page access does not imply file access.
+- Alternatives: Microsoft 365 Public CDN for explicitly public sanitized data;
+  SharePoint Lists when item-level editorial maintenance is required; or a
+  snapshot imported into the SPFx bundle when updates can follow app releases.
+  A Lists-to-JSON publishing workflow can separate editing from runtime reads.
+- Public CDN needs JSON allowed in its extension policy, accepts anonymous reads,
+  and has propagation/cache implications. Actual cross-origin JSON fetch, MIME
+  type and tenant policy must be validated before selecting it. Private CDN is
+  not assumed to be a general-purpose authenticated JSON endpoint.
+- Recommended snapshot includes schema/source/classification versions, resource
+  and category metadata and all ordinary definitions, including disabled records.
+  Preserve same-definition filters, same-name merging, detail allDefinitions,
+  default disabled exclusion, RSC exclusion and source provenance. Publish a new
+  immutable snapshot before switching a small current-version manifest.
+- Read-only measurement command: Python stdlib json/gzip over the tracked source.
+  Actual source: 941,599 bytes; minified: 809,124 bytes; minified gzip: 110,361 bytes
+  (local compression only, not a measured SharePoint HTTP response). Ordinary
+  definitions: 1,664; distinct values: 1,036; separate RSC records: 60.
+- Inspected current client: it sends credentials: omit and constructs API routes;
+  changing only apiBaseUrl to a SharePoint file URL will not implement this mode.
+- Next reviewable work, if selected: one SharePoint-library JSON prototype, client
+  query parity checks against the existing API and actual SharePoint page testing
+  for file permissions, refresh/rollback, narrow layout and load/query latency.
+
+Official references consulted:
+- [SPHttpClient and authentication cookies](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/connect-to-sharepoint)
+- [File content through SharePoint REST](https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/working-with-folders-and-files-with-rest)
+- [Microsoft 365 CDN, JSON policy and caching](https://learn.microsoft.com/en-us/microsoft-365/enterprise/use-microsoft-365-cdn-with-spo?view=o365-worldwide)
+- [SPFx packaged assets and app-catalog hosting](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/web-parts/get-started/hosting-webpart-from-office-365-cdn)
+- [SharePoint list operations](https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/working-with-lists-and-list-items-with-rest)
+
+Validation scope: source inspection, local byte/count measurement and current
+Microsoft documentation research only. No application tests/builds, tenant file
+requests or browser performance tests were run. No application code, dependencies,
+local database or pre-existing worktree changes were modified. No commit, external
+comment, issue/PR update, merge or deployment was performed. Model routing cannot
+be independently verified or changed through this session; no global settings or
+subagents were used. This note is not a stage-completion or runtime-acceptance claim.
+
+## Stage 4 independent review and delivery — 2026-11-17
+
+Read live #2/#5/#6, #5's follow-up comments, applicable AGENTS.md and this plan.
+The clean checkout was already main; `git fetch origin` confirmed HEAD = origin/main
+`53d85a1`. PR #7/#8/#9 were independently confirmed merged, and their commits are
+ancestors of main. Git showed one worktree and no local source changes; no attached
+worktree existed. Earlier unmerged stage records above are historical. No previous
+branch or personal input path was used.
+
+Reviewed latest main first (Option A). Created `codex/phase-4-review-delivery` only
+once documentation/focus fixes were identified. Retained all #5 follow-ups: shared
+current criteria across levels, independent Accordion expansion, stable helper-free
+toolbar, Home terminology/cards and fixed standalone sidebar. No dependencies,
+contracts, data, classification or database behavior changed.
+
+A bounded independent read-only reviewer inspected data/import/query/classification,
+UI/accessibility and host boundaries. It found incorrect duplicate-value wording in
+data/README and a focus candidate. The main agent reproduced Exchange → no-match
+search → keyboard Back losing focus on baseline main; the retained failing browser
+log records the old behavior. Fixed return focus to fall back to the first-level
+heading when current criteria removed the original category card. Two tests cover
+GUID matches in a different category and global no results, query/count preservation
+and subsequent Shift+Tab. Corrected the source guide to distinguish GUID uniqueness
+from valid same-value definitions. The reviewer rechecked both final fixes and found
+no remaining actionable issue. Main agent owns integration, documentation and Git.
+
+Clean reproduction used a new empty directory extracted by `git archive 53d85a1`,
+with no dependencies, builds, .env or database. Node 22.16.0/npm 10.9.2. Commands:
+- `npm ci`: passed, 1,424 packages. Existing checkout install also passed; local
+  database and development services were not used by acceptance.
+- `npm run verify:data`: passed; pinned SHA256 and 788/876/60 collections, 4 disabled.
+- `npm run typecheck`: passed on main and after the focus fix.
+- `npm test`: 14 passed; isolated SQLite/HTTP/CLI, rollback and independent query oracle.
+- `npm run build`: passed on main and after fix, including Vite/SPFx production lint,
+  build and .sppkg. Final package hash/size recorded; local review copy under ignored
+  `var/phase4-delivery/`, never committed.
+- `npm run check:react`: passed; runtime dependency/host boundaries unchanged.
+- `SQLITE_PATH=./var/phase4-clean.sqlite npm run db:migrate`, then `npm run import:data`
+  twice with that path: passed; 1,664 definitions, repeated import reused same version.
+- `PORT=3217 CORS_ORIGINS=http://localhost:5317 SQLITE_PATH=./var/phase4-clean.sqlite npm run start:api`:
+  actual new HTTP process read the CLI database; health/resources/categories/permission/
+  Mail.Read checks, 1,660 enabled / 1,664 all / 1,036 merged names / 60 excluded RSC,
+  GET CORS and OPTIONS 204 passed. Stopped only this verification process.
+- `CATALOG_TEST_API_PORT=3216 CATALOG_TEST_WEB_PORT=5316 npm run test:browser`:
+  final 24/24 passed, 28.2s. Uses its own real Nest/imported in-memory DB and Vite,
+  preserving existing services. Final builds completed before browser testing.
+- Chinese comment audit: independent baseline 25 source modules/103 documented
+  declarations; changed UI file header and 7/7 declarations pass AST and manual
+  review of purpose-first wording, rules/data flow, key fallback and retained English
+  terms. Config/tests/fixtures/generated/static excluded by purpose; English product
+  text, errors and contracts unchanged. `git diff --check` passed.
+
+Evidence: [complete #2 mapping, review and commands](verification/phase-4.md),
+[logs/screenshots/package manifest](verification/phase-4/),
+[human-review checklist](verification/phase-4-human-review.md).
+Source-only main was verified, then only the UI fix/tests were copied into that clean
+installation for final typecheck/build/browser. Documentation needs no reinstall.
+Chromium initially failed under macOS sandbox MachPort restrictions; approved reruns
+produced the baseline defect and final successful suite. Upstream npm deprecations,
+Vite size warning and Heft zero Web Part Jest suites remain visible. No hosted CI or
+other target browser/platform acceptance is claimed. Main model routing cannot be
+independently verified/switched with current tools; reviewer override was explicitly
+Sol/medium and successfully launched; no global settings were changed.
+
+**SharePoint actual package/page runtime and same-data Vite/SPFx comparison remain
+pending**, including real host lifecycle/theme/style isolation and narrow columns.
+No accessible authorized tenant/deployment was supplied; no tenant was accessed.
+Minimum prerequisites/actions and expected results are in the human checklist.
+#2 is not fully accepted; no issue was closed, no PR merged, no test/production/Azure
+deployment made, and no next stage started. Publication identifiers follow below.
+
+### Stage 4 publication and user handoff
+
+Implementation/evidence commit:
+[`8d84f2d`](https://github.com/VigilanteWang/graphpermlist/commit/8d84f2d42f1f19475a35543fe275cd7b30c07ee0).
+Stage-only [PR #10](https://github.com/VigilanteWang/graphpermlist/pull/10) targets main,
+is Ready for review, and references #2/#6. Pushed without rewriting history.
+Published the actionable [#6 human-review checklist](https://github.com/VigilanteWang/graphpermlist/issues/6#issuecomment-6948964704):
+reproduce setup and counts, inspect independent fixes and all #2 mapping rows, repeat
+keyboard/layout/error checks, then obtain an authorized test environment before actual
+SharePoint/same-data comparisons. Expected results and unverified scope are preserved
+in [the local checklist](verification/phase-4-human-review.md).
+
+This publication update is documentation only: checked relative links, privacy/path
+scan and `git diff --check`; no runtime tests repeated. Next action belongs to the
+user: review PR #10, record pass/change needed/blocked and decide separately on merge
+and SharePoint test authorization. #2/#6 remain open; no merge, issue closure,
+deployment or further stage work was performed. Stop at this handoff boundary.
+
+Final commit-range hygiene follow-up: `git diff --check origin/main...HEAD` exposed
+upstream tool output trailing spaces in retained build/reproduction logs. Normalized
+only those logs, preserving command results; checked the staged whole-stage diff
+against main. No source change or runtime rerun was needed.

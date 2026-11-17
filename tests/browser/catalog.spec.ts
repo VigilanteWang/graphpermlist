@@ -431,3 +431,23 @@ test('search toolbar omits helper text and keeps dropdown widths across category
     await page.getByRole('button', { name: 'Back to categories', exact: true }).click();
   }
 });
+
+for (const q of ['e1fe6dd8-ba31-4d61-89e7-88639da4683d', 'no-such-permission-focus-review']) {
+  test(`return focuses the category heading when current search removes the originating card: ${q}`, async ({ page, request }) => {
+    await openGraph(page);
+    await openCategory(page, 'Exchange');
+    const search = page.getByRole('textbox', { name: 'Search permissions', exact: true });
+    await search.fill(q);
+    await assertCounts(page, await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange', q }));
+    const back = page.getByRole('button', { name: 'Back to categories', exact: true });
+    await back.focus();
+    await page.keyboard.press('Enter');
+    const global = await readApi<CategoriesResponse>(request, 'categories', { q });
+    await assertCounts(page, global);
+    await expect(search).toHaveValue(q);
+    await expect(page.getByRole('button', { name: 'Open Exchange', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Microsoft Graph', exact: true })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('button', { name: 'Clear search', exact: true })).toBeFocused();
+  });
+}

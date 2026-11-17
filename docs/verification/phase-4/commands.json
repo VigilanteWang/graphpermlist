@@ -1,0 +1,50 @@
+[
+  {
+    "command": "npm run verify:data",
+    "exit": 0,
+    "seconds": 0.2,
+    "log": "01-verify-data.log.txt"
+  },
+  {
+    "command": "npm run typecheck",
+    "exit": 0,
+    "seconds": 12.0,
+    "log": "02-typecheck.log.txt"
+  },
+  {
+    "command": "npm test",
+    "exit": 0,
+    "seconds": 9.3,
+    "log": "03-test.log.txt"
+  },
+  {
+    "command": "npm run build",
+    "exit": 0,
+    "seconds": 19.2,
+    "log": "04-build.log.txt"
+  },
+  {
+    "command": "npm run check:react",
+    "exit": 0,
+    "seconds": 0.1,
+    "log": "05-check-react.log.txt"
+  },
+  {
+    "command": "npm run db:migrate",
+    "exit": 0,
+    "seconds": 0.4,
+    "log": "06-db-migrate.log.txt"
+  },
+  {
+    "command": "npm run import:data",
+    "exit": 0,
+    "seconds": 0.4,
+    "log": "07-import-data.log.txt"
+  },
+  {
+    "command": "npm run import:data",
+    "exit": 0,
+    "seconds": 0.4,
+    "log": "08-import-data.log.txt"
+  }
+]

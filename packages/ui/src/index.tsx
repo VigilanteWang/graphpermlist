@@ -117,7 +117,8 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light', v
   React.useEffect(() => {
     if (page !== 'graph' || category || !categories.data || !categoryTrigger.current) return;
     const button = root.current?.querySelector<HTMLButtonElement>(`[data-category="${categoryTrigger.current}"]`);
-    button?.focus();
+    // 当前条件可能已排除原 category；此时聚焦一级标题，避免返回按钮卸载后丢失键盘位置。
+    (button ?? heading.current)?.focus();
     categoryTrigger.current = undefined;
   }, [page, category, categories.data]);
 
