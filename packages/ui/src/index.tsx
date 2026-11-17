@@ -21,7 +21,12 @@ const useStyles = makeStyles({
   narrowMain: { padding: '12px' },
   stack: { display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '0' },
   toolbar: { display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '20px', borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, marginBottom: '24px' },
-  filters: { display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'end', '& > *': { minWidth: '0', flexGrow: 1 }, '& select': { maxWidth: '100%' } },
+  // 明确各列的基础宽度与伸展比例，避免 family 选项长度改变两级页面的布局。
+  filters: { display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'end', '& > *': { minWidth: '0' } },
+  filterField: { flexGrow: 1, flexShrink: 1, flexBasis: '160px' },
+  familyField: { flexGrow: 1.6, flexBasis: '256px' },
+  filterSelect: { width: '100%', minWidth: '0', '& select': { width: '100%', minWidth: '0' } },
+  clearSearch: { flexGrow: 1, flexShrink: 1, flexBasis: '140px' },
   search: { width: '100%', minWidth: '0', boxSizing: 'border-box' },
   cards: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: '14px' },
   card: { display: 'flex', flexDirection: 'column', alignItems: 'start', textAlign: 'left', whiteSpace: 'normal', padding: '20px', gap: '12px', minHeight: '170px', border: `1px solid ${tokens.colorNeutralStroke2}`, borderRadius: tokens.borderRadiusLarge, backgroundColor: tokens.colorNeutralBackground1, boxShadow: tokens.shadow2 },
@@ -154,15 +159,15 @@ export function ExplorerShell({ client, hostLabel, theme, themeMode = 'light' }:
         {resources.data?.dataState === 'ready' && page === 'graph' && !graph && <p role="status">Microsoft Graph is not available in this imported catalog.</p>}
         {enabled && <>
           <div className={styles.toolbar}>
-            <Field label="Search permissions" hint={category ? `Search within ${category.displayName}: name, GUID, official title or consent message.` : 'Search all Microsoft Graph services: name, GUID, official title or consent message.'}>
+            <Field label="Search permissions">
               <Input className={styles.search} value={criteria.q ?? ''} onChange={(_, data) => updateQuery({ q: data.value })} placeholder="Search name, GUID or official wording" />
             </Field>
             <div className={styles.filters}>
-              <Field label="Permission type"><Select value={query.permissionType ?? ''} onChange={(_, data) => updateQuery({ permissionType: (data.value || undefined) as PermissionType | undefined })}><option value="">All</option><option>Delegated</option><option>Application</option></Select></Field>
-              <Field label="Admin consent"><Select value={query.adminConsentRequired === undefined ? '' : String(query.adminConsentRequired)} onChange={(_, data) => updateQuery({ adminConsentRequired: data.value === '' ? undefined : data.value === 'true' })}><option value="">All</option><option value="true">Required</option><option value="false">Not required</option></Select></Field>
-              <Field label="Permission family"><Select value={query.family ?? ''} onChange={(_, data) => updateQuery({ family: data.value || undefined })}><option value="">All families</option>{families.map(family => <option key={family}>{family}</option>)}</Select></Field>
+              <Field label="Permission type" className={styles.filterField}><Select className={styles.filterSelect} value={query.permissionType ?? ''} onChange={(_, data) => updateQuery({ permissionType: (data.value || undefined) as PermissionType | undefined })}><option value="">All</option><option>Delegated</option><option>Application</option></Select></Field>
+              <Field label="Admin consent" className={styles.filterField}><Select className={styles.filterSelect} value={query.adminConsentRequired === undefined ? '' : String(query.adminConsentRequired)} onChange={(_, data) => updateQuery({ adminConsentRequired: data.value === '' ? undefined : data.value === 'true' })}><option value="">All</option><option value="true">Required</option><option value="false">Not required</option></Select></Field>
+              <Field label="Permission family" className={mergeClasses(styles.filterField, styles.familyField)}><Select className={styles.filterSelect} value={query.family ?? ''} onChange={(_, data) => updateQuery({ family: data.value || undefined })}><option value="">All families</option>{families.map(family => <option key={family}>{family}</option>)}</Select></Field>
               <Checkbox label="Show disabled" checked={query.showDisabled ?? false} onChange={(_, data) => updateQuery({ showDisabled: data.checked === true })} />
-              <Button disabled={!criteria.q} onClick={() => updateQuery({ q: '' })}>Clear search</Button>
+              <Button className={styles.clearSearch} disabled={!criteria.q} onClick={() => updateQuery({ q: '' })}>Clear search</Button>
             </div>
           </div>
           <div key={viewKey} className={mergeClasses(styles.stack, styles.body)} data-testid="catalog-body">

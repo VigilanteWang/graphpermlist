@@ -391,3 +391,36 @@ two and return; expect the same current criteria, with only search scope broaden
 
 The following handoff update changes documentation only; checked `git diff --check`
 and did not repeat runtime tests. PR #9 remains Ready for review and unmerged.
+
+
+## Stage 3 review follow-up: search toolbar layout — 2026-11-17
+
+Continued on PR #9's clean, unmerged branch at `e7d2e6a`. Removed the explanatory
+sentence below Search permissions at both levels. The shared filter fields now have
+explicit basis/grow rules (matching type/admin columns, a wider family column) rather
+than native select option lengths determining their widths. The Vite document reserves
+a vertical scrollbar gutter so long category lists and short service pages have the
+same available width. This document-level setting belongs only to the standalone host;
+shared styles remain local and do not change the SharePoint document.
+
+Added actual browser geometry checks at 1754x1055 comparing all three select widths
+between the Graph category page, Education and Exchange, plus absence of helper text.
+Existing narrow-container, keyboard, filter and detail regressions remain in the suite.
+Verified:
+- `npm run build:shared` and `npm run typecheck -w @graph/web`: passed.
+- `npm run build`: shared/API/Vite/SPFx production build, lint and package passed.
+- `CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser`:
+  20/20 passed, including unmodified host-width comparisons at 1754x1055,
+  Education/Exchange and existing 320/360px/narrow-container behavior.
+  [Browser log](verification/phase-3/toolbar-layout-browser.log.txt) and
+  [updated toolbar](verification/phase-3/toolbar-education.png).
+- Current in-app browser inspection at 1754x1055 measured identical primary/secondary
+  widths: 284.6015625 / 284.6015625 / 455.359375 px. Helper text absent in both views.
+- `git diff --check`: passed. Chinese source-comment audit: index.tsx retains its
+  module header and 7/7 named declarations with Chinese TSDoc; new layout comments
+  explain intrinsic-size stability. HTML/tests are excluded by purpose.
+
+No API/data tests repeated for this presentational change. SharePoint actual page
+remains unverified; packaging is not runtime acceptance. Append this review fix to
+PR #9 and verify no helper text or select-width jump on category entry/return.
+No data/API/dependency changes; no install or local database migration/import needed.

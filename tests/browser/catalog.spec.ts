@@ -409,3 +409,25 @@ test('shared styles leave host siblings unchanged and modal keyboard focus stays
   await expect(drawer).toHaveCount(0);
   expect(await readStyles()).toEqual(before);
 });
+
+
+test('search toolbar omits helper text and keeps dropdown widths across category navigation', async ({ page }) => {
+  await page.setViewportSize({ width: 1754, height: 1055 });
+  await openGraph(page);
+  const selects = ['Permission type', 'Admin consent', 'Permission family'].map(label => page.getByLabel(label, { exact: true }));
+  await expect(page.getByText(/Search all Microsoft Graph services:|Search within .*: name, GUID/)).toHaveCount(0);
+  const original = await Promise.all(selects.map(select => select.evaluate(element => element.getBoundingClientRect().width)));
+  expect(original[2]).toBeGreaterThan(original[0]);
+  for (const category of ['Education', 'Exchange']) {
+    await openCategory(page, category);
+    await expect(page.getByText(/Search all Microsoft Graph services:|Search within .*: name, GUID/)).toHaveCount(0);
+    for (let index = 0; index < selects.length; index++) {
+      await expect.poll(() => selects[index].evaluate(element => element.getBoundingClientRect().width)).toBe(original[index]);
+    }
+    if (category === 'Education') {
+      await page.getByTestId('catalog-body').evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
+      await page.screenshot({ path: 'test-results/toolbar-education.png', clip: { x: 0, y: 0, width: 1754, height: 320 } });
+    }
+    await page.getByRole('button', { name: 'Back to categories', exact: true }).click();
+  }
+});
