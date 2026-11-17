@@ -609,3 +609,21 @@ No accessible authorized tenant/deployment was supplied; no tenant was accessed.
 Minimum prerequisites/actions and expected results are in the human checklist.
 #2 is not fully accepted; no issue was closed, no PR merged, no test/production/Azure
 deployment made, and no next stage started. Publication identifiers follow below.
+
+### Stage 4 publication and user handoff
+
+Implementation/evidence commit:
+[`8d84f2d`](https://github.com/VigilanteWang/graphpermlist/commit/8d84f2d42f1f19475a35543fe275cd7b30c07ee0).
+Stage-only [PR #10](https://github.com/VigilanteWang/graphpermlist/pull/10) targets main,
+is Ready for review, and references #2/#6. Pushed without rewriting history.
+Published the actionable [#6 human-review checklist](https://github.com/VigilanteWang/graphpermlist/issues/6#issuecomment-6948964704):
+reproduce setup and counts, inspect independent fixes and all #2 mapping rows, repeat
+keyboard/layout/error checks, then obtain an authorized test environment before actual
+SharePoint/same-data comparisons. Expected results and unverified scope are preserved
+in [the local checklist](verification/phase-4-human-review.md).
+
+This publication update is documentation only: checked relative links, privacy/path
+scan and `git diff --check`; no runtime tests repeated. Next action belongs to the
+user: review PR #10, record pass/change needed/blocked and decide separately on merge
+and SharePoint test authorization. #2/#6 remain open; no merge, issue closure,
+deployment or further stage work was performed. Stop at this handoff boundary.
