@@ -400,3 +400,14 @@ build. No unnecessary runtime rerun was added for subsequent documentation edits
 Pre-submit whitespace, source-comment, native-element and local-link checks pass.
 The complete verification table and remaining SharePoint/runtime limits above
 continue to apply. Publication identifiers and the issue review link follow below.
+
+Implementation and UI/documentation submission:
+[908c31a](https://github.com/VigilanteWang/graphpermlist/commit/908c31a6246e8628cbd0b0e1bf7f012ffad762f5)
+was pushed to codex/spfx-json-1-query-core. PR #16 remains open and Ready for review;
+its Chinese title/body now describe the neutral core plus final component/Fluent UI
+scope and 26 Node / 28 Chromium verification. Published and read back the
+[#12 follow-up review checklist](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6954582535),
+with prerequisites, exact commands, expected interaction/metadata behavior,
+isolated-data handling and unverified scope. The local checklist links the same
+review thread. This final record is documentation only; link/whitespace checks pass.
+No merge, issue closure, tenant upload/deployment or #13 work was performed.

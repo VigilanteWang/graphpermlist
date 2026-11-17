@@ -767,3 +767,10 @@ changes on the existing #12 branch and updating PR #16. See the
 [publication record](sharepoint-json-plan.md#shared-ui-follow-up-publication--2026-11-18)
 for identifiers and the updated review handoff. This supersedes the earlier local-only
 notes; no merge, issue closure, tenant deployment or #13 work is authorized.
+
+Submitted UI implementation:
+[908c31a](https://github.com/VigilanteWang/graphpermlist/commit/908c31a6246e8628cbd0b0e1bf7f012ffad762f5),
+pushed to the existing stage branch. PR #16's title/body now reflect the final scope;
+[#12 follow-up review checklist](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6954582535)
+was published and read back. PR remains open/Ready, with actual SharePoint acceptance
+pending. This publication-record update changes documentation only.

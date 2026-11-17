@@ -63,6 +63,10 @@ result and sanitized evidence. Do not include local paths, credentials or tenant
 
 ## UI maintenance follow-up — 2026-11-18
 
+Submitted in [908c31a](https://github.com/VigilanteWang/graphpermlist/commit/908c31a6246e8628cbd0b0e1bf7f012ffad762f5),
+with the [follow-up issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6954582535)
+published for PR #16 review.
+
 This supplements the historical stage checks above with the current component-local
 folder refactor and Fluent UI controls. See [final evidence](../sharepoint-json-plan.md#12-follow-up-component-local-folders-and-fluent-ui--2026-11-18)
 and [UI rules](../../packages/ui/AGENTS.md). Record pass/change-needed/blocked with
