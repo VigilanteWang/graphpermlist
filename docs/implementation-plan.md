@@ -6,14 +6,14 @@ The latest issue body is authoritative. This plan records implementation evidenc
 ## Stages and workflow
 
 1. [#3 Foundation](https://github.com/VigilanteWang/graphpermlist/issues/3): merged via [PR #7](https://github.com/VigilanteWang/graphpermlist/pull/7) into main at `81682a9`; code and baseline reverified before #4.
-2. [#4 Data and API](https://github.com/VigilanteWang/graphpermlist/issues/4): implemented and locally verified on `codex/phase-2-catalog-api`; publication recorded in the handoff below.
-3. [#5 Shared UI](https://github.com/VigilanteWang/graphpermlist/issues/5): not started.
+2. [#4 Data and API](https://github.com/VigilanteWang/graphpermlist/issues/4): merged via PR #8 at `b13d5c9`; #3/#4 closed on explicit user authorization when starting #5.
+3. [#5 Shared UI](https://github.com/VigilanteWang/graphpermlist/issues/5): implemented and locally verified on `codex/phase-3-permissions-ui`; stage 3 handoff below.
 4. [#6 Review and delivery](https://github.com/VigilanteWang/graphpermlist/issues/6): not started.
 
 Option A: independent stage PRs against updated main. Stage 1 has no predecessor.
 Initial checkout had only LICENSE at `475693b`; no existing plan/AGENTS or PR.
 The untracked source export is preserved and ignored; sanitized input is versioned under data/.
-Do not merge, close issues, deploy or automatically begin #5.
+Do not merge, close current/parent issues, deploy or automatically begin #6.
 
 ## Human review at every stage completion
 
@@ -294,3 +294,192 @@ CommonJS，共享包保持 ESM，SPFx 保留官方 rig。安装、数据校验�
 `git diff --check`，均通过；完整构建、
 浏览器、安装及隔离数据库验证沿用上方本次配置维护的验证记录，不重复声明新结果。
 保留正式版本优化重复快照存储的后续需求。未经授权不合并、关闭 issue 或部署。
+
+
+## Stage 3 implementation and handoff — 2026-11-17
+
+Started after live GitHub confirmed #7/#8 merged and fetch confirmed clean
+main/origin/main `b13d5c94887061f57e14c165fbc37cff45a57663`. Reused the only clean
+checkout and created new `codex/phase-3-permissions-ui`; no old branch or user edits
+were reused. Read current #2/#5, AGENTS.md and this plan before implementation.
+At the user's explicit request, closed completed #3/#4 and checked their stage entries
+in #2; #5/#2 remain open. This does not certify deferred SharePoint runtime acceptance.
+
+Delivered the complete English shared Fluent UI catalog, real API search/filters/counts,
+family DataGrid and all-definition modal details, Clipboard fallback, navigation/search
+state restoration, cancellation/obsolete-response isolation, container layout and reduced
+motion. Both adapters use the same component/client; SPFx has cached client, one root,
+disposal and light/dark theme integration. Added the local HTTPS API proxy/guide.
+No permissions data, API contract, classification or production database was changed.
+
+Actual final checks: clean `npm ci` using a disposable cache, `npm run verify:data`,
+`npm run typecheck`, `npm test` (14 pass), `npm run build` (Vite/SPFx package included),
+`npm run check:react`, `npm run test:browser` (18 Chromium pass), HTTPS utility syntax,
+`git diff --check`. Disposable-file CLI migration/import/reimport and real HTTP through
+TLS proxy passed certificate verification, GET/CORS, OPTIONS and rejected-write checks.
+Full commands, sanitized logs, screenshots, independent review corrections and limits:
+[stage 3 verification](verification/phase-3.md).
+
+Chinese source-comment acceptance: 6 source files, 28/28 named declarations with Chinese
+TSDoc/JSDoc plus module headers; manually checked scope, “what it is” first, key rules,
+English domain terminology and accuracy. Configuration/tests/fixtures/generated/static
+files excluded by purpose. Product/API/official text remains English.
+
+SPFx production build/package succeeds; **SharePoint page runtime remains unverified**.
+No tenant/test deployment authority was available. Actual same-data host comparisons,
+SharePoint package load/lifecycle/theme contrast/style isolation/narrow columns require
+the authorized test environment. Other browser versions/platforms and hosted CI are
+unverified. The Vite >500 kB advisory and upstream tooling deprecations are non-fatal.
+No Azure, tenant or production deployment and no merge were performed.
+
+Implementation commit: [`f6c8074`](https://github.com/VigilanteWang/graphpermlist/commit/f6c807494fa88e940eefaa6ba62df47054fe9db8).
+Independent [PR #9](https://github.com/VigilanteWang/graphpermlist/pull/9), base main,
+head `codex/phase-3-permissions-ui`. Created Draft; this documentation-only handoff is
+pushed before marking Ready for review. Consult the live PR for current state.
+The implementation commit is covered by the final checks above; this follow-up changes
+only publication records, so runtime checks are not repeated.
+
+Human handoff: [review checklist](verification/phase-3-human-review.md) published in
+[issue #5 comment](https://github.com/VigilanteWang/graphpermlist/issues/5#issuecomment-6922262201),
+including exact setup/UI steps, expected results and the unresolved SharePoint scope.
+The issue's local verification items are checked; actual SharePoint/same-data comparison
+remains unchecked. Review this PR, request fixes on the same branch, and merge only
+with user authorization.
+After merge, verify main and wait for the user to start #6; do not start it automatically.
+
+
+## Stage 3 review fix: shared search criteria — 2026-11-17
+
+Continued on the existing, unmerged PR #9 branch from clean `34bce1e`; no branch switch
+or user changes were involved. The latest #2/#5 and current AGENTS.md were checked.
+Reproduced the user's EWS case with real imported Nest data: after an earlier Exchange
+visit, re-entry restored old Mail.Read/Application/Mail criteria despite new global
+Delegated/EWS criteria. The added regression failed on the old implementation.
+
+Removed per-category query caching. Both levels now share text/type/admin consent/
+family/disabled criteria; navigation only changes the category scope, and changes on
+level two also remain current on return. Per-category Accordion expansion and search
+clear restoration remain independent of this shared query. Updated the guide and
+human checklist to supersede the earlier independent-query behavior.
+
+Tests now support CATALOG_TEST_API_PORT / CATALOG_TEST_WEB_PORT. Used 3100/5273 to
+preserve the already running API/Vite at 3000/5173, including their PIDs and databases.
+A full browser regression also exposed narrow modal clipping with non-overlay scrollbar
+locking; Drawer max-width now respects its containing width and both edges are checked.
+
+Verification under Node 22.16.0/npm 10.9.2:
+- `npm run typecheck`: passed after final source changes.
+- `npm test`: 14/14 passed; no backend/data/client contracts changed.
+- `npm run build`: shared/API/Vite/SPFx production build, lint and package passed.
+- `npm run check:react`: passed; no dependency/host-boundary changes.
+- `CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser`:
+  19/19 passed after compilation finished, including EWS repeated visits, all criteria
+  in both directions, counts/rows against real HTTP, expansion, focus and narrow modal.
+  [Sanitized browser log](verification/phase-3/search-criteria-browser.log.txt).
+- `git diff --check`: passed. Source-comment audit: both changed source modules retain
+  Chinese headers and 18/18 named declarations with Chinese TSDoc; purpose-first text,
+  state ownership, key rules and retained domain terminology manually checked.
+
+No dependency/data changes, so no repeat install or production database migration/import.
+SharePoint actual page remains unverified; no tenant deployment, merge, issue closure
+or next-stage work was performed. The fix was published in PR #9 as
+[`fe0a91e`](https://github.com/VigilanteWang/graphpermlist/commit/fe0a91e66f872dee3092e7512c49f4317bc58eb6);
+the [updated #5 checklist](https://github.com/VigilanteWang/graphpermlist/issues/5#issuecomment-6938657482)
+was posted and supersedes the original query-restoration step: visit Exchange once, return, select Delegated/EWS, enter again;
+expect unchanged criteria and exactly the matching EWS result. Edit controls on level
+two and return; expect the same current criteria, with only search scope broadened.
+
+The following handoff update changes documentation only; checked `git diff --check`
+and did not repeat runtime tests. PR #9 remains Ready for review and unmerged.
+
+
+## Stage 3 review follow-up: search toolbar layout — 2026-11-17
+
+Continued on PR #9's clean, unmerged branch at `e7d2e6a`. Removed the explanatory
+sentence below Search permissions at both levels. The shared filter fields now have
+explicit basis/grow rules (matching type/admin columns, a wider family column) rather
+than native select option lengths determining their widths. The Vite document reserves
+a vertical scrollbar gutter so long category lists and short service pages have the
+same available width. This document-level setting belongs only to the standalone host;
+shared styles remain local and do not change the SharePoint document.
+
+Added actual browser geometry checks at 1754x1055 comparing all three select widths
+between the Graph category page, Education and Exchange, plus absence of helper text.
+Existing narrow-container, keyboard, filter and detail regressions remain in the suite.
+Verified:
+- `npm run build:shared` and `npm run typecheck -w @graph/web`: passed.
+- `npm run build`: shared/API/Vite/SPFx production build, lint and package passed.
+- `CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser`:
+  20/20 passed, including unmodified host-width comparisons at 1754x1055,
+  Education/Exchange and existing 320/360px/narrow-container behavior.
+  [Browser log](verification/phase-3/toolbar-layout-browser.log.txt) and
+  [updated toolbar](verification/phase-3/toolbar-education.png).
+- Current in-app browser inspection at 1754x1055 measured identical primary/secondary
+  widths: 284.6015625 / 284.6015625 / 455.359375 px. Helper text absent in both views.
+- `git diff --check`: passed. Chinese source-comment audit: index.tsx retains its
+  module header and 7/7 named declarations with Chinese TSDoc; new layout comments
+  explain intrinsic-size stability. HTML/tests are excluded by purpose.
+
+No API/data tests repeated for this presentational change. SharePoint actual page
+remains unverified; packaging is not runtime acceptance. Published this review fix as
+[`4c7e1ec`](https://github.com/VigilanteWang/graphpermlist/commit/4c7e1ec5a75bbda0356a0f9b02493247c9165ce4)
+in PR #9. Posted the [updated #5 review steps](https://github.com/VigilanteWang/graphpermlist/issues/5#issuecomment-6939110535):
+verify no helper text or select-width jump on category entry/return. This final
+publication update changes documentation only; `git diff --check` passed.
+No data/API/dependency changes; no install or local database migration/import needed.
+
+
+## Stage 3 review follow-up: Home and fixed sidebar — 2026-11-17
+
+Continued on the clean existing `codex/phase-3-permissions-ui` branch for PR #9.
+Read live #2/#5 and the current project instructions. Enlarged the navigation title
+from the inherited 14px to 20px, added gray inactive/disabled button surfaces, and
+moved host/cloud/read-only text to the desktop sidebar bottom. The standalone host
+opts into a full-viewport shell with an independently scrolling main area; navigation
+resets main scroll to the new page top. Narrow containers use a compact top navigation
+and scroll main below it. SPFx retains host-owned sizing by default; no document-wide
+shared styles or changes to its adapter were introduced.
+
+Home now explains Catalog, Permission, Definition, resource/service/family grouping,
+same-name Application/Delegated merged rows and catalog boundaries in English.
+Source metadata is preserved in collapsed Catalog data details rather than occupying
+the main introduction. Replaced the long Browse button with keyboard-accessible
+resource cards: Microsoft Graph opens the catalog, Power BI/SharePoint are disabled
+Coming soon placeholders. Cards wrap at 240–340px width and share 200px height;
+containers smaller than the minimum may shrink them to avoid horizontal overflow.
+
+Final verification with Node 22.16.0 / npm 10.9.2:
+- `npm run typecheck`: passed.
+- `npm run build`: shared/API/Vite/SPFx build, lint and package passed.
+- `CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser`:
+  22/22 Chromium tests passed. Includes viewport-height/sidebar/footer geometry while
+  scrolling, navigation scroll reset, resource widths at 1754/1000/800/360/320px,
+  equal heights, disabled cards, keyboard entry and the prior catalog regressions.
+  [Sanitized final log](verification/phase-3/home-sidebar-browser.log.txt) and
+  [Home screenshot](verification/phase-3/home-sidebar.png).
+- In-app browser visually confirmed the updated Home and stationary sidebar during
+  main scrolling. Original API/Vite processes at 3000/5173 were preserved.
+- `git diff --check`: passed. Chinese comment audit: both changed source modules
+  retain headers; 7/7 named declarations retain Chinese TSDoc. Manually checked
+  purpose-first explanations, viewport/host boundaries and English domain terms.
+  HTML and browser tests are excluded by purpose.
+
+Execution limitations: sandbox Chromium could not initialize its macOS MachPort;
+reran the local tests with approved sandbox escalation. A run overlapping the final
+build had one EWS regression failure (the search retained Mail.Read); build/HMR
+interference is a possible explanation, not proven. The final isolated full run above
+passed after builds finished. No dependency, data or API logic changes: no reinstall,
+local database migration/import or backend unit-test repetition. Test setup still uses
+isolated imported data. SPFx actual SharePoint runtime remains unverified; successful
+packaging is not runtime acceptance. Main model routing cannot be changed/independently
+verified through this session; no global settings were changed and no subagents used.
+
+Human handoff: updated step 2 of [the stage review checklist](verification/phase-3-human-review.md).
+On desktop verify larger title, gray buttons, full-height stationary sidebar and bottom
+labels; scroll the right area, then switch Home/Graph and expect the top of the new
+page. Resize to narrow widths and verify wrapping, no horizontal overflow and keyboard
+entry through the Graph card. Read the terminology/grouping text; expand data details
+only when source metadata is needed. Record pass/change-needed/blocked with sanitized
+evidence. This is a local review follow-up, not a new stage completion. Changes remain
+uncommitted/unpushed for review; no external issue/PR writes, merge, issue closure,
+deployment or next-stage work were performed.

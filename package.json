@@ -27,7 +27,8 @@
     "test:browser": "playwright test",
     "check:react": "node scripts/check-boundaries.mjs",
     "db:migrate": "node apps/api/dist/catalog-cli.js migrate",
-    "import:data": "node apps/api/dist/catalog-cli.js import"
+    "import:data": "node apps/api/dist/catalog-cli.js import",
+    "dev:api:https": "node scripts/serve-api-https.mjs"
   },
   "devDependencies": {
     "typescript": "5.8.3",

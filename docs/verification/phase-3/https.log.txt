@@ -1,0 +1,13 @@
+npm run db:migrate 0 > graph-permissions-explorer@0.1.0 db:migrate
+> node apps/api/dist/catalog-cli.js migrate
+
+{"status":"ok","migrations":["CatalogSchema1794528000000"]}
+npm run import:data 0 > graph-permissions-explorer@0.1.0 import:data
+> node apps/api/dist/catalog-cli.js import
+
+{"status":"ok","versionId":"7933ca8e-2400-4995-9524-7db09536009d","reused":false,"definitionCount":1664}
+npm run import:data 0 > graph-permissions-explorer@0.1.0 import:data
+> node apps/api/dist/catalog-cli.js import
+
+{"status":"ok","versionId":"7933ca8e-2400-4995-9524-7db09536009d","reused":true,"definitionCount":1664}
+PASS: isolated CLI migration/import/reimport; TLS certificate verified; HTTPS real resources 1660 enabled; allowed-origin CORS/preflight; unlisted origin not allowed; write method rejected

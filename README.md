@@ -6,7 +6,7 @@ Microsoft Graph Permissions Explorer 是一个面向 Microsoft Graph 全球云�
 
 - **独立网站前端**：Vite + React + TypeScript，可在浏览器中独立运行。
 - **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、数据类型和 API client。
-- **共享界面**：Fluent UI React v9，React 18.3.1；提供目录 API 连接状态、未导入提示和错误重试。
+- **共享界面**：Fluent UI React v9，React 18.3.1；提供英文 Home、分类卡片、搜索筛选、family DataGrid 和完整详情。
 - **后端**：NestJS，使用默认 Express adapter，通过 HTTP API 为前端提供数据。
 - **数据库**：TypeORM + better-sqlite3，本地运行无需单独安装数据库服务或 Docker。
 - **数据输入**：`data/commercial-graph-permlist.json`，保留权限定义及独立的 RSC 集合；来源说明见 `data/README.md`。
@@ -98,7 +98,7 @@ npm run start:api
 npm run dev:web
 ```
 
-打开 [http://localhost:5173](http://localhost:5173)。导入成功后页面显示 **Catalog connected: 1 resource(s).**。当前界面仍是连接骨架；权限分类、搜索和详情已通过四个只读 API 提供，完整浏览界面将在后续阶段实现。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。
+打开 [http://localhost:5173](http://localhost:5173)。导入成功后 Home 显示来源、导入时间、普通定义和排除的 RSC 数量；点击 **Microsoft Graph** 浏览分类、搜索筛选、permission family 和完整详情。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和双宿主配置见 [共享 UI 开发与验收](docs/ui-development.md)。
 
 后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
@@ -128,4 +128,4 @@ Web 在 `vite.config.ts` 显式保留 Chrome 107、Edge 107、Firefox 104、Safa
 
 共享包使用 NodeNext 检查模块加载规则，以兼容 Node ESM 测试及 Vite/Webpack 消费；新增相对运行时导入时使用输出对应的 `.js` 扩展名。API 对 contracts 使用 type-only imports，不产生运行时 ESM 依赖。不要把 `NodeNext` 等同于 ESM 迁移，也不要直接修改 `node_modules` 中的 SPFx 配置。
 
-后续 #5/#6 应保留这组宿主边界，新增共享代码时分别验证 Node、Vite 和 SPFx 消费；真实 SharePoint、目标浏览器版本和完整 UI 的验收仍需单列。配置修改的实际验证结果见[阶段 2 验证补充](docs/verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。
+阶段 #5 保留这组宿主边界，并通过真实导入 API 的 Chromium UI 回归和 Vite/SPFx 构建。真实 SharePoint 页面及其他目标浏览器版本的验收仍需单列，见 [阶段 3 验证](docs/verification/phase-3.md)。配置修改的实际验证结果见[阶段 2 验证补充](docs/verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。

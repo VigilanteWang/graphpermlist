@@ -1,0 +1,37 @@
+$ CATALOG_TEST_API_PORT=3100 CATALOG_TEST_WEB_PORT=5273 npm run test:browser
+
+> graph-permissions-explorer@0.1.0 test:browser
+> playwright test
+
+[WebServer] (node:13240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 19 tests using 1 worker
+
+(node:13260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/browser/catalog.spec.ts:38:5 › category totals and global search use current real API filters (1.7s)
+  ✓   2 tests/browser/catalog.spec.ts:71:5 › category search stays scoped, filters definitions together and shares current criteria on return (1.3s)
+  ✓   3 tests/browser/catalog.spec.ts:100:5 › criteria stay synchronized when revisiting a category after changing all global filters (2.0s)
+  ✓   4 tests/browser/catalog.spec.ts:150:5 › disabled definitions are excluded by default and become inspectable when requested (1.0s)
+  ✓   5 tests/browser/catalog.spec.ts:168:5 › Mail.Read details retain both official definitions despite a Delegated filter (1.6s)
+  ✓   6 tests/browser/catalog.spec.ts:207:5 › User.Read opens by keyboard and exposes the actual official scope (1.6s)
+  ✓   7 tests/browser/catalog.spec.ts:227:5 › search expansion is temporary and clearing restores the previous family state (1.8s)
+  ✓   8 tests/browser/catalog.spec.ts:259:7 › categories failure is recoverable through Retry without a false empty state (743ms)
+  ✓   9 tests/browser/catalog.spec.ts:259:7 › permissions failure is recoverable through Retry without a false empty state (1.1s)
+  ✓  10 tests/browser/catalog.spec.ts:259:7 › detail failure is recoverable through Retry without a false empty state (1.5s)
+  ✓  11 tests/browser/catalog.spec.ts:283:5 › a late obsolete search response cannot overwrite the newest results (619ms)
+  ✓  12 tests/browser/catalog.spec.ts:315:5 › 320/360px screens and a 320px embedded host wrap long real details without horizontal overflow (958ms)
+  ✓  13 tests/browser/catalog.spec.ts:349:5 › page transitions animate the catalog body while resource navigation and filters stay fixed (729ms)
+  ✓  14 tests/browser/catalog.spec.ts:370:5 › clipboard failure offers the actual value for manual copying without claiming success (1.4s)
+  ✓  15 tests/browser/catalog.spec.ts:384:5 › shared styles leave host siblings unchanged and modal keyboard focus stays inside details (1.1s)
+  ✓  16 tests/browser/shell.spec.ts:3:5 › Home connects to the imported catalog and resource navigation returns Home (605ms)
+  ✓  17 tests/browser/shell.spec.ts:21:5 › not-imported remains distinct from the real ready catalog (372ms)
+  ✓  18 tests/browser/shell.spec.ts:30:5 › resource errors remain errors and Retry loads the real catalog (401ms)
+  ✓  19 tests/browser/shell.spec.ts:43:5 › loading is visible while the real resource response is pending (489ms)
+
+  19 passed (23.1s)
+
+Exit: 0
