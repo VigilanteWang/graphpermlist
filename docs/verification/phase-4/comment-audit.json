@@ -1,0 +1,40 @@
+{
+  "file": "packages/ui/src/index.tsx",
+  "header": "/** Vite 与 SPFx 共用的英文 permission 目录界面，管理导航、筛选与浏览状态。 */",
+  "declarations": [
+    {
+      "name": "ExplorerShellProps",
+      "chineseTSDoc": true
+    },
+    {
+      "name": "BrowseState",
+      "chineseTSDoc": true
+    },
+    {
+      "name": "RequestError",
+      "chineseTSDoc": true
+    },
+    {
+      "name": "ExplorerShell",
+      "chineseTSDoc": true
+    },
+    {
+      "name": "updateQuery",
+      "chineseTSDoc": true
+    },
+    {
+      "name": "openCategory",
+      "chineseTSDoc": true
+    },
+    {
+      "name": "closeDetail",
+      "chineseTSDoc": true
+    }
+  ],
+  "changedLogicComment": "当前条件可能已排除原 category；此时聚焦一级标题，避免返回按钮卸载后丢失键盘位置。",
+  "manualReview": "Purpose-first explanations, data flow, focus boundary and retained English domain terms checked; product strings unchanged. Config/tests/fixtures/generated/static excluded by purpose.",
+  "independentBaselineAudit": {
+    "sourceModules": 25,
+    "documentedDeclarations": 103
+  }
+}

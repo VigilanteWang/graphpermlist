@@ -85,8 +85,9 @@ directory. An explicit `PERMISSIONS_SOURCE` resolves relative to the caller's
 working directory (absolute paths also work). Missing files fail explicitly;
 there is no fallback to the original root export, network, or an empty dataset.
 The validator rejects missing/empty collections, malformed records, unsupported
-metadata, and duplicate IDs or values within a collection. It keeps disabled
-records and reports their counts.
+metadata, and duplicate IDs within a collection. Different GUIDs may share a
+permission value: every definition is preserved and same-name definitions are
+merged only for display. It keeps disabled records and reports their counts.
 
 For a new sanitized input, use `PERMISSIONS_SOURCE` and optionally
 `PERMISSIONS_SHA256` to pin its exact expected bytes. The checked-in default is

@@ -1,0 +1,48 @@
+$ CATALOG_TEST_API_PORT=3216 CATALOG_TEST_WEB_PORT=5316 npm run test:browser -- focus-review.spec.ts
+Baseline 53d85a1, temporary targeted review test.
+
+> graph-permissions-explorer@0.1.0 test:browser
+> playwright test focus-review.spec.ts
+
+[WebServer] (node:25521) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:25526) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25526) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category (6.3s)
+
+
+  1) tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  getByRole('heading', { name: 'Microsoft Graph', exact: true })
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Microsoft Graph', exact: true })
+        9 × locator resolved to <h1 tabindex="-1" class="___gyzoh90_0000000 f1s184ao f1agi6ac">Microsoft Graph</h1>
+          - unexpected value "inactive"
+
+
+      11 |   await expect(page.getByRole('heading', { name: 'Microsoft Graph', exact: true })).toBeVisible();
+      12 |   await expect(page.getByTestId('catalog-counts')).toHaveText('0 permissions · 0 definitions');
+    > 13 |   await expect(page.getByRole('heading', { name: 'Microsoft Graph', exact: true })).toBeFocused();
+         |                                                                                     ^
+      14 | });
+      15 |
+        at <clean-checkout>/tests/browser/focus-review.spec.ts:13:85
+
+    Error Context: test-results/focus-review-return-retain-fed9f-ve-the-originating-category/error-context.md
+
+  1 failed
+    tests/browser/focus-review.spec.ts:2:5 › return retains keyboard focus when current filters remove the originating category 
+
+Exit: 1 (expected regression reproduction)

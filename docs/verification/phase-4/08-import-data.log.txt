@@ -1,0 +1,8 @@
+$ npm run import:data
+
+> graph-permissions-explorer@0.1.0 import:data
+> node apps/api/dist/catalog-cli.js import
+
+{"status":"ok","versionId":"dc9b1ab2-c4c6-4a3f-be9d-de22027a5d91","reused":true,"definitionCount":1664}
+
+Exit: 0
