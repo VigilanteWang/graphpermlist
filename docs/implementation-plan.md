@@ -421,6 +421,9 @@ Verified:
   explain intrinsic-size stability. HTML/tests are excluded by purpose.
 
 No API/data tests repeated for this presentational change. SharePoint actual page
-remains unverified; packaging is not runtime acceptance. Append this review fix to
-PR #9 and verify no helper text or select-width jump on category entry/return.
+remains unverified; packaging is not runtime acceptance. Published this review fix as
+[`4c7e1ec`](https://github.com/VigilanteWang/graphpermlist/commit/4c7e1ec5a75bbda0356a0f9b02493247c9165ce4)
+in PR #9. Posted the [updated #5 review steps](https://github.com/VigilanteWang/graphpermlist/issues/5#issuecomment-6939110535):
+verify no helper text or select-width jump on category entry/return. This final
+publication update changes documentation only; `git diff --check` passed.
 No data/API/dependency changes; no install or local database migration/import needed.
