@@ -1,4 +1,4 @@
-import type { CatalogClient, CatalogManifest, CatalogSnapshot, ResourcesResponse } from '@graph/contracts';
+import type { CatalogClient, CatalogJsonManifest, CatalogJsonSnapshot, ResourceListResult } from '@graph/contracts';
 import type { CatalogClient as LegacyCatalogClient } from '@graph/api-client';
 import { detail } from './catalog.js';
 
@@ -10,10 +10,10 @@ export const snapshot = {
   resources: [{ resourceId: detail.item.resourceId, displayName: 'Synthetic resource',
     categories: [{ category: 'exchange', displayName: 'Exchange', description: 'Synthetic category' }],
     families: [{ category: 'exchange', family: 'Mail' }], definitions: [] }]
-} satisfies CatalogSnapshot;
+} satisfies CatalogJsonSnapshot;
 export const manifest = { schemaVersion: 1, version: 'synthetic-v1',
-  snapshot: 'catalog-synthetic-v1.json', artifactSha256: '2'.repeat(64) } satisfies CatalogManifest;
+  snapshot: 'catalog-synthetic-v1.json', artifactSha256: '2'.repeat(64) } satisfies CatalogJsonManifest;
 export const jsonResources = { dataState: 'ready', source: snapshot.source, items: [],
   artifact: { schemaVersion: manifest.schemaVersion, version: manifest.version, sha256: manifest.artifactSha256 }
-} satisfies ResourcesResponse;
+} satisfies ResourceListResult;
 export const legacyCompatible = (client: CatalogClient): LegacyCatalogClient => client;

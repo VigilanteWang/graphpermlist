@@ -1,14 +1,14 @@
 /** Home 的 definition 统计区块，展示来源计数与禁用条目的口径说明。 */
 import * as React from 'react';
 import { Body1, Card, Title2 } from '@fluentui/react-components';
-import type { PermissionsResponse, ResourcesResponse, ResourceSummary } from '@graph/contracts';
+import type { PermissionListResult, ResourceListResult, CatalogResourceSummary } from '@graph/contracts';
 import { useStatisticsStyles } from './Statistics.styles.js';
 
 /** 统计所需的 resource 与 family 查询结果；异步状态仍由外壳持有。 */
 interface StatisticsProps {
-  resources: ResourcesResponse;
-  graph?: ResourceSummary;
-  definitions?: PermissionsResponse;
+  resources: ResourceListResult;
+  graph?: CatalogResourceSummary;
+  definitions?: PermissionListResult;
 }
 
 /** 目录统计卡片，分别保留普通启用条目、全部普通条目与排除 RSC 的计数。 */

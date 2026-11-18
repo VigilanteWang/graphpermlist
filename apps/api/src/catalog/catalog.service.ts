@@ -3,8 +3,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { countPermissions, queryCategories, queryDetail, queryPermissions } from '@graph/catalog-core';
-import type { CategoriesResponse, PermissionDetailResponse, PermissionQuery, PermissionRow,
-  PermissionsResponse, ResourcesResponse } from '@graph/contracts';
+import type {
+  CatalogApiCategoryListResponse,
+  CatalogApiPermissionDetailResponse,
+  CatalogApiPermissionListResponse,
+  CatalogApiResourceListResponse,
+  MergedPermissionRow,
+  PermissionQueryOptions
+} from '@graph/contracts';
 import { CatalogCategory, CatalogDefinition, CatalogImport } from './catalog.entities';
 
 /** 只读目录查询服务，使用 TypeORM 仓储读取 resource、permission 列表、分类统计和详情。 */
@@ -18,7 +24,7 @@ export class CatalogService {
   ) {}
 
   /** resource 列表查询方法，返回已导入的 resource 和数量；无活动快照时返回尚未导入状态。 */
-  async resources(): Promise<ResourcesResponse> {
+  async resources(): Promise<CatalogApiResourceListResponse> {
     const versions = await this.imports.find({ where: { active: true }, order: { resourceId: 'ASC' } });
     if (!versions.length) return { dataState: 'not-imported', source: null, items: [] };
     const items = await Promise.all(versions.map(async version => ({ resourceId: version.resourceId,
@@ -27,14 +33,14 @@ export class CatalogService {
   }
 
   /** permission 列表查询方法，返回指定 resource 在当前筛选条件下的合并行和数量。 */
-  async permissions(resourceId: string, query: PermissionQuery): Promise<PermissionsResponse> {
+  async permissions(resourceId: string, query: PermissionQueryOptions): Promise<CatalogApiPermissionListResponse> {
     const version = await this.activeVersion(resourceId);
     const items = await this.rows(version, query);
     return { dataState: 'ready', source: version.source, ...countPermissions(items), items };
   }
 
   /** category 数量查询方法，按筛选结果统计各分类，仅返回仍含 permission 的分类。 */
-  async categories(resourceId: string, query: PermissionQuery): Promise<CategoriesResponse> {
+  async categories(resourceId: string, query: PermissionQueryOptions): Promise<CatalogApiCategoryListResponse> {
     const version = await this.activeVersion(resourceId);
     const rows = await this.rows(version, query);
     const categories = await this.categoriesRepository.find({ where: { versionId: version.id } });
@@ -43,7 +49,7 @@ export class CatalogService {
   }
 
   /** 单个 permission 的详情查询方法，返回可见行和当前快照中该 permission 的全部定义。 */
-  async detail(resourceId: string, value: string, query: PermissionQuery): Promise<PermissionDetailResponse> {
+  async detail(resourceId: string, value: string, query: PermissionQueryOptions): Promise<CatalogApiPermissionDetailResponse> {
     const version = await this.activeVersion(resourceId);
     const all = await this.definitions.find({ where: { versionId: version.id, value } });
     const detail = queryDetail(version.resourceId, all, value, query);
@@ -59,7 +65,7 @@ export class CatalogService {
   }
 
   /** 快照内合并行的读取方法，先读取全部定义，再进行筛选和同名 permission 合并。 */
-  private async rows(version: CatalogImport, query: PermissionQuery): Promise<PermissionRow[]> {
+  private async rows(version: CatalogImport, query: PermissionQueryOptions): Promise<MergedPermissionRow[]> {
     const entries = await this.definitions.find({ where: { versionId: version.id } });
     // 实体仅作为结构化输入传给纯函数；共享模块不导入数据库类型或 Nest 异常。
     return queryPermissions(version.resourceId, entries, query);

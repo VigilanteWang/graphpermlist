@@ -1,12 +1,12 @@
 /** Home 的来源详情折叠区块，展示 client 返回的真实快照元数据。 */
 import * as React from 'react';
 import { Accordion, AccordionHeader, AccordionItem, AccordionPanel } from '@fluentui/react-components';
-import type { ResourcesResponse } from '@graph/contracts';
+import type { CatalogSourceMetadata } from '@graph/contracts';
 import { MetadataTable } from '../../../components/MetadataTable.js';
 
 /** 来源详情的数据输入；来源缺失时由 Home 决定不呈现此区块。 */
 interface CatalogSourceDetailsProps {
-  source: NonNullable<ResourcesResponse['source']>;
+  source: CatalogSourceMetadata;
 }
 
 /** 可展开的来源详情；API 导入时间与 JSON 生成时间按契约分别显示。 */

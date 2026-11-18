@@ -10,14 +10,14 @@ import {
   DataGridRow,
   createTableColumn
 } from '@fluentui/react-components';
-import type { PermissionRow } from '@graph/contracts';
+import type { MergedPermissionRow } from '@graph/contracts';
 import { DefinitionLabel } from '../components/DefinitionLabel.js';
 import { DefinitionField } from './components/DefinitionField.js';
 import { useGridStyles } from './PermissionGrid.styles.js';
 
 /** permission 列表组件的属性，rows 仅包含命中筛选的定义，onOpen 接收 permission value。 */
 export interface PermissionGridProps {
-  rows: PermissionRow[];
+  rows: MergedPermissionRow[];
   onOpen: (value: string) => void;
 }
 
@@ -25,7 +25,7 @@ export interface PermissionGridProps {
 export function PermissionGrid({ rows, onOpen }: PermissionGridProps): React.ReactElement {
   const styles = useGridStyles();
   const columns = [
-    createTableColumn<PermissionRow>({
+    createTableColumn<MergedPermissionRow>({
       columnId: 'permission',
       renderHeaderCell: () => 'Permission',
       renderCell: (row) => (
@@ -34,22 +34,22 @@ export function PermissionGrid({ rows, onOpen }: PermissionGridProps): React.Rea
         </Button>
       )
     }),
-    createTableColumn<PermissionRow>({
+    createTableColumn<MergedPermissionRow>({
       columnId: 'summary',
       renderHeaderCell: () => 'Summary',
       renderCell: (row) => <DefinitionField row={row} field="title" />
     }),
-    createTableColumn<PermissionRow>({
+    createTableColumn<MergedPermissionRow>({
       columnId: 'message',
       renderHeaderCell: () => 'Consent message',
       renderCell: (row) => <DefinitionField row={row} field="description" />
     }),
-    createTableColumn<PermissionRow>({
+    createTableColumn<MergedPermissionRow>({
       columnId: 'admin',
       renderHeaderCell: () => 'Admin consent required',
       renderCell: (row) => <DefinitionField row={row} field="adminConsentRequired" />
     }),
-    createTableColumn<PermissionRow>({
+    createTableColumn<MergedPermissionRow>({
       columnId: 'types',
       renderHeaderCell: () => 'Permission types',
       renderCell: (row) => (
@@ -82,9 +82,9 @@ export function PermissionGrid({ rows, onOpen }: PermissionGridProps): React.Rea
             {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
           </DataGridRow>
         </DataGridHeader>
-        <DataGridBody<PermissionRow>>
+        <DataGridBody<MergedPermissionRow>>
           {({ item, rowId }) => (
-            <DataGridRow<PermissionRow> key={rowId}>
+            <DataGridRow<MergedPermissionRow> key={rowId}>
               {({ renderCell, columnId }) => (
                 <DataGridCell
                   className={styles.cell}

@@ -1,6 +1,6 @@
 /** 目录外壳的交互控制器，协调导航、共享筛选、请求和跨组件键盘焦点。 */
 import * as React from 'react';
-import type { CatalogClient, CategorySummary, PermissionQuery } from '@graph/contracts';
+import type { CatalogClient, CatalogCategorySummary, PermissionQueryOptions } from '@graph/contracts';
 import { useExplorerCatalog } from './useExplorerCatalog.js';
 import { useExplorerLayout } from './useExplorerLayout.js';
 import { useFamilyBrowse } from './useFamilyBrowse.js';
@@ -16,15 +16,15 @@ export function useExplorerController(client: CatalogClient, viewportLayout: boo
   const detailTrigger = React.useRef<HTMLElement | null>(null);
   const categoryTrigger = React.useRef<string>();
   const [page, setPage] = React.useState<ExplorerPage>('home');
-  const [category, setCategory] = React.useState<CategorySummary>();
-  const [criteria, setCriteria] = React.useState<PermissionQuery>({});
+  const [category, setCategory] = React.useState<CatalogCategorySummary>();
+  const [criteria, setCriteria] = React.useState<PermissionQueryOptions>({});
   const [detail, setDetail] = React.useState<string>();
   const viewKey = category?.category ?? 'all';
   const query = React.useMemo(() => ({ ...criteria, category: category?.category }), [criteria, category]);
   const catalog = useExplorerCatalog(client, page, category, query);
   const browse = useFamilyBrowse(catalog.rows.data?.items, viewKey, !!query.q?.trim());
   React.useEffect(() => {
-    // 只有导航重置滚动和标题焦点；筛选响应不能夺走输入焦点。
+    // 进入 category 时聚焦新标题，方便键盘和屏幕阅读器用户从新内容继续，筛选时保留输入焦点。
     if (viewportLayout) main.current?.scrollTo({ top: 0 });
     if (page === 'graph' && category) heading.current?.focus();
   }, [page, category, viewportLayout]);
@@ -33,7 +33,7 @@ export function useExplorerController(client: CatalogClient, viewportLayout: boo
     const button = root.current?.querySelector<HTMLButtonElement>(
       `[data-category="${categoryTrigger.current}"]`
     );
-    // 当前筛选可能排除原 category；此时恢复到一级标题。
+    // 返回时聚焦原卡片以继续浏览，找不到则聚焦一级标题，浏览器通常会将焦点目标滚入视野。
     (button ?? heading.current)?.focus();
     categoryTrigger.current = undefined;
   }, [page, category, catalog.categories.data, root]);
@@ -44,12 +44,12 @@ export function useExplorerController(client: CatalogClient, viewportLayout: boo
     setDetail(undefined);
   }
   /** 两级目录共用的条件更新操作，同时关闭旧 permission 的详情。 */
-  function updateQuery(patch: Partial<PermissionQuery>): void {
+  function updateQuery(patch: Partial<PermissionQueryOptions>): void {
     setDetail(undefined);
     setCriteria((previous) => ({ ...previous, ...patch }));
   }
   /** category 入口；记录返回时应恢复焦点的卡片，不保存另一份筛选。 */
-  function openCategory(item: CategorySummary): void {
+  function openCategory(item: CatalogCategorySummary): void {
     categoryTrigger.current = item.category;
     setCategory(item);
   }

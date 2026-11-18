@@ -1,11 +1,11 @@
 /** permission 详情的请求 Hook，保留等值查询去重、取消、重试和过期结果隔离。 */
 import * as React from 'react';
-import type { CatalogClient, PermissionDetailResponse, PermissionQuery } from '@graph/contracts';
+import type { CatalogClient, PermissionDetailResult, PermissionQueryOptions } from '@graph/contracts';
 
 /** 详情请求的状态结构，通过请求键阻止上一次 permission 的内容出现在新面板中。 */
 interface DetailState {
   key: string;
-  response?: PermissionDetailResponse;
+  result?: PermissionDetailResult;
   error?: string;
 }
 
@@ -14,7 +14,7 @@ export function usePermissionDetails(
   client: CatalogClient,
   resourceId: string,
   value: string | undefined,
-  query: PermissionQuery
+  query: PermissionQueryOptions
 ) {
   const [attempt, setAttempt] = React.useState(0);
   const [state, setState] = React.useState<DetailState>();
@@ -34,15 +34,15 @@ export function usePermissionDetails(
     const [q, category, family, permissionType, adminConsentRequired, showDisabled] = JSON.parse(
       queryKey
     ) as [
-      PermissionQuery['q'],
-      PermissionQuery['category'],
-      PermissionQuery['family'],
-      PermissionQuery['permissionType'],
-      PermissionQuery['adminConsentRequired'],
-      PermissionQuery['showDisabled']
+      PermissionQueryOptions['q'],
+      PermissionQueryOptions['category'],
+      PermissionQueryOptions['family'],
+      PermissionQueryOptions['permissionType'],
+      PermissionQueryOptions['adminConsentRequired'],
+      PermissionQueryOptions['showDisabled']
     ];
-    // JSON 数组中的 undefined 会变成 null；还原成 API 的可选字段语义。
-    const snapshot: PermissionQuery = {
+    // JSON 数组中的 undefined 会变成 null；还原中立查询的可选字段。
+    const snapshot: PermissionQueryOptions = {
       q: q ?? undefined,
       category: category ?? undefined,
       family: family ?? undefined,
@@ -53,8 +53,8 @@ export function usePermissionDetails(
     setState({ key: requestKey });
     client
       .detail(resourceId, value, snapshot, abort.signal)
-      .then((response) => {
-        if (!abort.signal.aborted) setState({ key: requestKey, response });
+      .then((result) => {
+        if (!abort.signal.aborted) setState({ key: requestKey, result });
       })
       .catch((error: unknown) => {
         if (!abort.signal.aborted)

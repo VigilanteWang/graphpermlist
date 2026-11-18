@@ -1,7 +1,7 @@
 /** 两级目录的内容主体，组合标题、请求状态、category 卡片与 family 浏览。 */
 import * as React from 'react';
 import { Body1, Button, Spinner, Text, mergeClasses } from '@fluentui/react-components';
-import type { CategorySummary } from '@graph/contracts';
+import type { CatalogCategorySummary } from '@graph/contracts';
 import { RequestError } from '../../../components/RequestError.js';
 import type { useExplorerCatalog } from '../hooks/useExplorerCatalog.js';
 import type { useFamilyBrowse } from '../hooks/useFamilyBrowse.js';
@@ -11,12 +11,12 @@ import { useContentStyles } from './CatalogContent.styles.js';
 
 /** 内容主体的查询结果、展开模型及导航回调，标题引用用于跨视图焦点恢复。 */
 interface CatalogContentProps {
-  category?: CategorySummary;
+  category?: CatalogCategorySummary;
   catalog: ReturnType<typeof useExplorerCatalog>;
   browse: ReturnType<typeof useFamilyBrowse>;
   headingRef: React.RefObject<HTMLHeadingElement>;
   onBack: () => void;
-  onOpenCategory: (category: CategorySummary) => void;
+  onOpenCategory: (category: CatalogCategorySummary) => void;
   onOpenPermission: (value: string) => void;
 }
 

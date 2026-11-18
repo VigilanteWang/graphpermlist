@@ -1,7 +1,7 @@
 /** permission 表格中逐条展示官方字段的专用组件。 */
 import * as React from 'react';
 import { Text } from '@fluentui/react-components';
-import type { PermissionRow } from '@graph/contracts';
+import type { MergedPermissionRow } from '@graph/contracts';
 import { DefinitionLabel } from '../../components/DefinitionLabel.js';
 import { useGridStyles } from '../PermissionGrid.styles.js';
 
@@ -10,7 +10,7 @@ export function DefinitionField({
   row,
   field
 }: {
-  row: PermissionRow;
+  row: MergedPermissionRow;
   field: 'title' | 'description' | 'adminConsentRequired';
 }): React.ReactElement {
   const styles = useGridStyles();

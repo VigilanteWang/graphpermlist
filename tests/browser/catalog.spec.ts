@@ -1,10 +1,15 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import type { CategoriesResponse, PermissionsResponse, PermissionDetailResponse, PermissionQuery } from '../../packages/contracts/src/index.js';
+import type {
+  CatalogApiCategoryListResponse,
+  CatalogApiPermissionDetailResponse,
+  CatalogApiPermissionListResponse,
+  PermissionQueryOptions
+} from '../../packages/contracts/src/index.js';
 
 const resourceId = '00000003-0000-0000-c000-000000000000';
 const api = `http://127.0.0.1:${Number(process.env.CATALOG_TEST_API_PORT ?? 3000)}/api/v1/resources/${resourceId}`;
 
-async function readApi<T>(request: APIRequestContext, path: string, query: PermissionQuery = {}): Promise<T> {
+async function readApi<T>(request: APIRequestContext, path: string, query: PermissionQueryOptions = {}): Promise<T> {
   const response = await request.get(`${api}/${path}`, { params: Object.fromEntries(Object.entries(query).map(([key, value]) => [key, String(value)])) });
   expect(response.ok()).toBeTruthy();
   return response.json() as Promise<T>;
@@ -27,7 +32,7 @@ async function assertCounts(page: Page, counts: { permissionCount: number; defin
   await expect(page.getByTestId('catalog-counts')).toContainText(`${counts.definitionCount} definitions`);
 }
 
-async function assertRows(page: Page, expected: PermissionsResponse): Promise<void> {
+async function assertRows(page: Page, expected: CatalogApiPermissionListResponse): Promise<void> {
   await assertCounts(page, expected);
   await page.getByRole('button', { name: 'Expand all', exact: true }).click();
   for (const row of expected.items) {
@@ -37,7 +42,7 @@ async function assertRows(page: Page, expected: PermissionsResponse): Promise<vo
 
 test('category totals and global search use current real API filters', async ({ page, request }) => {
   await openGraph(page);
-  const initial = await readApi<CategoriesResponse>(request, 'categories');
+  const initial = await readApi<CatalogApiCategoryListResponse>(request, 'categories');
   await assertCounts(page, initial);
   await page.getByTestId('catalog-body').evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
   await page.screenshot({ path: 'test-results/catalog-categories.png', fullPage: true });
@@ -50,11 +55,11 @@ test('category totals and global search use current real API filters', async ({ 
   const search = page.getByRole('textbox', { name: 'Search permissions', exact: true });
   await search.pressSequentially('Mail.Read', { delay: 30 });
   await expect(search).toBeFocused();
-  await assertCounts(page, await readApi<CategoriesResponse>(request, 'categories', { q: 'Mail.Read' }));
+  await assertCounts(page, await readApi<CatalogApiCategoryListResponse>(request, 'categories', { q: 'Mail.Read' }));
   await expect(search).toBeFocused();
   for (const q of ['Mail.Read', 'e1fe6dd8-ba31-4d61-89e7-88639da4683d', 'Sign in and read user profile']) {
     await search.fill(q);
-    const expected = await readApi<CategoriesResponse>(request, 'categories', { q });
+    const expected = await readApi<CatalogApiCategoryListResponse>(request, 'categories', { q });
     await assertCounts(page, expected);
     await expect(page.getByRole('button', { name: /^Open / })).toHaveCount(expected.items.length);
     for (const item of expected.items) await expect(page.getByRole('button', { name: `Open ${item.displayName}`, exact: true })).toBeVisible();
@@ -77,22 +82,22 @@ test('category search stays scoped, filters definitions together and shares curr
   await page.getByRole('textbox', { name: 'Search permissions', exact: true }).fill('Mail.Read');
   await page.getByLabel('Permission type', { exact: true }).selectOption('Application');
   await page.getByLabel('Admin consent', { exact: true }).selectOption('false');
-  const empty = await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange', q: 'Mail.Read', permissionType: 'Application', adminConsentRequired: false });
+  const empty = await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { category: 'exchange', q: 'Mail.Read', permissionType: 'Application', adminConsentRequired: false });
   expect(empty.items).toEqual([]);
   await assertCounts(page, empty);
   await page.getByLabel('Permission type', { exact: true }).selectOption('Delegated');
-  const delegated = await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange', q: 'Mail.Read', permissionType: 'Delegated', adminConsentRequired: false });
+  const delegated = await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { category: 'exchange', q: 'Mail.Read', permissionType: 'Delegated', adminConsentRequired: false });
   expect(delegated.items.some(row => row.value === 'Mail.Read')).toBeTruthy();
   await assertRows(page, delegated);
   await page.getByRole('button', { name: 'Back to categories', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Search permissions', exact: true })).toHaveValue('Mail.Read');
   await expect(page.getByLabel('Permission type', { exact: true })).toHaveValue('Delegated');
   await expect(page.getByLabel('Admin consent', { exact: true })).toHaveValue('false');
-  const global = await readApi<CategoriesResponse>(request, 'categories', { q: 'Mail.Read', permissionType: 'Delegated', adminConsentRequired: false });
+  const global = await readApi<CatalogApiCategoryListResponse>(request, 'categories', { q: 'Mail.Read', permissionType: 'Delegated', adminConsentRequired: false });
   await assertCounts(page, global);
   await openCategory(page, 'Exchange');
   await page.getByRole('textbox', { name: 'Search permissions', exact: true }).fill('User.Read');
-  const scoped = await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange', q: 'User.Read', permissionType: 'Delegated', adminConsentRequired: false });
+  const scoped = await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { category: 'exchange', q: 'User.Read', permissionType: 'Delegated', adminConsentRequired: false });
   expect(scoped.items).toEqual([]);
   await assertCounts(page, scoped);
 });
@@ -114,8 +119,8 @@ test('criteria stay synchronized when revisiting a category after changing all g
   await page.getByLabel('Admin consent', { exact: true }).selectOption('');
   await page.getByLabel('Permission family', { exact: true }).selectOption('EWS');
   await page.getByRole('checkbox', { name: 'Show disabled', exact: true }).check();
-  const criteria: PermissionQuery = { q: '', permissionType: 'Delegated', family: 'EWS', showDisabled: true };
-  const global = await readApi<CategoriesResponse>(request, 'categories', criteria);
+  const criteria: PermissionQueryOptions = { q: '', permissionType: 'Delegated', family: 'EWS', showDisabled: true };
+  const global = await readApi<CatalogApiCategoryListResponse>(request, 'categories', criteria);
   expect(global.permissionCount).toBe(1);
   await assertCounts(page, global);
   await openCategory(page, 'Exchange');
@@ -124,7 +129,7 @@ test('criteria stay synchronized when revisiting a category after changing all g
   await expect(page.getByLabel('Admin consent', { exact: true })).toHaveValue('');
   await expect(page.getByLabel('Permission family', { exact: true })).toHaveValue('EWS');
   await expect(page.getByRole('checkbox', { name: 'Show disabled', exact: true })).toBeChecked();
-  const scoped = await readApi<PermissionsResponse>(request, 'permissions', { ...criteria, category: 'exchange' });
+  const scoped = await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { ...criteria, category: 'exchange' });
   await assertRows(page, scoped);
   await expect(page.getByRole('button', { name: /^Mail \(/ })).toHaveCount(0);
 
@@ -136,15 +141,15 @@ test('criteria stay synchronized when revisiting a category after changing all g
   await expect(search).toHaveValue('EWS.AccessAsUser.All');
   await expect(page.getByLabel('Admin consent', { exact: true })).toHaveValue('false');
   await expect(page.getByRole('checkbox', { name: 'Show disabled', exact: true })).not.toBeChecked();
-  const updated: PermissionQuery = { q: 'EWS.AccessAsUser.All', permissionType: 'Delegated', family: 'EWS', adminConsentRequired: false, showDisabled: false };
-  await assertCounts(page, await readApi<CategoriesResponse>(request, 'categories', updated));
+  const updated: PermissionQueryOptions = { q: 'EWS.AccessAsUser.All', permissionType: 'Delegated', family: 'EWS', adminConsentRequired: false, showDisabled: false };
+  await assertCounts(page, await readApi<CatalogApiCategoryListResponse>(request, 'categories', updated));
   await openCategory(page, 'Exchange');
   await expect(search).toHaveValue('EWS.AccessAsUser.All');
-  await assertCounts(page, await readApi<PermissionsResponse>(request, 'permissions', { ...updated, category: 'exchange' }));
+  await assertCounts(page, await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { ...updated, category: 'exchange' }));
   await page.getByRole('navigation', { name: 'Resources' }).getByRole('button', { name: 'Microsoft Graph', exact: true }).click();
   await expect(search).toHaveValue('EWS.AccessAsUser.All');
   await expect(page.getByLabel('Permission family', { exact: true })).toHaveValue('EWS');
-  await assertCounts(page, await readApi<CategoriesResponse>(request, 'categories', updated));
+  await assertCounts(page, await readApi<CatalogApiCategoryListResponse>(request, 'categories', updated));
 });
 
 test('disabled definitions are excluded by default and become inspectable when requested', async ({ page, request }) => {
@@ -152,7 +157,7 @@ test('disabled definitions are excluded by default and become inspectable when r
   await page.getByRole('textbox', { name: 'Search permissions', exact: true }).fill('AgentCard.Read.All');
   await assertCounts(page, { permissionCount: 0, definitionCount: 0 });
   await page.getByRole('checkbox', { name: 'Show disabled', exact: true }).check();
-  const categories = await readApi<CategoriesResponse>(request, 'categories', { q: 'AgentCard.Read.All', showDisabled: true });
+  const categories = await readApi<CatalogApiCategoryListResponse>(request, 'categories', { q: 'AgentCard.Read.All', showDisabled: true });
   expect(categories.permissionCount).toBe(1);
   await assertCounts(page, categories);
   await openCategory(page, categories.items[0].displayName);
@@ -177,7 +182,7 @@ test('Mail.Read details retain both official definitions despite a Delegated fil
   await trigger.click();
   const drawer = page.getByRole('dialog', { name: 'Mail.Read details', exact: true });
   await expect(drawer).toBeVisible();
-  const detail = await readApi<PermissionDetailResponse>(request, 'permissions/Mail.Read', { category: 'exchange', q: 'Mail.Read', permissionType: 'Delegated', adminConsentRequired: false });
+  const detail = await readApi<CatalogApiPermissionDetailResponse>(request, 'permissions/Mail.Read', { category: 'exchange', q: 'Mail.Read', permissionType: 'Delegated', adminConsentRequired: false });
   expect(detail.item.visibleTypes).toEqual(['Delegated']);
   expect(detail.allDefinitions).toHaveLength(2);
   for (const definition of detail.allDefinitions) {
@@ -227,7 +232,7 @@ test('User.Read opens by keyboard and exposes the actual official scope', async 
 test('search expansion is temporary and clearing restores the previous family state', async ({ page, request }) => {
   await openGraph(page);
   await openCategory(page, 'Exchange');
-  const permissions = await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange' });
+  const permissions = await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { category: 'exchange' });
   const familyCount = permissions.items.filter(item => item.family === 'Mail').length;
   const mailFamily = page.getByRole('button', { name: `Mail (${familyCount})`, exact: true });
   await expect(mailFamily).toHaveAttribute('aria-expanded', 'false');
@@ -248,7 +253,7 @@ test('search expansion is temporary and clearing restores the previous family st
   await expect(mailFamily).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('button', { name: 'Mail.Read', exact: true })).not.toBeVisible();
   await page.getByLabel('Permission family', { exact: true }).selectOption('Mail');
-  const expected = await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange', family: 'Mail' });
+  const expected = await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { category: 'exchange', family: 'Mail' });
   await assertCounts(page, expected);
   await page.getByRole('button', { name: 'Expand all', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Mail.Read', exact: true })).toBeVisible();
@@ -300,7 +305,7 @@ test('a late obsolete search response cannot overwrite the newest results', asyn
   await search.fill('Mail.Read');
   await started;
   await search.fill('User.Read');
-  const expected = await readApi<CategoriesResponse>(request, 'categories', { q: 'User.Read' });
+  const expected = await readApi<CatalogApiCategoryListResponse>(request, 'categories', { q: 'User.Read' });
   try {
     await assertCounts(page, expected);
   } finally {
@@ -438,11 +443,11 @@ for (const q of ['e1fe6dd8-ba31-4d61-89e7-88639da4683d', 'no-such-permission-foc
     await openCategory(page, 'Exchange');
     const search = page.getByRole('textbox', { name: 'Search permissions', exact: true });
     await search.fill(q);
-    await assertCounts(page, await readApi<PermissionsResponse>(request, 'permissions', { category: 'exchange', q }));
+    await assertCounts(page, await readApi<CatalogApiPermissionListResponse>(request, 'permissions', { category: 'exchange', q }));
     const back = page.getByRole('button', { name: 'Back to categories', exact: true });
     await back.focus();
     await page.keyboard.press('Enter');
-    const global = await readApi<CategoriesResponse>(request, 'categories', { q });
+    const global = await readApi<CatalogApiCategoryListResponse>(request, 'categories', { q });
     await assertCounts(page, global);
     await expect(search).toHaveValue(q);
     await expect(page.getByRole('button', { name: 'Open Exchange', exact: true })).toHaveCount(0);

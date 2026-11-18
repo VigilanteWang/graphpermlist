@@ -1,14 +1,14 @@
 /** 目录浏览的数据编排 Hook，仅调用宿主注入的中立 CatalogClient。 */
 import * as React from 'react';
-import type { CatalogClient, CategorySummary, PermissionQuery } from '@graph/contracts';
+import type { CatalogClient, CatalogCategorySummary, PermissionQueryOptions } from '@graph/contracts';
 import { useCatalogRequest } from '../../../hooks/useCatalogRequest.js';
 
 /** 当前浏览范围对应的请求集合；family 选项使用含禁用项的完整目录，不随搜索收缩。 */
 export function useExplorerCatalog(
   client: CatalogClient,
   page: 'home' | 'graph',
-  category: CategorySummary | undefined,
-  query: PermissionQuery
+  category: CatalogCategorySummary | undefined,
+  query: PermissionQueryOptions
 ) {
   const resourcesLoad = React.useCallback((signal: AbortSignal) => client.resources(signal), [client]);
   const resources = useCatalogRequest(resourcesLoad);

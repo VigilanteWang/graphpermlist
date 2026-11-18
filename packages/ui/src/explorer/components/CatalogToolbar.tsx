@@ -1,14 +1,14 @@
 /** 两级目录页面共用的受控搜索与筛选工具栏。 */
 import * as React from 'react';
 import { Button, Checkbox, Field, Input, mergeClasses, Select } from '@fluentui/react-components';
-import type { PermissionQuery, PermissionType } from '@graph/contracts';
+import type { PermissionQueryOptions, PermissionType } from '@graph/contracts';
 import { useToolbarStyles } from './CatalogToolbar.styles.js';
 
 /** 工具栏当前条件、可选 family 及条件更新回调；不拥有请求或导航状态。 */
 interface CatalogToolbarProps {
-  criteria: PermissionQuery;
+  criteria: PermissionQueryOptions;
   families: string[];
-  updateQuery: (patch: Partial<PermissionQuery>) => void;
+  updateQuery: (patch: Partial<PermissionQueryOptions>) => void;
 }
 
 /** 目录筛选输入组件；通过回调让两个页面始终使用同一份条件。 */

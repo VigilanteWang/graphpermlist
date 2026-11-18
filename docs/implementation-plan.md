@@ -774,3 +774,9 @@ pushed to the existing stage branch. PR #16's title/body now reflect the final s
 [#12 follow-up review checklist](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6954582535)
 was published and read back. PR remains open/Ready, with actual SharePoint acceptance
 pending. This publication-record update changes documentation only.
+
+## Contracts organization follow-up
+
+The existing #12 branch groups the shared TypeScript contracts by query, HTTP,
+and JSON publication. See the [contract follow-up](sharepoint-json-plan.md#12-follow-up-contract-modules-and-names)
+for the naming conventions, verification and handoff.

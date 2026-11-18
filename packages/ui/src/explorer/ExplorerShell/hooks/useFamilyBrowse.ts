@@ -1,13 +1,13 @@
 /** category 内的 family 分组与展开记忆，区分普通浏览和临时搜索展开。 */
 import * as React from 'react';
-import type { PermissionRow } from '@graph/contracts';
+import type { MergedPermissionRow } from '@graph/contracts';
 
 /** 当前 category 的可见分组与展开控制；Hook 始终由外壳调用，切换页面不销毁记忆。 */
-export function useFamilyBrowse(rows: PermissionRow[] | undefined, viewKey: string, searching: boolean) {
+export function useFamilyBrowse(rows: MergedPermissionRow[] | undefined, viewKey: string, searching: boolean) {
   const [savedOpen, setSavedOpen] = React.useState<Record<string, string[]>>({});
   const [searchOpen, setSearchOpen] = React.useState<string[]>([]);
   const groups = React.useMemo(() => {
-    const result = new Map<string, PermissionRow[]>();
+    const result = new Map<string, MergedPermissionRow[]>();
     for (const row of rows ?? []) result.set(row.family, [...(result.get(row.family) ?? []), row]);
     return [...result.entries()];
   }, [rows]);

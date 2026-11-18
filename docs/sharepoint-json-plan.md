@@ -28,8 +28,11 @@ configuration and upgrade/rollback. A data-source switch in one Web Part does no
 satisfy #11. Three entries reuse packages/ui and inject a CatalogClient; UI has no
 transport/host branches. Current API SPFx IDs/properties/package are unchanged.
 
-- contracts: type-only CatalogClient, current wire responses, query inputs and
-  schema 1 publication types. api-client retains its old CatalogClient type export.
+- contracts: `catalog-query.ts` defines the neutral CatalogClient, query models and
+  source metadata. `catalog-api.ts` defines HTTP responses shared by Nest and the
+  HTTP client. `catalog-json.ts` defines schema 1 publication files and JSON
+  client errors. The package entry and the api-client CatalogClient re-export
+  remain type-only.
 - api-client: unchanged HTTP routes, encoding, credentials: omit, status/errors and
   request cancellation. No SPFx context.
 - catalog-core: pure queryPermissions/countPermissions/queryCategories/queryDetail.
@@ -52,14 +55,15 @@ lexical ordering; definitions sort by type, with stable input order within a typ
 
 ## Schema 1 decisions for #13
 
-Types: packages/contracts/src/index.ts. These are contracts, not runtime validation.
+The [JSON contract](../packages/contracts/src/catalog-json.ts) describes the static
+schema. Stage #13 implements runtime validation.
 
-- CatalogManifest: schemaVersion: 1, version, snapshot, artifactSha256.
+- CatalogJsonManifest: schemaVersion: 1, version, snapshot, artifactSha256.
   snapshot is a filename relative to the configured manifest directory, such as
   catalog-<version>.json. Version/path validation must reject absolute URLs,
   schemes, encoded separators, dot segments and directory escape. The host can
   configure a different site path on its own origin with real file access.
-- CatalogSnapshot: schemaVersion: 1, version, source, classificationHash, resources.
+- CatalogJsonSnapshot: schemaVersion: 1, version, source, classificationHash, resources.
   Each resource includes resourceId (Resource App ID), displayName, categories,
   category/family pairs and definitions. Each definition has value/category/family,
   the current PermissionDefinition and safe rawDefinition fields (Application
@@ -73,14 +77,14 @@ Types: packages/contracts/src/index.ts. These are contracts, not runtime validat
 - source.sha256 hashes original input bytes; source.fileName is a safe logical
   name, never a private input path. source.classificationVersion and top-level
   classificationHash identify classification; source.excludedRscCount traces RSC.
-- source.generatedAt is the actual offline generation timestamp (UTC ISO 8601),
-  not an official export time. JSON has no importedAt; the existing API source
-  continues to contain its real database importedAt and unchanged field values.
+- CatalogJsonSnapshotSource.generatedAt is the actual offline generation timestamp
+  (UTC ISO 8601). CatalogImportSource.importedAt is the real database import time.
+  Both source types share the input file name, digest and classification fields.
   Deterministic reproduction requires the same input/rules/schema/generation
   timestamp; #13 must provide an explicit reproducible timestamp input.
 - manifest.artifactSha256 is lowercase SHA256 over the exact snapshot file bytes,
   not the parsed/re-serialized object. Keep it outside the snapshot to avoid a
-  circular self-digest. The client adds optional CatalogMetadata.artifact with
+  circular self-digest. The client adds optional CatalogQueryMetadata.artifact with
   schemaVersion/version/sha256 only after validation; API need not emit it.
 - Manifest and snapshot schema/version must agree. An unsupported schema, invalid
   shape, duplicate identity, inconsistent reference/raw fields or digest mismatch
@@ -90,7 +94,7 @@ Types: packages/contracts/src/index.ts. These are contracts, not runtime validat
   measured source, with tests at boundaries and explanations. Current input counts
   are acceptance evidence, never schema requirements for future valid catalogs.
 
-CatalogFailure.code defines load-failed (network/status/non-JSON/login HTML),
+CatalogJsonClientError.code defines load-failed (network/status/non-JSON/login HTML),
 invalid-snapshot (format/reference/digest/version), unsupported-schema and not-found.
 Future JSON errors reject promises; cancellation uses AbortError and stale requests
 cannot publish state. HTTP retains CatalogApiError with original status/body.
@@ -411,3 +415,39 @@ with prerequisites, exact commands, expected interaction/metadata behavior,
 isolated-data handling and unverified scope. The local checklist links the same
 review thread. This final record is documentation only; link/whitespace checks pass.
 No merge, issue closure, tenant upload/deployment or #13 work was performed.
+
+### #12 follow-up: contract modules and names
+
+`packages/contracts/src/index.ts` re-exports the three contract modules using
+`export type`. UI and catalog-core use query models such as `PermissionQueryOptions`,
+`MergedPermissionRow`, and `PermissionDetailResult`. The HTTP client decodes
+`CatalogApi…Response` and exposes `CatalogClient` to hosts. The API and the JSON
+schema use their respective source types, `CatalogImportSource` and
+`CatalogJsonSnapshotSource`. The shared source fields refer to the original input
+file. The JSON artifact digest refers to the generated snapshot.
+[TypeScript module reference](https://www.typescriptlang.org/docs/handbook/modules/reference.html#type-only-imports-and-exports).
+
+The existing `@graph/contracts` entry remains the import path for consumers.
+Repository callers and fixtures use the new names. The HTTP payload and schema 1
+file shapes are compatible with the prior definitions. The contract split adds
+no runtime dependency.
+
+Verification on Node 22.16.0 and npm 10.9.2:
+
+- `npm run verify:data`, `npm run typecheck`, `npm test` (26 passed),
+  `npm run build` (including API SPFx packaging), and `npm run check:react` passed.
+- `node docs/verification/spfx-json-1/runtime-check.mjs` verified migration/import
+  reuse and the four HTTP routes with isolated SQLite. The response source still
+  contains `importedAt` and its original field set.
+- `CATALOG_TEST_API_PORT=3216 CATALOG_TEST_WEB_PORT=5316 npm run test:browser`
+  passed all 28 Chromium cases outside the macOS sandbox after a Mach port
+  restriction blocked browser startup inside the sandbox.
+- Compile-time comparison confirmed shape compatibility for the neutral client,
+  query results, sources, HTTP error body and schema 1 types. All four emitted
+  contracts modules contain only an empty export. Chinese TSDoc covers all 44
+  contract declarations and method signatures. `git diff --check` passed.
+
+For review, compare the `source` fields in the HTTP and JSON contracts and run
+the isolated HTTP check above. Confirm that the API emits the import timestamp
+and the JSON source type declares the generation timestamp. Actual SharePoint
+runtime acceptance remains pending. The refactor is in the existing #12 working tree.

@@ -1,7 +1,7 @@
 /** 目录 Home 页面，组装介绍、统计、resource 入口与来源详情。 */
 import * as React from 'react';
 import { Badge, Body1, Title1 } from '@fluentui/react-components';
-import type { ResourcesResponse, ResourceSummary, PermissionsResponse } from '@graph/contracts';
+import type { ResourceListResult, CatalogResourceSummary, PermissionListResult } from '@graph/contracts';
 import { RequestError } from '../../components/RequestError.js';
 import { CatalogAbout } from './components/CatalogAbout.js';
 import { CatalogSourceDetails } from './components/CatalogSourceDetails.js';
@@ -11,9 +11,9 @@ import { useHomeStyles } from './HomePage.styles.js';
 
 /** Home 的只读数据和导航入口；异步请求由外壳持有，切换页面不会重复加载。 */
 interface HomePageProps {
-  resources: ResourcesResponse;
-  graph?: ResourceSummary;
-  familySource: { data?: PermissionsResponse; error?: string; retry: () => void };
+  resources: ResourceListResult;
+  graph?: CatalogResourceSummary;
+  familySource: { data?: PermissionListResult; error?: string; retry: () => void };
   onBrowseGraph: () => void;
 }
 

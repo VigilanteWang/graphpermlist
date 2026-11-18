@@ -1,12 +1,19 @@
 /** 浏览器与 Node 共用的纯目录查询模块；输入为已校验的单一 resource，不读取文件或依赖宿主。 */
-import type { CatalogDefinitionEntry, CategoryInfo, CategorySummary, Counts, PermissionDetailResponse,
-  PermissionQuery, PermissionRow } from '@graph/contracts';
+import type {
+  CatalogCategoryMetadata,
+  CatalogCategorySummary,
+  CatalogDefinitionEntry,
+  MergedPermissionRow,
+  PermissionCounts,
+  PermissionDetail,
+  PermissionQueryOptions
+} from '@graph/contracts';
 
 /** 文本的稳定比较函数，保留现有 API 的大小写敏感排序规则。 */
 const orderText = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
 
 /** 合并行的数量统计函数，分别统计 permission 名称和命中的原始 definitions。 */
-export const countPermissions = (rows: readonly PermissionRow[]): Counts => ({ permissionCount: rows.length,
+export const countPermissions = (rows: readonly MergedPermissionRow[]): PermissionCounts => ({ permissionCount: rows.length,
   definitionCount: rows.reduce((sum, row) => sum + row.definitions.length, 0) });
 
 /**
@@ -16,9 +23,11 @@ export const countPermissions = (rows: readonly PermissionRow[]): Counts => ({ p
  * @param query - 搜索和筛选条件；默认隐藏 disabled definitions。
  * @returns 按 value 排序的合并行；不改变输入数组或定义对象。
  */
-export function queryPermissions(resourceId: string, entries: readonly CatalogDefinitionEntry[], query: PermissionQuery = {}): PermissionRow[] {
+export function queryPermissions(
+  resourceId: string, entries: readonly CatalogDefinitionEntry[], query: PermissionQueryOptions = {}
+): MergedPermissionRow[] {
   const q = query.q?.trim().toLowerCase() ?? '';
-  const merged = new Map<string, PermissionRow>();
+  const merged = new Map<string, MergedPermissionRow>();
   for (const entry of entries) {
     const definition = entry.definition;
     // 所有条件必须同时命中同一条 definition，不能跨类型拼接 consent 与搜索命中。
@@ -47,7 +56,9 @@ export function queryPermissions(resourceId: string, entries: readonly CatalogDe
 }
 
 /** category 的筛选后统计函数，使用同一批合并行计算数量并隐藏空分类。 */
-export function queryCategories(categories: readonly CategoryInfo[], rows: readonly PermissionRow[]): CategorySummary[] {
+export function queryCategories(
+  categories: readonly CatalogCategoryMetadata[], rows: readonly MergedPermissionRow[]
+): CatalogCategorySummary[] {
   return categories.map(({ category, displayName, description }) => ({ category, displayName, description,
     ...countPermissions(rows.filter(row => row.category === category)) })).filter(item => item.permissionCount > 0)
     .sort((a, b) => orderText(a.displayName, b.displayName));
@@ -58,7 +69,7 @@ export function queryCategories(categories: readonly CategoryInfo[], rows: reado
  * allDefinitions 保留被当前条件筛除的定义；具体客户端负责将 undefined 映射为 not-found 错误。
  */
 export function queryDetail(resourceId: string, entries: readonly CatalogDefinitionEntry[], value: string,
-  query: PermissionQuery = {}): Pick<PermissionDetailResponse, 'item' | 'allDefinitions'> | undefined {
+  query: PermissionQueryOptions = {}): PermissionDetail | undefined {
   const all = entries.filter(entry => entry.value === value);
   const item = queryPermissions(resourceId, all, query)[0];
   if (!item) return undefined;

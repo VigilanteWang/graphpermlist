@@ -1,7 +1,7 @@
 /** 本地目录的 TypeORM 实体文件，描述 resource、快照及 permission 定义等数据的存储结构。 */
 import type { RawPermission } from '../../../../scripts/permissions-source.cjs';
 import { Column, Entity, PrimaryColumn } from 'typeorm';
-import type { PermissionDefinition, PermissionType, SourceInfo } from '@graph/contracts';
+import type { CatalogImportSource, PermissionDefinition, PermissionType } from '@graph/contracts';
 
 /** Graph resource 的数据库实体；resourceId 是该表的主键。 */
 @Entity('catalog_resource')
@@ -17,7 +17,7 @@ export class CatalogImport {
   @Column('text') displayName!: string;
   @Column('boolean') active!: boolean;
   @Column('text') classificationHash!: string;
-  @Column('simple-json') source!: SourceInfo;
+  @Column('simple-json') source!: CatalogImportSource;
 }
 /** 某个快照内服务 category 的数据库实体；versionId 与 category 共同组成主键。 */
 @Entity('catalog_category')

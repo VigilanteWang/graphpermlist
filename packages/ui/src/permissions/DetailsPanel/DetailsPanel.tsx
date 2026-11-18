@@ -11,7 +11,7 @@ import {
   Spinner,
   Text
 } from '@fluentui/react-components';
-import type { CatalogClient, PermissionQuery } from '@graph/contracts';
+import type { CatalogClient, PermissionQueryOptions } from '@graph/contracts';
 import { CopyValue } from './components/CopyValue.js';
 import { DefinitionDetails } from './components/DefinitionDetails.js';
 import { usePermissionDetails } from './hooks/usePermissionDetails.js';
@@ -22,7 +22,7 @@ export interface DetailsPanelProps {
   client: CatalogClient;
   resourceId: string;
   value: string | undefined;
-  query: PermissionQuery;
+  query: PermissionQueryOptions;
   onClose: () => void;
   mountNode?: HTMLElement | null;
 }
@@ -72,7 +72,7 @@ export function DetailsPanel({
             Details include all definitions, including definitions that do not match the current filters and
             disabled definitions.
           </Text>
-          {!current?.response && !current?.error && <Spinner label="Loading permission details" />}
+          {!current?.result && !current?.error && <Spinner label="Loading permission details" />}
           {current?.error && (
             <MessageBar intent="error">
               <MessageBarBody>
@@ -80,7 +80,7 @@ export function DetailsPanel({
               </MessageBarBody>
             </MessageBar>
           )}
-          {current?.response?.allDefinitions.map((definition) => (
+          {current?.result?.allDefinitions.map((definition) => (
             <DefinitionDetails
               key={`${definition.permissionType}:${definition.id}`}
               definition={definition}
