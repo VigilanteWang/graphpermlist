@@ -1,0 +1,5 @@
+CLI migrate: PASS {"status":"ok","migrations":["CatalogSchema1794528000000"]}
+CLI import: PASS {"status":"ok","versionId":"7f231914-a63d-4574-9b52-7ab2d7df7adf","reused":false,"definitionCount":1664}
+CLI import: PASS {"status":"ok","versionId":"7f231914-a63d-4574-9b52-7ab2d7df7adf","reused":true,"definitionCount":1664}
+HTTP standalone CommonJS process: PASS health/four routes/source shape/counts/GUID/consent/400/404/CORS/OPTIONS
+Verification process stopped and isolated database removed.

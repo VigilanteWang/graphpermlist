@@ -4,6 +4,66 @@ The Vite website and SPFx Web Part render the same `ExplorerShell` and use the s
 `CatalogClient`. The UI has no SPFx context, identity client, direct SQLite access or
 live Graph collection. All labels and permission wording are English.
 
+## Source organization
+
+The package's [local rules](../packages/ui/AGENTS.md) define responsibility-based
+splitting, state ownership, colocated styles and data boundaries. `src/index.ts` exposes only ExplorerShell and its props.
+
+- `src/explorer/ExplorerShell/`: composition entry, internal `components/` for
+  Fluent resource navigation, catalog content, category cards and family rendering;
+  `hooks/` for interaction orchestration, requests, expansion memory and container width.
+- `src/explorer/HomePage/`: composition entry and `components/` for statistics,
+  resource actions, glossary and source Accordion. Shared toolbar stays in
+  `src/explorer/components/` because it serves both catalog levels.
+- `src/permissions/DetailsPanel/`: drawer entry, `components/` for complete
+  definitions/Clipboard and `hooks/` for detail requests/Clipboard state.
+- `src/permissions/PermissionGrid/`: table entry, local styles and field renderer
+  in `components/`; `src/permissions/components/DefinitionLabel.tsx` is shared by
+  table and details.
+- `src/components/`: RequestError and MetadataTable; `src/hooks/` contains the
+  cross-feature cancellable useCatalogRequest.
+
+Main navigation uses controlled Fluent Nav/NavItem selection. Text uses Fluent
+Typography, metadata uses a read-only Fluent Table with accessible row headers,
+source details use Accordion, and statistics/definition surfaces use Card. Native
+main/layout divs and Select's option children retain their semantic/layout roles.
+No browser/host branches, store or duplicate transport/service layer were added.
+The installed 9.75.2 types were checked alongside official docs; no dependency
+upgrade is required. See the references below for component guidance.
+
+## Design references
+
+The local AGENTS.md contains only durable UI-specific rules. Directory explanations,
+examples, setup/acceptance steps and references live here for task-specific lookup,
+following OpenAI's [Codex best practices](https://learn.chatgpt.com/guides/best-practices)
+and [layered AGENTS.md guidance](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+Root instructions continue to cover shared repository policy and Chinese comments.
+
+- React: [Thinking in React](https://react.dev/learn/thinking-in-react),
+  [component files](https://react.dev/learn/importing-and-exporting-components),
+  [custom Hooks](https://react.dev/learn/reusing-logic-with-custom-hooks) and
+  [state preservation](https://react.dev/learn/preserving-and-resetting-state).
+- Fluent: [Nav Storybook](https://storybooks.fluentui.dev/react/?path=/docs/components-nav--docs),
+  [Nav](https://fluent2.microsoft.design/components/web/react/core/nav/usage),
+  [Text](https://fluent2.microsoft.design/components/web/react/core/text/usage),
+  [Accordion](https://fluent2.microsoft.design/components/web/react/core/accordion/usage),
+  [Card](https://fluent2.microsoft.design/components/web/react/core/card/usage) and
+  [Table example](https://github.com/microsoft/fluentui/blob/master/packages/react-components/react-table/stories/src/Table/Default.stories.tsx).
+
+Component-local folders and the shared MetadataTable are project choices, not a
+universal React/Fluent template. Keep small helpers local; move coherent state/Effect
+logic into purpose-named Hooks. Keep components at module scope to preserve their
+identity, and share state through the existing owner and props. Style sets belong
+beside their component; a couple of simple rules may stay in its file.
+
+Nav selection uses selectedValue/aria-current, source Accordion exposes expanded
+state, and MetadataTable uses scope=row row headers. The installed Text as union
+excludes dt/dd; use supported components without unsafe type assertions. Maintain
+public exports, official fields and wording, cancellation/Retry/stale-result handling,
+Clipboard fallback and focus restoration when changing these surfaces. See the
+[UI maintenance review](verification/spfx-json-1-human-review.md#ui-maintenance-follow-up--2026-11-18)
+for concrete user actions and expected results.
+
 ## Local website
 
 Use the pinned Node/npm versions and run from the repository root:

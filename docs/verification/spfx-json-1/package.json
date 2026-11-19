@@ -1,0 +1,6 @@
+{
+  "package": "apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg",
+  "bytes": 111940,
+  "sha256": "b060cf9559a14d4cea7bc0b14550ed460bf414431bc5be6fe7ab71a3123a71a9",
+  "scope": "Existing API SPFx package only. Build/package success; no SharePoint runtime or deployment acceptance."
+}

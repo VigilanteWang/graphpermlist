@@ -5,7 +5,7 @@
 Microsoft Graph Permissions Explorer 是一个面向 Microsoft Graph 全球云权限目录的只读应用，以仓库中的权限定义快照作为数据输入，不在线采集租户数据，也不执行权限授予或撤销。
 
 - **独立网站前端**：Vite + React + TypeScript，可在浏览器中独立运行。
-- **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、数据类型和 API client。
+- **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、中立数据类型及宿主注入的 HTTP client。
 - **共享界面**：Fluent UI React v9，React 18.3.1；提供英文 Home、分类卡片、搜索筛选、family DataGrid 和完整详情。
 - **后端**：NestJS，使用默认 Express adapter，通过 HTTP API 为前端提供数据。
 - **数据库**：TypeORM + better-sqlite3，本地运行无需单独安装数据库服务或 Docker。
@@ -45,7 +45,8 @@ graphpermlist/
 ├── packages/
 │   ├── ui/src/index.tsx                  两个前端共用的 Fluent UI 界面
 │   ├── api-client/src/index.ts           HTTP 请求、查询参数和错误处理
-│   └── contracts/src/index.ts            前后端共用的 API 数据类型
+│   ├── catalog-core/src/index.ts         浏览器/Node 共用的纯查询规则
+│   └── contracts/src/index.ts            中立 client、响应及 JSON snapshot/manifest 类型
 ├── data/
 │   ├── commercial-graph-permlist.json    版本化的安全权限快照
 │   └── README.md                         数据来源、字段说明和校验值
@@ -139,6 +140,7 @@ npm run test:browser
 | --- | --- | --- | --- |
 | API | NodeNext / NodeNext | ES2020 | `apps/api/package.json` 显式 `type: commonjs`，输出 CommonJS，由 Node 直接执行 |
 | contracts、api-client、ui | NodeNext / NodeNext | ES2020 | 各包保留 `type: module`，输出 ESM 与类型声明 |
+| catalog-core | NodeNext / NodeNext；另编译 CommonJS / Node | ES2020 | 单一源码生成 ESM/CJS，条件出口供浏览器和现有 Node API 使用 |
 | Web | ESNext / Bundler | ES2022 | TypeScript 只检查类型，Vite 构建浏览器产物 |
 | 测试夹具 | NodeNext / NodeNext | ES2020 | 只做类型检查，不输出代码 |
 | SPFx | ESNext / node（官方 rig） | ES5 | Heft 额外输出 CommonJS，Webpack 负责打包 |
@@ -148,3 +150,9 @@ Web 在 `vite.config.ts` 显式保留 Chrome 107、Edge 107、Firefox 104、Safa
 共享包使用 NodeNext 检查模块加载规则，以兼容 Node ESM 测试及 Vite/Webpack 消费；新增相对运行时导入时使用输出对应的 `.js` 扩展名。API 对 contracts 使用 type-only imports，不产生运行时 ESM 依赖。不要把 `NodeNext` 等同于 ESM 迁移，也不要直接修改 `node_modules` 中的 SPFx 配置。
 
 阶段 #5 保留这组宿主边界，并通过真实导入 API 的 Chromium UI 回归和 Vite/SPFx 构建。真实 SharePoint 页面及其他目标浏览器版本的验收仍需单列，见 [阶段 3 验证](docs/verification/phase-3.md)。配置修改的实际验证结果见[阶段 2 验证补充](docs/verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。
+
+## SharePoint JSON 增量
+
+父需求 [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) 保留现有 API 网站和 API SPFx，后续新增独立 JSON SPFx solution，最终产出两个独立 .sppkg、三个入口共用一份 UI。当前 [#12](https://github.com/VigilanteWang/graphpermlist/issues/12) 仅提取中立 CatalogClient、schema 1 类型和浏览器安全查询核心，接回现有 API；尚未提供 JSON 导出/client 或第二个 Web Part。UI 只依赖 contracts，由宿主注入 client；api-client 的旧 CatalogClient 类型入口保持可用。
+
+查询核心使用同一份源码生成 ESM/CommonJS，保留现有筛选、合并、计数与详情行为。JSON generatedAt、源摘要和产物摘要与 API importedAt 分开；类型不代替运行时校验。决策、阶段证据及人工交接见 [SharePoint JSON 计划](docs/sharepoint-json-plan.md)。实际 SharePoint 运行继续待验，本阶段不上传或部署，不自动启动 #13。

@@ -1,6 +1,7 @@
 # Read-only API v1 contract
 
-Implemented in #4. Types: packages/contracts/src/index.ts.
+Implemented in #4. The Nest API and HTTP client share the
+[HTTP response types](../packages/contracts/src/catalog-api.ts).
 Migrate, import and start using [catalog operations](catalog-operations.md).
 A migrated database without an import exposes **not imported** state. No catalog
 fixtures are served. Classification and active snapshot data are persisted at import.
@@ -13,10 +14,10 @@ The path permission value is case-sensitive and URL encoded as one path segment.
 
 | GET path | Response type | Behavior |
 | --- | --- | --- |
-| `/resources` | ResourcesResponse | Imported resource summaries; otherwise items=[], dataState=not-imported, source=null |
-| `/resources/{resourceId}/categories` | CategoriesResponse | Filtered category counts; unknown/unimported resource 404 |
-| `/resources/{resourceId}/permissions` | PermissionsResponse | Filtered merged rows; unknown/unimported resource 404 |
-| `/resources/{resourceId}/permissions/{permissionValue}` | PermissionDetailResponse | Visible item plus all definitions; unknown/hidden value 404 |
+| `/resources` | `CatalogApiResourceListResponse` | Imported resource summaries; otherwise items=[], dataState=not-imported, source=null |
+| `/resources/{resourceId}/categories` | `CatalogApiCategoryListResponse` | Filtered category counts; unknown/unimported resource 404 |
+| `/resources/{resourceId}/permissions` | `CatalogApiPermissionListResponse` | Filtered merged rows; unknown/unimported resource 404 |
+| `/resources/{resourceId}/permissions/{permissionValue}` | `CatalogApiPermissionDetailResponse` | Visible item plus all definitions; unknown/hidden value 404 |
 
 `GET /health` under the same prefix is an additional startup probe, not a fifth catalog API.
 No credential is sent by the shared client; browser CORS origins are explicitly configured.
@@ -56,7 +57,8 @@ adminConsentDescription and type Admin/User => true/false, tagged `delegated-con
 user consent labels are separately retained. Tenant policy may further restrict user consent.
 RSC is excluded, never mapped into ordinary Application.
 
-Every successful response carries `dataState` and `source`. `not-imported` means no
+Every successful response carries `dataState` and `source`. The API uses
+`CatalogImportSource` for the source of an active import. `not-imported` means no
 successful import and source=null. `ready` means an active import exists even if filtering
 returns zero rows. `source` contains logical source filename `commercial-graph-permlist.json` (no operator filename/path), SHA256,
 ISO 8601 UTC import time, classification version and excluded RSC count.

@@ -1,4 +1,4 @@
-import type { PermissionDetailResponse, PermissionRow } from '@graph/contracts';
+import type { CatalogApiPermissionDetailResponse, MergedPermissionRow } from '@graph/contracts';
 // Synthetic wire-shape examples ONLY. Never import into the production catalog.
 const row = {
   resourceId: '00000003-0000-0000-c000-000000000000', value: 'Mail.Read', category: 'exchange', family: 'Mail',
@@ -11,9 +11,9 @@ const row = {
       title: 'Synthetic application title', description: 'Synthetic application consent message',
       adminConsentRequired: true, adminConsentRule: 'application-always-required' }
   ]
-} satisfies PermissionRow;
+} satisfies MergedPermissionRow;
 export const detail = {
   dataState: 'ready', source: { fileName: 'synthetic-test-fixture.json', sha256: '0'.repeat(64),
     importedAt: '2026-11-12T00:00:00Z', classificationVersion: 'test-only', excludedRscCount: 0 },
   item: row, allDefinitions: row.definitions
-} satisfies PermissionDetailResponse;
+} satisfies CatalogApiPermissionDetailResponse;

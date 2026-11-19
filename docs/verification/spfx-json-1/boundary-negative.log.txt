@@ -1,0 +1,5 @@
+PASS: rejected nested probe: No Node builtin
+PASS: rejected nested probe: Unapproved shared dependency
+PASS: rejected nested probe: No shared source escape
+PASS: rejected nested probe: Shared dynamic imports must use explicit paths
+PASS: restored source and clean boundary check

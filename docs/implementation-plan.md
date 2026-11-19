@@ -632,3 +632,151 @@ Final commit-range hygiene follow-up: `git diff --check origin/main...HEAD` expo
 upstream tool output trailing spaces in retained build/reproduction logs. Normalized
 only those logs, preserving command results; checked the staged whole-stage diff
 against main. No source change or runtime rerun was needed.
+
+
+## Research follow-up: SPFx solution boundaries — 2026-11-17
+
+Evaluated the requested SharePoint-library JSON direction against current manifests,
+CatalogClient, shared UI hooks, SPFx/Vite entry points, import/query services and
+boundary checks. Read current parent #2 and stage #6; this is architecture research,
+not execution of another V1 stage.
+
+Recommendation: reuse packages/ui and the existing apps/spfx host. The repository,
+workspace packages and deployable SPFx solution are separate boundaries: a shared
+repository does not require Nest/SQLite or the Vite host in the deployed sppkg.
+A second SPFx solution can also reuse the same UI if independent app identity,
+parallel deployment or release ownership becomes an actual requirement. Rebuilding
+or copying the UI creates duplicate maintenance without simplifying JSON querying.
+
+Proposed implementation boundaries, not yet implemented:
+- Move the data-reader interface from api-client to contracts, keeping UI independent
+  of the selected transport. Use source-neutral loading/error descriptions.
+- Keep SharePoint authentication, SPHttpClient, configuration and file loading inside
+  apps/spfx; pass validated catalog data into browser-safe query functions.
+- Extract only pure filtering/merging/count/detail rules into a small shared query
+  module/package; do not import Nest providers, entities, TypeORM or Node-only file
+  and crypto modules into browser packages. Keep publication validation/export offline.
+- Keep the HTTP client in api-client and preserve web/API as separate entry points.
+  Default the new SharePoint experience to JSON; add multiple runtime data-source
+  modes only when required, with existing Web Part configuration migration considered.
+- Existing root npm ci/build cover the whole workspace, including backend dependencies.
+  Reusing source does not isolate installation/release workflows automatically;
+  define a frontend-specific build entry and verify the resulting package imports.
+
+Verification: read-only manifest/source inspection and current Microsoft guidance
+on shared packages and packaged asset hosting. No prototype, build, tests or actual
+SharePoint deployment/runtime verification performed. Only this research record was
+edited; no application or dependency changes, Git publication or external comments.
+Implementation acceptance should compare JSON and API query results and inspect
+actual SharePoint page behavior and the packaged browser dependencies.
+
+
+## Planned increment: two SPFx solutions and three shared-UI entries — 2026-11-17
+
+User decision supersedes the optional single-SPFx recommendation in the earlier
+research note: retain the API SPFx and add a second, independently deployable JSON
+SPFx solution. The standalone website plus both SPFx entries share one UI through
+host-injected data clients. Do not duplicate UI or replace the two packages with a
+single Web Part data-source switch.
+
+Created the separate parent requirement and four sequential stage issues, following
+#2/#3–#6's independent stage PR and new-chat handoff process:
+
+- Parent [#11](https://github.com/VigilanteWang/graphpermlist/issues/11): SharePoint
+  document-library JSON, two independent SPFx solutions/sppkg and three shared-UI entries.
+- [#12](https://github.com/VigilanteWang/graphpermlist/issues/12): neutral contracts,
+  browser-safe query core and existing API/website/SPFx regression.
+- [#13](https://github.com/VigilanteWang/graphpermlist/issues/13), depends on #12:
+  versioned JSON export/validation and browser catalog client.
+- [#14](https://github.com/VigilanteWang/graphpermlist/issues/14), depends on #13:
+  new JSON SPFx solution and three-entry shared UI integration.
+- [#15](https://github.com/VigilanteWang/graphpermlist/issues/15), depends on #14:
+  independent review, clean reproduction and actual SharePoint acceptance.
+
+Each child has explicit scope, acceptance, predecessor/successor, an independently
+usable new-chat prompt, stage-only commit/push/PR/checklist authorization, and a stop
+boundary. Stage PRs must enter verified main before the next stage starts. No merge,
+issue closure, tenant upload/permission change or deployment is implicitly authorized.
+Stage 1 will create docs/sharepoint-json-plan.md and update the repository-local
+increment scope; this planning turn does not implement that stage.
+
+Verification performed: read current #2–#6 and local instructions/manifests/plan;
+GitHub PR metadata confirmed #10 merged at c6310f3 (historical handoff text above
+records its earlier unmerged state). Searched existing issue titles for JSON to avoid
+duplicate planning. Created #11–#15 through the GitHub connector, finalized bidirectional
+links/task lists and exact stage prompt numbers, then fetched all five issues and
+compared their complete bodies with the intended text: all matched and remain open.
+Draft checks covered required solution/UI/source boundaries, Markdown fences,
+unresolved placeholders and personal/tenant path leakage. git diff --check passed.
+
+Only this plan record was appended, preserving pre-existing local changes. No source,
+manifest, lockfile, database, build or tenant changes; no implementation tests were
+needed. No commit/push, PR creation, merge or deployment was performed. No subagents
+or global model-setting changes were used. Start #12 in a separate conversation using
+its published prompt when ready; actual SharePoint runtime remains unverified.
+
+
+## SharePoint JSON stage 1 — #12
+
+Parent [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) is a separate
+increment over the merged V1 baseline. [Increment decisions, commands and handoff](sharepoint-json-plan.md)
+record #12 contracts/query-core work and the #13–#15 stop boundaries. Preserve all
+V1 records and actual SharePoint runtime gaps. The earlier uncommitted planning
+appendices above were present before #12 and are retained with this stage.
+
+#12 delivered the neutral contracts/core and preserved current HTTP/Vite/API SPFx
+behavior in implementation commit
+[ac70855](https://github.com/VigilanteWang/graphpermlist/commit/ac70855115ed9dc53668e4e265bffaf6bd0d78c2).
+[PR #16](https://github.com/VigilanteWang/graphpermlist/pull/16) is Ready for review.
+[Stage review comment](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6951418159)
+and [retained checklist](verification/spfx-json-1-human-review.md) provide reproducible
+manual acceptance. npm ci/verify:data/typecheck, 26 Node tests, full Vite/SPFx build,
+React/shared dependency checks, isolated CLI + standalone HTTP and 26 Chromium cases
+passed; complete commands/results/limits are in the increment plan. JSON runtime,
+second SPFx and actual SharePoint remain future/pending scope. No merge, issue closure,
+tenant upload or deployment; stop at #12 and wait for user review/merge/new-chat #13.
+
+## Shared UI organization follow-up — 2026-11-17
+
+On the existing #12 stage branch, the user requested a responsibility-based UI
+refactor and durable local conventions. See the
+[follow-up scope, verification and review handoff](sharepoint-json-plan.md#12-follow-up-shared-ui-organization--2026-11-17),
+[packages/ui rules](../packages/ui/AGENTS.md) and
+[source map](ui-development.md#source-organization). The public shell/props and
+host usage stay compatible; current criteria, expansion and focus remain with the
+same state owner. This maintenance does not start #13 or resolve actual SharePoint
+runtime gaps. Changes remain local for review; no merge/deployment/issue closure.
+
+## Shared UI component/Fluent follow-up — 2026-11-18
+
+The user requested deeper shell extraction, component-local components/hooks folders
+and Fluent UI replacements after inspecting the first refactor. See
+[final structure, component audit, references and verification](sharepoint-json-plan.md#12-follow-up-component-local-folders-and-fluent-ui--2026-11-18).
+The shell now composes focused children and Hooks; Home, DetailsPanel and PermissionGrid
+have local subdirectories. Controlled Fluent Nav, shared metadata Table, source
+Accordion, Card surfaces and typography preserve existing data and interactions.
+Typecheck, 26 Node tests, full Vite/API SPFx build, React/dependency checks and 28
+Chromium cases passed; Chinese-comment/visual/read-only reviews and remaining
+SharePoint limits are recorded in the increment plan. Local reviewable changes only;
+no merge, deployment, issue closure or #13 work.
+
+## Shared UI follow-up submission — 2026-11-18
+
+The user authorized submitting the conversation's UI/source/test/documentation
+changes on the existing #12 branch and updating PR #16. See the
+[publication record](sharepoint-json-plan.md#shared-ui-follow-up-publication--2026-11-18)
+for identifiers and the updated review handoff. This supersedes the earlier local-only
+notes; no merge, issue closure, tenant deployment or #13 work is authorized.
+
+Submitted UI implementation:
+[908c31a](https://github.com/VigilanteWang/graphpermlist/commit/908c31a6246e8628cbd0b0e1bf7f012ffad762f5),
+pushed to the existing stage branch. PR #16's title/body now reflect the final scope;
+[#12 follow-up review checklist](https://github.com/VigilanteWang/graphpermlist/issues/12#issuecomment-6954582535)
+was published and read back. PR remains open/Ready, with actual SharePoint acceptance
+pending. This publication-record update changes documentation only.
+
+## Contracts organization follow-up
+
+The existing #12 branch groups the shared TypeScript contracts by query, HTTP,
+and JSON publication. See the [contract follow-up](sharepoint-json-plan.md#12-follow-up-contract-modules-and-names)
+for the naming conventions, verification and handoff.
