@@ -8,9 +8,11 @@ runtime gap is reclassified as passed by this increment.
 ## Sequential stages
 
 1. [#12](https://github.com/VigilanteWang/graphpermlist/issues/12): neutral client,
-   snapshot contracts, pure query core and existing-entry regression (this PR).
+   snapshot contracts, pure query core and existing-entry regression.
+   [PR #16](https://github.com/VigilanteWang/graphpermlist/pull/16) merged into main.
 2. [#13](https://github.com/VigilanteWang/graphpermlist/issues/13): offline export,
-   validation, publication files and browser JSON client. Not started.
+   validation, publication files and browser JSON client. See the
+   [stage 2 handoff](#stage-2-delivery-and-verification).
 3. [#14](https://github.com/VigilanteWang/graphpermlist/issues/14): second independent
    JSON SPFx solution and three-entry shared UI integration. Not started.
 4. [#15](https://github.com/VigilanteWang/graphpermlist/issues/15): independent review,
@@ -37,13 +39,15 @@ transport/host branches. Current API SPFx IDs/properties/package are unchanged.
   request cancellation. No SPFx context.
 - catalog-core: pure queryPermissions/countPermissions/queryCategories/queryDetail.
   Input is validated ordinary definitions from one resource. No IO, crypto, clock,
-  database, identity, React, Nest or SPFx runtime. No schema validator/client yet.
+  database, identity, React, Nest or SPFx runtime in the query entry. Separate
+  subpaths expose the pure import model, schema validator and browser client.
 - API CatalogService: TypeORM reads and activity lookup, adapting plain structures
   to core and mapping absent detail/resource to existing Nest 404 responses.
 - UI: neutral client, source-neutral load/error/setup descriptions; source details
   display importedAt for API and generatedAt for JSON without inventing timestamps.
-- Future offline tool owns transformation/classification/export. Future SPFx host
-  owns SPHttpClient, file URL policy, permissions, configuration, React and theme.
+- SQLite import and the offline JSON tool share transformation and classification.
+  The future SPFx host owns SPHttpClient, file URL policy, permissions, configuration,
+  React and theme.
   JSON runtime requires no Nest/SQLite/customer Azure resources.
 
 All query filters act on the same definition before value merging. Same-type,
@@ -94,10 +98,12 @@ schema. Stage #13 implements runtime validation.
   measured source, with tests at boundaries and explanations. Current input counts
   are acceptance evidence, never schema requirements for future valid catalogs.
 
-CatalogJsonClientError.code defines load-failed (network/status/non-JSON/login HTML),
-invalid-snapshot (format/reference/digest/version), unsupported-schema and not-found.
-Future JSON errors reject promises; cancellation uses AbortError and stale requests
-cannot publish state. HTTP retains CatalogApiError with original status/body.
+CatalogJsonClientError.code defines load-failed (network, other unsuccessful status
+or login HTML), permission-denied (401/403), file-not-found (404), invalid-snapshot
+(format, reference, digest, version or limits), unsupported-schema and not-found
+(resource or detail query). JSON errors reject promises. Cancellation uses
+AbortError and stale requests cannot publish state. HTTP retains CatalogApiError
+with original status/body.
 not-imported is the existing API's migrated/unimported database state; it is not a
 JSON read-failure fallback. A valid zero-result query is ready with empty items.
 
@@ -451,3 +457,96 @@ For review, compare the `source` fields in the HTTP and JSON contracts and run
 the isolated HTTP check above. Confirm that the API emits the import timestamp
 and the JSON source type declares the generation timestamp. Actual SharePoint
 runtime acceptance remains pending. The refactor is in the existing #12 working tree.
+
+## Stage 2 delivery and verification
+
+[#13](https://github.com/VigilanteWang/graphpermlist/issues/13) started on 2026-11-20
+from refreshed `origin/main` at `82aeaaebe9558d93f33b14c6e4f3c7c8c83cb56f`,
+the verified merge of [PR #16](https://github.com/VigilanteWang/graphpermlist/pull/16).
+Its final head `9811c91` is an ancestor of that commit and has the same tree.
+The only local worktree was clean. Stage 1 local evidence is linked below its
+handoff. GitHub returned no hosted PR workflow runs for the final #16 head.
+
+### Implementation
+
+- [Pure catalog model](../packages/catalog-core/src/model.ts) is called by both
+  the [SQLite importer](../apps/api/src/catalog/catalog-import.service.ts) and
+  [offline CLI](../scripts/catalog-json.mjs). The inputs to the SQLite classification
+  hash retain their previous byte order so unchanged active imports can be reused.
+  Both stores preserve official fields, identity and navigation assignments.
+- [Shared validator](../packages/catalog-core/src/json-validation.ts) rejects
+  unknown fields, unsafe filenames, invalid sizes and references, conflicting
+  identities/raw fields, unsupported schema, corrupt bytes and version mismatches.
+  Limits and operation steps are documented in [offline publication](catalog-operations.md#offline-json-publication).
+  The accepted document has at most seven object/array levels, counting
+  the snapshot root and the deepest appRole member array.
+- [JSON client](../packages/catalog-core/src/json-client.ts) exposes a
+  `CatalogClient`, `state`, `load()` and `refresh()`. Concurrent initial callers
+  share a download. During refresh, queries use the most recent verified snapshot
+  already in memory. A failed refresh rejects and preserves it. Canceling one
+  waiter releases that waiter. Canceling the last waiter abandons the flight and
+  aborts the underlying download. A later call can retry immediately. Only the
+  current flight can publish a replacement.
+- Query, model, validation and client compile to ESM/CommonJS. The browser client
+  reaches only the query and validation runtime entries. The existing web and API
+  SPFx hosts still inject the HTTP client.
+
+### Commands and results
+
+Node 22.16.0 and npm 10.9.2 on macOS arm64, from the repository root.
+
+| Command or check | Verified result |
+| --- | --- |
+| `npm ci --cache /private/tmp/graphpermlist-stage13-npm-cache --no-audit --no-fund` | Installed 1,425 locked packages. Existing upstream deprecation notices remain. |
+| `npm run verify:data` | Pinned input digest and counts pass. Source bytes and package lock are unchanged. |
+| `npm run export:json -- --output ./release/stage-13-catalog --generated-at 2026-11-20T00:00:00.000Z` and `npm run verify:json -- --output ./release/stage-13-catalog` | Produced and verified the local pair. Snapshot is 1,844,873 bytes, version `c487c38d18601335d3bfecef2ba89d99201361c68e80b905429827288463247b`, artifact SHA-256 `c36f834e8c98d9cd14eda29878c2ab9f646fa161284dc7a99ae569c37294d409`. Source SHA-256 `d566bed3c4d7a4cf09ec54d35c25aee7b232df5b46c765af7a377dd9fe0b96a0`. |
+| `npm run typecheck` and strict standalone TypeScript check of `tests/browser/json-client.spec.ts` | Passed. The JSON client declarations also resolve under TypeScript Bundler and legacy Node resolution. |
+| `npm test` | 89 pass, 0 fail. Real-source SQLite and HTTP parity across all four routes, independent filter/count/identity expectations, immutable publication, digest and strict schema rejection, session refresh/rollback/retry/cancellation and stale responses. |
+| `npm run build` and `npm run check:react` | Passed API, Vite, existing API SPFx production build and package, React 18.3.1 and emitted dependency checks. Package `apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg` is 124,464 bytes. Existing Vite size warning and Heft zero Web Part Jest suites remain. |
+| `node docs/verification/spfx-json-1/runtime-check.mjs` | Standalone CommonJS API with isolated file SQLite. Migration and first import pass, repeat import reuses the version. All four routes, CORS, errors and counts pass. The verification process and temporary database were cleaned up. |
+| `CATALOG_TEST_API_PORT=3217 CATALOG_TEST_WEB_PORT=5317 npm run test:browser` | Chromium 29/29 passed. One new test streams real generated bytes into the compiled ESM JSON client using a local test route, checks browser SHA-256, queries the result and observes exactly two file requests. The other cases exercise existing website/UI behavior. |
+| Chinese source comments | AST check passed 11 headers and 84 named declarations. Manual review covered purpose-first wording, key rules, data flow and English domain terms. Configuration, tests and generated files are outside the comment scope. |
+
+The actual input accounts for 788 Application and 876 Delegated definitions.
+Four are disabled, leaving 1,660 visible by default. All 60 RSC entries are excluded.
+These totals are acceptance data for the pinned source. CLI outputs and test
+results are local and gitignored. The bounded test authors verified client behavior
+and real HTTP parity independently. The selected subagent model and effort were
+GPT-6.2 Sol / medium. This session did not expose a main model override.
+
+### Stage 2 human review
+
+- [ ] Check out this stage PR. Use Node 22.16.0 and npm 10.9.2. Run `npm ci`,
+  `npm run verify:data`, `npm run typecheck`, `npm test`, `npm run build` and
+  `npm run check:react`. Expect 89 Node passes, a website build and the existing
+  API SPFx package with its original identity.
+- [ ] Generate twice in two fresh directories using the same timestamp in the
+  command table. Verify each directory and compare both `current.json` files and
+  the two referenced snapshots byte for byte. Expect the recorded size and
+  digest, 1,664 ordinary definitions, 4 disabled and 60 RSC excluded. In one
+  scratch copy append a newline to the snapshot. Expect `verify:json` to exit 1
+  for the digest mismatch. Re-export into that copy with the original timestamp.
+  Expect exit 1 and an unchanged `current.json` and versioned file.
+- [ ] Run `node --test tests/json-client.test.mjs tests/json-parity.test.mjs` after
+  the build. Expect isolated API/JSON parity, `Mail.Read` with both types and full
+  detail, `User.Read` with Delegated only, same-type GUID retention and an empty
+  result when conditions match different definitions. Check valid empty data,
+  denied/missing/invalid files, cancellation while another waiter remains, retry,
+  and explicit refresh/rollback with the previous version still readable on failure.
+- [ ] With Playwright Chromium installed, reserve 3217/5317 and run the browser
+  command above. Expect all 29 cases to pass. When reviewing the file loader
+  interface, check that authentication and URL/redirect policy can remain in the
+  host and that refreshing can reread the current manifest.
+- [ ] Record `pass`, `change-needed` or `blocked` against each step. For anything
+  other than a pass, include the step, expected/observed result and sanitized
+  evidence. Mark actual SharePoint file permissions, expiry/redirect behavior,
+  publication, rollback, performance and page lifecycle as pending in this stage.
+
+### Stage 2 scope and handoff
+
+The second independent JSON SPFx solution, its `.sppkg`, site loader and three-entry
+integration belong to [#14](https://github.com/VigilanteWang/graphpermlist/issues/14).
+Actual SharePoint transport, tenant upload, runtime and dual-package acceptance are
+pending. Hosted CI, other browsers and deployment platforms were outside local
+verification. Stage 2 stops at user review and merge of its own PR. Launch #14 in
+a separate chat after verifying that merge on main.

@@ -1,7 +1,6 @@
 /** 本地目录的 TypeORM 实体文件，描述 resource、快照及 permission 定义等数据的存储结构。 */
-import type { RawPermission } from '../../../../scripts/permissions-source.cjs';
 import { Column, Entity, PrimaryColumn } from 'typeorm';
-import type { CatalogImportSource, PermissionDefinition, PermissionType } from '@graph/contracts';
+import type { CatalogImportSource, CatalogJsonSnapshotDefinition, PermissionDefinition, PermissionType } from '@graph/contracts';
 
 /** Graph resource 的数据库实体；resourceId 是该表的主键。 */
 @Entity('catalog_resource')
@@ -46,7 +45,7 @@ export class CatalogDefinition {
   // simple-json 将完整定义序列化存入单列，读取时恢复为对象。
   @Column('simple-json') definition!: PermissionDefinition;
   // 仅保留安全的原始定义字段（含 appRole 来源和成员类型），不保存租户元数据。
-  @Column('simple-json') rawDefinition!: RawPermission;
+  @Column('simple-json') rawDefinition!: CatalogJsonSnapshotDefinition['rawDefinition'];
 }
 // 集中导出实体列表，供数据库连接和功能模块注册使用。
 export const CATALOG_ENTITIES = [CatalogResource, CatalogImport, CatalogCategory, CatalogFamily, CatalogDefinition];

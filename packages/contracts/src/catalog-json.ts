@@ -36,7 +36,7 @@ export interface CatalogJsonSnapshotResource {
   families: CatalogFamily[];
   definitions: CatalogJsonSnapshotDefinition[];
 }
-/** schema 1 的不可变 JSON 目录产物；发布工具与浏览器在后续阶段实现校验，不包含数据库历史。 */
+/** schema 1 的不可变 JSON 目录产物，包含资源定义、生成来源和分类信息。 */
 export interface CatalogJsonSnapshot {
   schemaVersion: 1;
   version: string;
@@ -52,7 +52,8 @@ export interface CatalogJsonManifest {
   artifactSha256: string;
 }
 /** JSON client 的失败分类，涵盖文件读取、快照校验、schema 版本和目录查询。 */
-export type CatalogJsonClientErrorCode = 'load-failed' | 'invalid-snapshot' | 'unsupported-schema' | 'not-found';
+export type CatalogJsonClientErrorCode =
+  'load-failed' | 'permission-denied' | 'file-not-found' | 'invalid-snapshot' | 'unsupported-schema' | 'not-found';
 /** JSON client 用于 reject 的错误结构，取消请求时沿用 AbortError。 */
 export interface CatalogJsonClientError extends Error {
   readonly code: CatalogJsonClientErrorCode;

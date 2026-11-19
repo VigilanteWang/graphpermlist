@@ -93,13 +93,26 @@ for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
     assert.equal(ast.typeReferenceDirectives.length, 0, 'Shared source cannot inject ambient host/Node types');
   }
 }
-// 双出口都只能依赖中立类型；实际 require/import 查询由核心测试和独立 HTTP 进程验证。
+// 双出口只允许下列内部运行时依赖；JSON client 的产物入口不能拉入导出模型和分类表。
 const core = await json('packages/catalog-core/package.json');
-assert.equal(core.exports['.'].import.default, './dist/esm/index.js');
-assert.equal(core.exports['.'].require.default, './dist/cjs/index.js');
-for (const format of ['esm', 'cjs']) {
-  const output = await readFile(new URL(`packages/catalog-core/dist/${format}/index.js`, root), 'utf8');
-  assert.ok(!/\brequire\s*\(|\bimport\s|\bimport\s*\(/.test(output), 'Pure core has no emitted runtime dependencies');
+const coreModules = {
+  'index': [],
+  'model': ['./classification.js'],
+  'classification': [],
+  'json-validation': [],
+  'json-client': ['./index.js', './json-validation.js']
+};
+for (const [condition, format] of [['import', 'esm'], ['require', 'cjs']]) {
+  for (const [moduleName, allowed] of Object.entries(coreModules)) {
+    const output = `./dist/${format}/${moduleName}.js`;
+    if (moduleName !== 'classification') {
+      const entry = moduleName === 'index' ? '.' : `./${moduleName}`;
+      assert.equal(core.exports[entry][condition].default, output);
+    }
+    const source = await readFile(new URL(`packages/catalog-core/${output}`, root), 'utf8');
+    const imports = ts.preProcessFile(source, true, true).importedFiles.map(item => item.fileName);
+    assert.deepEqual([...new Set(imports)].sort(), allowed, `Unexpected emitted dependencies in ${output}`);
+  }
 }
 // 检查已构建 manifest 的 React 外部组件声明，再确认 bundle 包含共享界面且未嵌入指定 React 文件。
 const manifest = await json('apps/spfx/dist/125b85bf-862e-4c47-b499-c56fc875169c.manifest.json');
@@ -111,4 +124,4 @@ const bundle = manifest.loaderConfig.scriptResources['permissions-explorer-web-p
 const text = await readFile(new URL(`apps/spfx/dist/${bundle}`, root), 'utf8');
 assert.ok(text.includes('No catalog imported yet.'), 'SPFx includes shared shell');
 assert.ok(!text.includes('react.production.min.js'), 'SPFx does not embed a React runtime');
-console.log('PASS: UI/host imports resolve to React 18.3.1; SPFx runtime externals are pinned; recursive shared import/dependency boundaries and pure ESM/CJS core outputs are clean. Legacy SPFx internal build dependencies are isolated.');
+console.log('PASS: UI/host imports resolve to React 18.3.1; SPFx runtime externals are pinned; recursive shared import and ESM/CJS dependency boundaries are clean. Legacy SPFx internal build dependencies are isolated.');

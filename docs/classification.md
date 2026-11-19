@@ -1,7 +1,7 @@
 # Permission classification
 
 Version: `2026-11-13.1`, implemented in
-`apps/api/src/catalog/classification.ts`. This is a versioned, editorial navigation
+`packages/catalog-core/src/classification.ts`. This is a versioned, editorial navigation
 map for the local catalog. Categories are not Microsoft permission boundaries and
 do not prove that an operation, product license or cloud deployment supports a permission.
 The source's official names, identifiers and consent descriptions remain authoritative.
@@ -152,7 +152,7 @@ assignment. Future revisions can narrow these with sufficient official evidence.
 On Node 22.16.0, standalone strict TypeScript checking passed:
 
 ```sh
-./node_modules/.bin/tsc --target ES2022 --module commonjs --strict --noEmit --skipLibCheck apps/api/src/catalog/classification.ts
+npm run typecheck -w @graph/catalog-core
 ```
 
 An isolated in-memory TypeScript transpilation and assertion pass checked every
