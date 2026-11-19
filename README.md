@@ -23,7 +23,7 @@ graphpermlist/
 │   │   │   ├── app.module.ts             组装应用模块
 │   │   │   ├── bootstrap.ts              API 前缀、参数校验和 CORS
 │   │   │   ├── configuration.ts          环境变量读取与校验
-│   │   │   ├── catalog/                  目录路由、实体、分类、导入和查询服务
+│   │   │   ├── catalog/                  目录路由、实体、SQLite 导入和查询服务
 │   │   │   └── database/                 TypeORM / SQLite 配置与版本化迁移
 │   │   └── tsconfig.json                 后端 TypeScript 配置
 │   ├── web/                              Vite 独立网站
@@ -45,7 +45,7 @@ graphpermlist/
 ├── packages/
 │   ├── ui/src/index.tsx                  两个前端共用的 Fluent UI 界面
 │   ├── api-client/src/index.ts           HTTP 请求、查询参数和错误处理
-│   ├── catalog-core/src/index.ts         浏览器/Node 共用的纯查询规则
+│   ├── catalog-core/src/                 纯查询规则、共享建模、JSON 校验与 client
 │   └── contracts/src/index.ts            中立 client、响应及 JSON snapshot/manifest 类型
 ├── data/
 │   ├── commercial-graph-permlist.json    版本化的安全权限快照
@@ -58,6 +58,7 @@ graphpermlist/
 │   └── verification/                     验证记录与截图
 ├── scripts/
 │   ├── verify-data.mjs                   数据结构和快照完整性检查
+│   ├── catalog-json.mjs                  离线导出与校验 JSON 发布文件
 │   └── check-boundaries.mjs              React 依赖与共享代码边界检查
 ├── tests/                                API、客户端、数据和浏览器测试
 │   └── fixtures/                         仅供测试的契约样例
@@ -112,6 +113,15 @@ npm run build
 ```
 
 独立网站输出到 `apps/web/dist/`，SharePoint 包输出到 `apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg`。构建不会自动部署；在 SharePoint 中运行还需要部署到 App Catalog，并为 Web Part 配置可访问的 HTTPS API 地址和对应 CORS 来源。
+
+## 离线生成 JSON 目录
+
+```sh
+npm run export:json -- --output ./release/catalog
+npm run verify:json -- --output ./release/catalog
+```
+
+命令直接读取已校验的安全源，生成 `current.json` 和不可变的 `catalog-<version>.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由宿主注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。独立 JSON 版 SPFx 及三入口接入由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 交付。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
 
 ## 本地验证与交付状态
 

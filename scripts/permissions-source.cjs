@@ -97,7 +97,8 @@ async function loadPermissionsSource({ source = process.env.PERMISSIONS_SOURCE, 
   }
   let data;
   try {
-    data = JSON.parse(bytes.toString('utf8'));
+    // 拒绝损坏的 UTF-8，避免在官方文案中悄悄写入替代字符。
+    data = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
   } catch (error) {
     throw new Error(`Permissions input is not valid JSON: ${error.message}`, { cause: error });
   }

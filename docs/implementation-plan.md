@@ -780,3 +780,15 @@ pending. This publication-record update changes documentation only.
 The existing #12 branch groups the shared TypeScript contracts by query, HTTP,
 and JSON publication. See the [contract follow-up](sharepoint-json-plan.md#12-follow-up-contract-modules-and-names)
 for the naming conventions, verification and handoff.
+
+## SharePoint JSON stage 2 — #13
+
+[Stage 2 delivery, commands and human review](sharepoint-json-plan.md#stage-2-delivery-and-verification)
+records the #16 prerequisite merge, shared import model, offline publication,
+strict validation, session JSON client, isolated real HTTP comparison and browser
+regression in [PR #17](https://github.com/VigilanteWang/graphpermlist/pull/17).
+The [issue review checklist](https://github.com/VigilanteWang/graphpermlist/issues/13#issuecomment-7015149708)
+links to the verified commands and expected results. The existing API SPFx package
+is available from the production build.
+The independent JSON SPFx and three-entry integration remain #14 work. Review and
+merge #13 before starting that stage in a separate chat.

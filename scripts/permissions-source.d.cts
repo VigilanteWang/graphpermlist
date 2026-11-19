@@ -1,17 +1,20 @@
 /** permission 快照加载器的手写类型声明文件，包含数据结构及公开函数签名。 */
 
-/** 原始 permission 字段的汇总结构；实际必需字段由所属集合的运行时校验决定。 */
-export interface RawPermission {
-  id: string; value: string; isEnabled: boolean;
-  allowedMemberTypes: string[]; origin: string; displayName: string; description: string;
-  type: 'Admin' | 'User'; adminConsentDisplayName: string; adminConsentDescription: string;
-  userConsentDisplayName: string; userConsentDescription: string;
+import type { CatalogJsonAppRoleFields, CatalogJsonScopeFields } from '@graph/contracts';
+
+/** RSC 原始定义的安全字段；与普通 permission 分开保留在输入中。 */
+interface RawRscPermission {
+  id: string;
+  value: string;
+  isEnabled: boolean;
+  displayName: string;
+  description: string;
 }
 /** Graph resource 的快照结构，包含 appRoles、Delegated scopes 和 RSC 集合。 */
 export interface PermissionsSource {
   appId: string; displayName: string; appDisplayName: string;
-  appRoles: RawPermission[]; oauth2PermissionScopes: RawPermission[];
-  resourceSpecificApplicationPermissions: RawPermission[];
+  appRoles: CatalogJsonAppRoleFields[]; oauth2PermissionScopes: CatalogJsonScopeFields[];
+  resourceSpecificApplicationPermissions: RawRscPermission[];
 }
 /** 默认本地 permission 快照的绝对路径。 */
 export const DEFAULT_PERMISSIONS_SOURCE: string;

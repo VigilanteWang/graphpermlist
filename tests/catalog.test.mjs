@@ -16,7 +16,7 @@ const { configureApp } = require('../apps/api/dist/bootstrap.js');
 const { CatalogService } = require('../apps/api/dist/catalog/catalog.service.js');
 const { CatalogImportService } = require('../apps/api/dist/catalog/catalog-import.service.js');
 const { CatalogImport, CatalogDefinition } = require('../apps/api/dist/catalog/catalog.entities.js');
-const { classifyPermission, CATEGORIES } = require('../apps/api/dist/catalog/classification.js');
+const { classifyPermission, CATEGORIES } = require('@graph/catalog-core/model');
 const graph = '00000003-0000-0000-c000-000000000000';
 const source = JSON.parse(await readFile(new URL('../data/commercial-graph-permlist.json', import.meta.url), 'utf8'));
 

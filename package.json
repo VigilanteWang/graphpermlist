@@ -13,7 +13,12 @@
   ],
   "scripts": {
     "verify:data": "node scripts/verify-data.mjs",
-    "build:shared": "npm run build -w @graph/contracts && npm run build -w @graph/catalog-core && npm run build -w @graph/api-client && npm run build -w @graph/ui",
+    "build:catalog-core": "npm run build -w @graph/contracts && npm run build -w @graph/catalog-core",
+    "build:shared": "npm run build:catalog-core && npm run build -w @graph/api-client && npm run build -w @graph/ui",
+    "preexport:json": "npm run build:catalog-core",
+    "export:json": "node scripts/catalog-json.mjs export",
+    "preverify:json": "npm run build:catalog-core",
+    "verify:json": "node scripts/catalog-json.mjs verify",
     "build:api": "npm run build -w @graph/api",
     "build:web": "npm run build -w @graph/web",
     "build:spfx": "npm run build -w @graph/spfx",
