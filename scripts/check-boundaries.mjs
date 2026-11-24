@@ -1,4 +1,4 @@
-/** 共享包与宿主的依赖边界检查脚本，包含 SPFx 构建产物的 React 外部依赖检查。 */
+/** 共享包与前端的依赖边界检查脚本，包含 SPFx 构建产物的 React 外部依赖检查。 */
 import assert from 'node:assert/strict';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import { createRequire, builtinModules } from 'node:module';
@@ -12,7 +12,7 @@ const root = new URL('../', import.meta.url);
  */
 const json = async path => JSON.parse(await readFile(new URL(path, root), 'utf8'));
 const ui = await json('packages/ui/package.json');
-// 共享 UI 声明 React 版本要求，实际 React runtime 由 web 和 SPFx 宿主提供。
+// 共享 UI 声明 React 版本要求，实际 React runtime 由独立网站和 SPFx 前端提供。
 assert.equal(ui.peerDependencies.react, '18.3.1');
 assert.equal(ui.peerDependencies['react-dom'], '18.3.1');
 assert.ok(!ui.dependencies.react && !ui.dependencies['react-dom'], 'UI runtime belongs to hosts');
@@ -24,7 +24,7 @@ for (const name of ['react', 'react-dom']) {
     if (path === `node_modules/${name}`) assert.equal(pkg.version, '18.3.1');
     else {
       assert.ok(legacyOwners.some(owner => path === `node_modules/${owner}/node_modules/${name}`), `Unexpected React copy: ${path}`);
-      assert.equal(pkg.version, '17.0.1'); // 已发布的 SPFx 内部依赖；真实宿主中的 runtime 由外部提供。
+      assert.equal(pkg.version, '17.0.1'); // 已发布的 SPFx 内部依赖；SharePoint 页面上的 runtime 由外部提供。
     }
   }
   // 检查三个包最终解析到同一份 React，避免重复 runtime 影响组件运行。
@@ -34,7 +34,7 @@ for (const name of ['react', 'react-dom']) {
   }
   assert.equal(new Set(resolved).size, 1, `${name} resolves identically across UI and hosts`);
 }
-// 按角色列出全部允许的外部依赖；新增依赖必须显式审查，不能悄悄拖入后端或宿主对象。
+// 按角色列出全部允许的外部依赖；新增依赖必须显式审查，避免共享包依赖后端或特定前端。
 const allowedDependencies = {
   contracts: [],
   'catalog-core': ['@graph/contracts'],
@@ -51,7 +51,7 @@ async function sourceFiles(directory) {
   }
   return files;
 }
-/** 模块路径的边界检查函数，拒绝 Node 内置模块、宿主包、后端包和相对路径越界。 */
+/** 模块路径的边界检查函数，拒绝 Node 内置模块、前端包、后端包和相对路径越界。 */
 function checkSpecifier(specifier, file, directory, allowed) {
   assert.ok(!specifier.startsWith('node:') && !builtinModules.includes(specifier), `No Node builtin: ${specifier}`);
   if (specifier.startsWith('.')) {

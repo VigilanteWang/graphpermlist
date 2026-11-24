@@ -10,7 +10,7 @@ import {
   JsonCatalogError, readJsonManifest, readJsonSnapshot
 } from './json-validation.js';
 
-/** 宿主注入的文件读取函数；file 是固定目录内的文件名，signal 用于取消共享下载。 */
+/** 前端注入的文件读取函数；file 是固定目录内的文件名，signal 用于取消共享下载。 */
 export type JsonCatalogLoader = (file: string, signal: AbortSignal) => Promise<Response>;
 
 /** client 的可观察加载状态；读取失败由调用的 Promise 报告，已有有效快照仍可用。 */
@@ -75,7 +75,7 @@ async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: numb
       throw error;
     }
     const reader = response.body!.getReader();
-    /** 流读取的中止处理函数，释放可能没有监听 signal 的宿主响应。 */
+    /** 流读取的中止处理函数，释放可能没有监听 signal 的读取流。 */
     const cancelRead = (): void => { void reader.cancel().catch(() => undefined); };
     signal.addEventListener('abort', cancelRead, { once: true });
     let bytes = new Uint8Array(Math.min(8192, maxBytes));
@@ -122,15 +122,15 @@ function queryMetadata({ snapshot, artifact }: Publication): JsonQueryMetadata {
   return { dataState: 'ready', source: { ...snapshot.source }, artifact: { ...artifact } };
 }
 
-/** 基于已验证发布文件的内存 CatalogClient，文件位置与访问权限由宿主维护。 */
+/** 基于已验证发布文件的内存 CatalogClient，文件位置与访问权限由前端维护。 */
 export class JsonCatalogClient implements CatalogClient {
   private current?: Publication;
   private flight?: Flight;
 
-  /** JSON 客户端的构造函数，接收一个可取消、可读取两个发布文件的宿主 loader。 */
+  /** JSON 客户端的构造函数，接收一个可取消、可读取两个发布文件的前端 loader。 */
   constructor(private readonly loader: JsonCatalogLoader) {}
 
-  /** 客户端的当前加载状态，用于宿主区分首次加载、刷新与已有可用快照。 */
+  /** 客户端的当前加载状态，用于前端区分首次加载、刷新与已有可用快照。 */
   get state(): JsonCatalogState {
     if (this.current) return this.flight ? 'refreshing' : 'ready';
     return this.flight ? 'loading' : 'idle';

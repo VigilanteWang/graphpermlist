@@ -1,4 +1,4 @@
-/** 浏览器与 Node 共用的纯目录查询模块；输入为已校验的单一 resource，不读取文件或依赖宿主。 */
+/** 浏览器与 Node 共用的纯目录查询模块；输入为已校验的单一 resource，不读取文件或依赖调用方的运行环境。 */
 import type {
   CatalogCategoryMetadata,
   CatalogCategorySummary,

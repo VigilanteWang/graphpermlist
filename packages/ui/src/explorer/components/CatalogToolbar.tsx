@@ -1,18 +1,18 @@
-/** 两级目录页面共用的受控搜索与筛选工具栏。 */
+/** 两级目录页面共用的筛选框，包含搜索输入和其他筛选选项。 */
 import * as React from 'react';
 import { Button, Checkbox, Field, Input, mergeClasses, Select } from '@fluentui/react-components';
 import type { PermissionQueryOptions, PermissionType } from '@graph/contracts';
 import { useToolbarStyles } from './CatalogToolbar.styles.js';
 
-/** 工具栏当前条件、可选 family 及条件更新回调；不拥有请求或导航状态。 */
+/** 筛选框接收的当前筛选条件、可选 family 和更新条件的回调。 */
 interface CatalogToolbarProps {
   criteria: PermissionQueryOptions;
   families: string[];
-  updateQuery: (patch: Partial<PermissionQueryOptions>) => void;
+  updateCriteria: (patch: Partial<PermissionQueryOptions>) => void;
 }
 
 /** 目录筛选输入组件；通过回调让两个页面始终使用同一份条件。 */
-export function CatalogToolbar({ criteria, families, updateQuery }: CatalogToolbarProps): React.ReactElement {
+export function CatalogToolbar({ criteria, families, updateCriteria }: CatalogToolbarProps): React.ReactElement {
   const styles = useToolbarStyles();
   return (
     <div className={styles.toolbar}>
@@ -20,7 +20,7 @@ export function CatalogToolbar({ criteria, families, updateQuery }: CatalogToolb
         <Input
           className={styles.search}
           value={criteria.q ?? ''}
-          onChange={(_, data) => updateQuery({ q: data.value })}
+          onChange={(_, data) => updateCriteria({ q: data.value })}
           placeholder="Search name, GUID or official wording"
         />
       </Field>
@@ -30,7 +30,7 @@ export function CatalogToolbar({ criteria, families, updateQuery }: CatalogToolb
             className={styles.filterSelect}
             value={criteria.permissionType ?? ''}
             onChange={(_, data) =>
-              updateQuery({ permissionType: (data.value || undefined) as PermissionType | undefined })
+              updateCriteria({ permissionType: (data.value || undefined) as PermissionType | undefined })
             }
           >
             <option value="">All</option>
@@ -43,7 +43,7 @@ export function CatalogToolbar({ criteria, families, updateQuery }: CatalogToolb
             className={styles.filterSelect}
             value={criteria.adminConsentRequired === undefined ? '' : String(criteria.adminConsentRequired)}
             onChange={(_, data) =>
-              updateQuery({ adminConsentRequired: data.value === '' ? undefined : data.value === 'true' })
+              updateCriteria({ adminConsentRequired: data.value === '' ? undefined : data.value === 'true' })
             }
           >
             <option value="">All</option>
@@ -55,7 +55,7 @@ export function CatalogToolbar({ criteria, families, updateQuery }: CatalogToolb
           <Select
             className={styles.filterSelect}
             value={criteria.family ?? ''}
-            onChange={(_, data) => updateQuery({ family: data.value || undefined })}
+            onChange={(_, data) => updateCriteria({ family: data.value || undefined })}
           >
             <option value="">All families</option>
             {families.map((family) => (
@@ -66,9 +66,9 @@ export function CatalogToolbar({ criteria, families, updateQuery }: CatalogToolb
         <Checkbox
           label="Show disabled"
           checked={criteria.showDisabled ?? false}
-          onChange={(_, data) => updateQuery({ showDisabled: data.checked === true })}
+          onChange={(_, data) => updateCriteria({ showDisabled: data.checked === true })}
         />
-        <Button className={styles.clearSearch} disabled={!criteria.q} onClick={() => updateQuery({ q: '' })}>
+        <Button className={styles.clearSearch} disabled={!criteria.q} onClick={() => updateCriteria({ q: '' })}>
           Clear search
         </Button>
       </div>

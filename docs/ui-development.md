@@ -1,4 +1,4 @@
-# Shared UI development and host acceptance
+# Shared UI development and frontend acceptance
 
 The Vite website and SPFx Web Part render the same `ExplorerShell` and use the same
 `CatalogClient`. The UI has no SPFx context, identity client, direct SQLite access or
@@ -27,7 +27,7 @@ Main navigation uses controlled Fluent Nav/NavItem selection. Text uses Fluent
 Typography, metadata uses a read-only Fluent Table with accessible row headers,
 source details use Accordion, and statistics/definition surfaces use Card. Native
 main/layout divs and Select's option children retain their semantic/layout roles.
-No browser/host branches, store or duplicate transport/service layer were added.
+No frontend-specific branches, store or duplicate transport/service layer were added.
 The installed 9.75.2 types were checked alongside official docs; no dependency
 upgrade is required. See the references below for component guidance.
 
@@ -95,7 +95,7 @@ Search automatically opens matching families; clearing it restores the previous
 non-search expansion state. Both levels share the current search criteria; entering a
 service only narrows the search scope. Returning to categories retains those criteria
 and focuses the card that opened the service. State persists during component navigation,
-not across browser refreshes or host disposal.
+not across browser refreshes or frontend teardown.
 
 Each DataGrid row uses only matching definitions. A GUID search or Delegated filter
 can therefore show a single type, while the details panel intentionally displays every
@@ -118,7 +118,7 @@ The Web Part property **API base URL (including /api/v1)** selects the same API 
 by Vite. It caches the client until this property changes, reuses one React root,
 unmounts on disposal, and maps SharePoint inverted themes to Fluent dark mode.
 It does not reproduce the entire SharePoint palette; custom brand/palette contrast
-and host theme variants remain part of the actual tenant review.
+and SharePoint theme variants remain part of the actual tenant review.
 
 For a SharePoint HTTPS page, use a browser-trusted HTTPS endpoint. The repository
 includes a loopback-only development proxy:
@@ -145,7 +145,7 @@ localhost in its SAN and be trusted on the **browser's machine**. A self-signed
 certificate that a CLI explicitly trusts is not proof of browser trust. Loopback refers
 to the reviewing user's computer; other reviewers need their own local API or an
 already authorized reachable test HTTPS API. Set Vite's `VITE_API_BASE_URL` to that
-same endpoint when comparing hosts; allow both exact frontend origins in CORS.
+same endpoint when comparing frontends; allow both exact frontend origins in CORS.
 
 HTTPS, CORS and API reachability are separate checks. In DevTools inspect the actual
 GET and any OPTIONS request: valid TLS, expected response, allowed origin equal to

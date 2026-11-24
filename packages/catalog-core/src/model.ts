@@ -17,7 +17,7 @@ interface CatalogModelInput {
   resourceSpecificApplicationPermissions: readonly unknown[];
 }
 
-/** 导入与发布共用的资源模型及分类摘要输入；摘要由各自的宿主计算。 */
+/** 导入与发布共用的资源模型及分类摘要输入；摘要由导入或发布流程计算。 */
 interface CatalogModel {
   resource: CatalogJsonSnapshotResource;
   excludedRscCount: number;

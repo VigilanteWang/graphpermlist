@@ -1,7 +1,7 @@
-/** 共享外壳的容器宽度观察，使用宿主实际可用宽度而非浏览器 viewport。 */
+/** 共享外壳的布局 Hook，观察外壳根节点的内容区宽度。 */
 import * as React from 'react';
 
-/** 外壳根节点与窄容器状态；卸载时断开 ResizeObserver，不持有宿主对象。 */
+/** 返回外壳根节点的引用和窄布局状态。内容区宽度小于 640px 时使用窄布局，组件卸载时停止观察。 */
 export function useExplorerLayout() {
   const root = React.useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = React.useState(false);

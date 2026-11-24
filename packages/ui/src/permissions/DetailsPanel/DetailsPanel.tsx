@@ -17,7 +17,7 @@ import { DefinitionDetails } from './components/DefinitionDetails.js';
 import { usePermissionDetails } from './hooks/usePermissionDetails.js';
 import { useDetailStyles } from './DetailsPanel.styles.js';
 
-/** permission 详情面板的属性；mountNode 可让宿主把 portal 放在 FluentProvider 的局部容器中。 */
+/** permission 详情面板的属性；mountNode 指定 portal 挂载到 FluentProvider 的局部容器中。 */
 export interface DetailsPanelProps {
   client: CatalogClient;
   resourceId: string;

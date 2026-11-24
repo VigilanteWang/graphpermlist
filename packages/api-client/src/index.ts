@@ -18,13 +18,13 @@ export class CatalogApiError extends Error {
   }
 }
 
-// 保留旧入口的类型导出，已有宿主无需同步修改调用方式。
+// 保留旧入口的类型导出，已有前端无需同步修改调用方式。
 export type { CatalogClient } from '@graph/contracts';
 
 /**
- * 目录客户端的工厂函数，返回不依赖宿主身份信息的客户端对象。
+ * 目录客户端的工厂函数，返回不依赖前端身份信息的客户端对象。
  * @param baseUrl - 包含 /api/v1 的 API 基址。
- * @param fetcher - 发起请求的函数，可由宿主传入。
+ * @param fetcher - 发起请求的函数，可由前端传入。
  * @returns 可取消请求的只读客户端。
  */
 export function createCatalogClient(baseUrl: string, fetcher: typeof fetch = globalThis.fetch): CatalogClient {

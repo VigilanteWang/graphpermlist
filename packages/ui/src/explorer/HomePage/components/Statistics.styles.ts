@@ -1,4 +1,4 @@
-/** Home 统计卡片的局部样式，不影响宿主或其他 Card。 */
+/** Home 统计卡片的局部样式，不影响外部页面或其他 Card。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
 /** 允许统计卡片在窄容器内换行的样式集合。 */

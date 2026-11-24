@@ -3,7 +3,7 @@ import type {
   CatalogJsonClientError, CatalogJsonClientErrorCode, CatalogJsonManifest, CatalogJsonSnapshot
 } from '@graph/contracts';
 
-/** current.json 的固定文件名，loader 从宿主配置的同一目录读取此文件和它指向的快照。 */
+/** current.json 的固定文件名，loader 从前端配置的同一目录读取此文件和它指向的快照。 */
 export const JSON_MANIFEST_FILE = 'current.json';
 
 /** 浏览器和离线校验共同使用的文件读取上限，单位为字节。 */

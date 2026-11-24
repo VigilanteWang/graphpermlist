@@ -1,4 +1,4 @@
-/** 各宿主共用的目录外壳，组合 Fluent 主题、主导航、页面内容和详情面板。 */
+/** 独立网站和 SharePoint 共用的目录外壳，组合 Fluent 主题、主导航、页面内容和详情面板。 */
 import * as React from 'react';
 import {
   Body1,
@@ -21,7 +21,7 @@ import { CatalogContent } from './components/CatalogContent.js';
 import { useExplorerController } from './hooks/useExplorerController.js';
 import { useExplorerStyles } from './ExplorerShell.styles.js';
 
-/** 共享外壳的宿主参数；数据源、标识、主题与独立网站布局均由宿主配置。 */
+/** 共享外壳接收的前端配置，包括目录客户端、前端名称、主题和布局选项。 */
 export interface ExplorerShellProps {
   client: CatalogClient;
   hostLabel: string;
@@ -95,9 +95,9 @@ export function ExplorerShell({
           )}
           {enabled && (
             <>
-              <CatalogToolbar criteria={model.criteria} families={families} updateQuery={model.updateQuery} />
+              <CatalogToolbar criteria={model.criteria} families={families} updateCriteria={model.updateCriteria} />
               <CatalogContent
-                key={model.viewKey}
+                key={model.categoryKey}
                 category={model.category}
                 catalog={model.catalog}
                 browse={model.browse}

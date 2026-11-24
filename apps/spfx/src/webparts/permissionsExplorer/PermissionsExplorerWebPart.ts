@@ -1,4 +1,4 @@
-/** SharePoint Web Part 的宿主入口文件；共享 UI 保持独立于 SPFx 上下文。 */
+/** SharePoint 前端的 Web Part 入口文件；共享 UI 保持独立于 SPFx 上下文。 */
 import * as React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
@@ -21,7 +21,7 @@ export default class PermissionsExplorerWebPart extends BaseClientSideWebPart<IP
   public render(): void {
     // 属性修改会再次触发 render；复用同一个 React root。
     if (!this._root) this._root = createRoot(this.domElement);
-    // 仅配置变化时重建 client，普通宿主重绘不取消用户正在浏览的查询。
+    // 仅配置变化时重建 client，Web Part 的常规重绘不取消用户正在浏览的查询。
     if (!this._client || this._apiBaseUrl !== this.properties.apiBaseUrl) {
       this._apiBaseUrl = this.properties.apiBaseUrl;
       this._client = createCatalogClient(this.properties.apiBaseUrl);

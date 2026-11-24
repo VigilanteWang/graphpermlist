@@ -128,8 +128,8 @@ intended reader. Keep the old manifest for rollback.
 4. To roll back, verify the previous immutable file and saved manifest, then
    upload that manifest as `current.json`. Refresh and confirm the previous version.
 
-The browser loader resolves the two filenames within the host's configured
-directory. It should enforce the host's allowed origin and redirect policy,
+The browser loader resolves the two filenames within the frontend's configured
+directory. It should enforce the frontend's allowed origin and redirect policy,
 use the current user's read permissions, and bypass or revalidate HTTP caching
 for `current.json`. It supplies a streaming `Response` and passes the provided
 signal to the transport. The client checks its status, bytes, schema, references
