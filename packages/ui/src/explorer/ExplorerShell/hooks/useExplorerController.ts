@@ -26,6 +26,7 @@ export function useExplorerController(
   const { root, narrow } = useExplorerLayout();
   const main = React.useRef<HTMLElement>(null);
   const heading = React.useRef<HTMLHeadingElement>(null);
+  // 详情关闭时按 DOM 元素恢复焦点。category 卡片在切换视图时会卸载，返回时按 category 键重新找。
   const detailTrigger = React.useRef<HTMLElement | null>(null);
   const categoryTrigger = React.useRef<string>();
   const [page, setPage] = React.useState<ExplorerPage>("home");
@@ -34,6 +35,7 @@ export function useExplorerController(
   // criteria 保存当前的搜索词和筛选选项，例如 permission 类型、family 和是否显示禁用项。
   // 筛选框读取 criteria，并通过 updateCriteria 更新它。当前 category 由导航单独管理。
   const [criteria, setCriteria] = React.useState<PermissionQueryOptions>({});
+  // 保存当前详情里的 permission 名称，例如 User.Read。undefined 表示详情关闭。
   const [detail, setDetail] = React.useState<string>();
   const categoryKey = category?.category ?? "all";
   // 把筛选框的 criteria 和当前 category 组装成查询参数。两者都没变时复用 query，避免重复查询。
@@ -69,7 +71,7 @@ export function useExplorerController(
     (button ?? heading.current)?.focus();
     categoryTrigger.current = undefined;
   }, [page, category, catalog.categories.data, root]);
-  /** 主导航的页面切换操作；重选 Graph 返回 category 列表，保留共享筛选条件。 */
+  /** 切换 Home 或 Microsoft Graph。点 Microsoft Graph 会回到 category 列表，搜索词和筛选条件继续保留。 */
   function navigate(next: ExplorerPage): void {
     setPage(next);
     if (next === "graph") setCategory(undefined);
@@ -85,23 +87,23 @@ export function useExplorerController(
     // 用 patch 覆盖 previous 中同名字段。
     setCriteria((previous) => ({ ...previous, ...patch }));
   }
-  /** category 入口；记录返回时应恢复焦点的卡片，不保存另一份筛选。 */
+  /** 打开 category，并记住是从哪张卡片进去的，方便返回时恢复键盘焦点。 */
   function openCategory(item: CatalogCategorySummary): void {
     categoryTrigger.current = item.category;
     setCategory(item);
   }
-  /** category 返回操作；随后由请求完成后的 Effect 恢复卡片或标题焦点。 */
+  /** 返回 category 列表并关闭详情。等列表数据可用后，Effect 会把焦点放回原卡片或标题。 */
   function backToCategories(): void {
     setCategory(undefined);
     setDetail(undefined);
   }
-  /** permission 详情入口；记录当前实际触发按钮以支持关闭后的键盘续读。 */
+  /** 打开 permission 详情前，先记住页面上当前聚焦的元素，关闭后可以回到那里。 */
   function openDetail(value: string): void {
     detailTrigger.current = root.current?.ownerDocument
       .activeElement as HTMLElement | null;
     setDetail(value);
   }
-  /** 详情关闭操作；只恢复仍在文档中的触发按钮，避免已卸载节点接收焦点。 */
+  /** 关闭详情。下一帧如果原来的焦点元素仍在页面上，就把焦点还给它。 */
   function closeDetail(): void {
     setDetail(undefined);
     requestAnimationFrame(

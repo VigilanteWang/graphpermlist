@@ -1,7 +1,7 @@
 /** permission 详情抽屉、字段与复制控件的局部样式。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
-/** permission 详情抽屉、字段与复制控件的局部样式。仅生成局部类名，不修改前端全局样式。 */
+/** 详情抽屉和复制控件的样式。抽屉固定在视口边缘，长 GUID 或文案在抽屉内换行。 */
 export const useDetailStyles = makeStyles({
   stack: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS, minWidth: '0' },
   // 自定义 portal 容器时 Fluent 默认 absolute；详情仍须相对于视口定位。

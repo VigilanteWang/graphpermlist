@@ -1,6 +1,8 @@
-/** permission 的目录导航分类表和分类函数；这些分类不代表授权要求或 API 支持情况。 */
+/** 为 permission 指定目录导航中的 category 和 family。授权规则使用定义本身的字段。 */
+/** 分类规则版本，随导入或发布结果一起保存。 */
 export const CLASSIFICATION_VERSION = '2026-11-13.1';
 
+/** 导航可用的 category，包含程序用的标识和界面显示的英文名称及简介。 */
 export const CATEGORIES = [
   { category: 'entra', displayName: 'Microsoft Entra ID', description: 'Directory, identity, authentication, access governance and provisioning.' },
   { category: 'exchange', displayName: 'Exchange', description: 'Mail, calendars, mailbox contacts and Exchange service configuration.' },
@@ -21,7 +23,7 @@ export const CATEGORIES = [
   { category: 'uncategorized', displayName: 'Uncategorized', description: 'Unknown families or permissions with insufficient evidence for a product assignment.' },
 ];
 
-// 完整 permission value 优先于 family 规则，用于处理 RoleManagement 等跨产品 family。
+// 先查完整 value。例如 RoleManagement.Read.CloudPC 放到 Intune / Windows，同 family 的其他 value 可以属于其他 category。
 const EXACT_CATEGORIES: ReadonlyMap<string, string> = new Map([
   ['Group.ManageProtection.All', 'security-compliance'],
   ['RoleManagement.Read.All', 'platform'],
@@ -33,9 +35,8 @@ const EXACT_CATEGORIES: ReadonlyMap<string, string> = new Map([
   ['RoleManagement.ReadWrite.Exchange', 'exchange'],
 ]);
 
-// 每个 family 都是区分大小写的完整首段，不使用 startsWith 前缀匹配。
-// 显式列出已观察到的 family，避免将来名称相似的 family 自动继承分类。
-// 分类依据及保守排除项见 docs/classification.md。
+// 这里按 category 列出已确认的 family。查找时使用区分大小写的完整 family 名，名称相近的新 family 需要单独确认。
+// 分类依据见 docs/classification.md。
 const FAMILY_GROUPS: ReadonlyArray<readonly [category: string, families: readonly string[]]> = [
   ['entra', [
     'APIConnectors',
@@ -410,16 +411,17 @@ const FAMILY_GROUPS: ReadonlyArray<readonly [category: string, families: readonl
   ]],
 ];
 
+// 把按 category 编排的表转成 family 到 category 的 Map，逐条分类时可以按 family 直接查找。
 const FAMILY_CATEGORIES: ReadonlyMap<string, string> = new Map(
   FAMILY_GROUPS.flatMap(([category, families]) =>
     families.map((family): [string, string] => [family, category])),
 );
 const OPENID_VALUES: ReadonlySet<string> = new Set(['openid', 'profile', 'email', 'offline_access']);
 
-/** permission value 到 category、family 的分类函数；优先识别 OpenID 和精确名称，未知项归入 Uncategorized。 */
+/** 从 permission value 决定它在界面里的 category 和 family。先查 OpenID，再查完整 value 和 family，查不到就放入 Uncategorized。 */
 export function classifyPermission(value: string): { category: string; family: string } {
   if (OPENID_VALUES.has(value)) return { category: 'openid', family: 'OpenID permissions' };
-  // family 取 permission value 的第一个点号之前的部分。
+  // 例如 Files.Read.All 的 family 是 Files。完整 value 的特例只改变 category，仍保留原 family。
   const family = value.split('.')[0] ?? value;
   return {
     category: EXACT_CATEGORIES.get(value) ?? FAMILY_CATEGORIES.get(family) ?? 'uncategorized',

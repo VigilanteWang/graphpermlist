@@ -11,7 +11,7 @@ interface StatisticsProps {
   definitions?: PermissionListResult;
 }
 
-/** 目录统计卡片，分别保留普通启用条目、全部普通条目与排除 RSC 的计数。 */
+/** 首页的三张统计卡片。全部普通 definition 包括禁用项，查询结果还没到时这张卡显示省略号。RSC 单独使用来源记录里的排除数。 */
 export function Statistics({ resources, graph, definitions }: StatisticsProps): React.ReactElement {
   const styles = useStatisticsStyles();
   return (

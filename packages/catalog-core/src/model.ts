@@ -1,4 +1,4 @@
-/** SQLite 导入与离线 JSON 发布共用的 Graph permission 转换模块，输入由调用方先校验。 */
+/** 把 Graph resource 导出的 appRole 和 scope 整理为目录数据，供 SQLite 导入和离线 JSON 发布共用。 */
 import type {
   CatalogJsonAppRoleFields, CatalogJsonScopeFields, CatalogJsonSnapshotDefinition, CatalogJsonSnapshotResource
 } from '@graph/contracts';
@@ -8,7 +8,7 @@ export { CATEGORIES, CLASSIFICATION_VERSION, classifyPermission };
 /** 来源展示使用的逻辑文件名，不包含操作者的实际路径或自定义文件名。 */
 export const CATALOG_SOURCE_BASENAME = 'commercial-graph-permlist.json';
 
-/** 已校验的 Graph resource 输入；RSC 只用于计数，模型无需读取其原始字段。 */
+/** 调用方已校验的一个 Graph resource。RSC 数组只用于记录排除数量。 */
 interface CatalogModelInput {
   appId: string;
   displayName: string;
@@ -17,7 +17,7 @@ interface CatalogModelInput {
   resourceSpecificApplicationPermissions: readonly unknown[];
 }
 
-/** 导入与发布共用的资源模型及分类摘要输入；摘要由导入或发布流程计算。 */
+/** 一个 resource 的目录数据及来源信息。导入和发布流程对 classificationInput 计算分类摘要。 */
 interface CatalogModel {
   resource: CatalogJsonSnapshotResource;
   excludedRscCount: number;
@@ -25,7 +25,7 @@ interface CatalogModel {
   classificationInput: string;
 }
 
-/** Application 的普通 definition 转换函数，同时保留官方 appRole 字段和固定 admin consent 规则。 */
+/** 把 appRole 转成 Application definition，保留原始字段并将 admin consent 标为必需。 */
 function applicationEntry(raw: CatalogJsonAppRoleFields): CatalogJsonSnapshotDefinition {
   return {
     value: raw.value, ...classifyPermission(raw.value),
@@ -38,7 +38,7 @@ function applicationEntry(raw: CatalogJsonAppRoleFields): CatalogJsonSnapshotDef
   };
 }
 
-/** Delegated 的普通 definition 转换函数，从 consent type 推导 admin consent，并保留用户同意文案。 */
+/** 把 scope 转成 Delegated definition，按 Admin 或 User 设置 admin consent，并保留两套 consent 文案。 */
 function delegatedEntry(raw: CatalogJsonScopeFields): CatalogJsonSnapshotDefinition {
   return {
     value: raw.value, ...classifyPermission(raw.value),
@@ -53,7 +53,7 @@ function delegatedEntry(raw: CatalogJsonScopeFields): CatalogJsonSnapshotDefinit
   };
 }
 
-/** 资源目录的纯建模函数；保留各集合的源顺序、禁用项和同 value 不同 GUID 的定义。 */
+/** 整理一个 resource 的定义及其导航，保留原始顺序、禁用项和同 value 不同 GUID 的定义。 */
 export function buildCatalogModel(data: CatalogModelInput): CatalogModel {
   // User-only appRole 和 RSC 不属于普通目录，只有 RSC 的排除数量进入来源记录。
   const definitions = [
@@ -61,6 +61,7 @@ export function buildCatalogModel(data: CatalogModelInput): CatalogModel {
     ...data.oauth2PermissionScopes.map(delegatedEntry)
   ];
   const classifications = definitions.map(({ value, category, family }) => ({ value, category, family }));
+  // 导航只需要有定义引用的 category。同名 family 可以位于不同 category，因此用两者组合去重。
   const usedCategories = new Set(classifications.map(row => row.category));
   const families = new Map(classifications.map(({ category, family }) =>
     [JSON.stringify([category, family]), { category, family }]));

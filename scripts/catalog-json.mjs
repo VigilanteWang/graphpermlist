@@ -1,4 +1,4 @@
-/** 目录 JSON 的离线命令，生成并校验版本化 schema 1 快照，也可独立校验已发布目录。 */
+/** 离线生成和校验 schema 1 目录 JSON。current.json 指向要读取的版本化快照文件。 */
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { link, mkdir, mkdtemp, open, rename, rm, writeFile } from 'node:fs/promises';
@@ -13,17 +13,22 @@ import { loadPermissionsSource } from './permissions-source.cjs';
 
 const USAGE = 'Usage: catalog-json export --output <directory> [--generated-at <ISO UTC>] | verify --output <directory>';
 
-/** 文件字节的 SHA-256 函数，用于目录分类、版本命名及文件完整性。 */
+/** SHA-256 摘要函数。对传入的内容计算摘要，返回十六进制字符串。 */
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-/** schema 1 的 JSON 序列化函数，使用固定的 UTF-8 编码、紧凑格式和末尾换行。 */
+/** schema 1 JSON 的文件编码。空格和换行都会改变文件摘要，这里固定用紧凑 JSON 加一个末尾换行。 */
 function serialize(document) {
   return Buffer.from(JSON.stringify(document) + '\n', 'utf8');
 }
 
-/** 离线校验的文件读取函数，拒绝符号链接及非普通文件，并限制实际读入字节。 */
+/**
+ * 校验时用的文件读取函数，只读取大小符合限制的普通文件。
+ * @param {string} file 要读取的 current.json 或快照文件路径。
+ * @param {number} maxBytes 允许的最大文件字节数。
+ * @returns {Promise<Buffer>} 实际读到的文件字节。
+ */
 async function readFileBounded(file, maxBytes) {
   const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
@@ -32,7 +37,7 @@ async function readFileBounded(file, maxBytes) {
       throw new JsonCatalogError('invalid-snapshot', 'Expected a regular catalog file within the byte limit.');
     }
     const bytes = Buffer.allocUnsafe(stat.size + 1);
-    // 多读一个字节以识别校验期间增长的文件；校验用的是实际读到的字节。
+    // 多留一个字节，检测文件在读取期间是否变长。实际读到的大小必须与打开时一致。
     let size = 0;
     while (size < bytes.length) {
       const { bytesRead } = await handle.read(bytes, size, bytes.length - size, null);
@@ -46,7 +51,7 @@ async function readFileBounded(file, maxBytes) {
   }
 }
 
-/** 给定目录的独立校验函数，先检查指针，再按精确字节摘要与 schema 验证快照。 */
+/** 目录校验入口。从 current.json 读出快照名和预期摘要，再校验快照文件字节及内容结构。 */
 async function verify(directory) {
   const manifest = readJsonManifest(await readFileBounded(join(directory, JSON_MANIFEST_FILE), JSON_MANIFEST_MAX_BYTES));
   const bytes = await readFileBounded(join(directory, manifest.snapshot), JSON_SNAPSHOT_MAX_BYTES);
@@ -54,7 +59,7 @@ async function verify(directory) {
   return { manifest, snapshot, byteLength: bytes.length };
 }
 
-/** 生成目录的发布函数，先验证暂存文件，再保留不可变快照，最后替换 current.json。 */
+/** 本地发布流程。先在暂存目录校验两个文件，放好快照后再替换 current.json。 */
 async function publish(directory, manifest, bytes) {
   await mkdir(directory, { recursive: true });
   const stage = await mkdtemp(join(directory, '.catalog-stage-'));
@@ -66,7 +71,7 @@ async function publish(directory, manifest, bytes) {
     const verified = await verify(stage);
     const destination = join(directory, manifest.snapshot);
     try {
-      // 同一文件系统内只添加新名字；并发或重复发布都不能覆盖已有版本。
+      // 用硬链接添加版本文件。若文件名已存在，只在内容完全相同的情况下复用。
       await link(stagedSnapshot, destination);
     } catch (error) {
       if (error.code !== 'EEXIST') throw error;
@@ -75,6 +80,7 @@ async function publish(directory, manifest, bytes) {
         throw new JsonCatalogError('invalid-snapshot', 'An existing catalog version contains different bytes.');
       }
     }
+    // 先放好快照再切换指针，让按 current.json 读目录的客户端总能找到它指向的文件。
     await rename(stagedManifest, join(directory, JSON_MANIFEST_FILE));
     return verified;
   } finally {
@@ -82,7 +88,7 @@ async function publish(directory, manifest, bytes) {
   }
 }
 
-/** 真实安全源的加载入口；CLI 错误只提供可操作说明，避免回显自定义源路径或内容。 */
+/** 快照输入的加载入口。读取或校验失败时，用固定说明提醒检查环境变量和输入文件。 */
 async function loadSource() {
   try {
     return await loadPermissionsSource();
@@ -94,7 +100,7 @@ async function loadSource() {
   }
 }
 
-/** 离线生成入口，记录实际或指定的生成时间，并从内容派生不可变版本。 */
+/** 生成目录快照的入口。使用与 SQLite 导入相同的目录模型，另在 JSON 中记录生成时间。 */
 async function generate(directory, generatedAt) {
   const { data, sha256: sourceSha256 } = await loadSource();
   const { resource, classificationInput, classificationVersion, excludedRscCount } = buildCatalogModel(data);
@@ -104,14 +110,15 @@ async function generate(directory, generatedAt) {
     classificationHash: sha256(classificationInput),
     resources: [resource]
   };
-  // 版本摘要不含 version 本身；artifactSha256 另对带 version 的最终文件字节计算。
+  // version 用来命名快照，取自加入 version 字段前的 JSON。
+  // artifactSha256 按最终文件字节计算，供读取方检查文件是否完整。
   const version = sha256(serialize(content));
   const bytes = serialize({ ...content, version });
   const manifest = { schemaVersion: 1, version, snapshot: `catalog-${version}.json`, artifactSha256: sha256(bytes) };
   return publish(directory, manifest, bytes);
 }
 
-/** 根目录 CLI 入口，仅打印逻辑文件名、非敏感摘要和统计。 */
+/** 命令行主函数。export 生成并发布本地快照，verify 只检查 --output 目录里的现有文件。 */
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   const { values } = parseArgs({ args, options: { output: { type: 'string' }, 'generated-at': { type: 'string' } } });

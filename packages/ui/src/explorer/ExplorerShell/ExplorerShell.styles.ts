@@ -1,7 +1,7 @@
 /** 目录外壳的布局与主内容滚动样式。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
-/** 目录外壳的布局与主内容滚动样式。仅作用于当前组件。 */
+/** 外壳的布局样式。宽布局把导航放在左侧，窄布局改成一列。独立网站让主内容在窗口内单独滚动。 */
 export const useExplorerStyles = makeStyles({
   root: {
     boxSizing: 'border-box',

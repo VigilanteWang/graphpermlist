@@ -1,11 +1,12 @@
-/** 目录数据库的初始版本迁移文件，包含建表及撤销操作。 */
+/** 目录 SQLite 数据库的初次迁移，建立 resource、快照、category、family 和 definition 的存储结构。 */
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-/** 目录初始表结构的 TypeORM 迁移类，通过显式版本迁移创建 SQLite 表。 */
+/** TypeORM 执行的第一版目录迁移。先创建表结构，导入命令随后才能写入快照。 */
 export class CatalogSchema1794528000000 implements MigrationInterface {
   /** 本版本迁移的执行方法，按依赖顺序创建 resource、导入版本、category、family 和定义表。 */
   async up(runner: QueryRunner): Promise<void> {
-    // 外键约束确保定义属于同一版本；唯一索引限制每个 resource 的有效版本。
+    // 每个 resource 最多有一版快照的 active 为 1，历史快照可同时保留。
+    // definition 引用的 category 和 family 必须存在于同一版本。
     for (const sql of [
       `CREATE TABLE catalog_resource (resourceId text PRIMARY KEY NOT NULL)`,
       `CREATE TABLE catalog_import (id text PRIMARY KEY NOT NULL, resourceId text NOT NULL REFERENCES catalog_resource(resourceId), displayName text NOT NULL, active boolean NOT NULL CHECK(active IN (0,1)), classificationHash text NOT NULL, source text NOT NULL)`,
@@ -16,7 +17,7 @@ export class CatalogSchema1794528000000 implements MigrationInterface {
       `CREATE INDEX catalog_definition_value ON catalog_definition(versionId,value)`
     ]) await runner.query(sql);
   }
-  /** 本版本迁移的撤销方法，按外键依赖的相反顺序删除表。 */
+  /** 撤销初始迁移。先删除引用其他表的 definition，再依次删除它依赖的表。 */
   async down(runner: QueryRunner): Promise<void> {
     for (const name of ['catalog_definition', 'catalog_family', 'catalog_category', 'catalog_import', 'catalog_resource']) {
       await runner.query(`DROP TABLE ${name}`);

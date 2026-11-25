@@ -1,4 +1,4 @@
-/** permission 详情的请求 Hook，保留等值查询去重、取消、重试和过期结果隔离。 */
+/** 打开详情后获取当前 permission 的数据。切换 permission 或筛选时，旧请求的结果不会出现在新抽屉里。 */
 import * as React from 'react';
 import type { CatalogClient, PermissionDetailResult, PermissionQueryOptions } from '@graph/contracts';
 
@@ -9,16 +9,17 @@ interface DetailState {
   error?: string;
 }
 
-/** 当前 permission 的完整详情请求；value 缺省时不发起读取。 */
+/** 详情抽屉的数据和重试操作。value 是点击的 permission 名称，例如 User.Read。关闭后 value 为 undefined，就不再发请求。 */
 export function usePermissionDetails(
   client: CatalogClient,
   resourceId: string,
   value: string | undefined,
   query: PermissionQueryOptions
 ) {
+  // 每次重试都换一个请求键，即使仍然查看同一个 permission。
   const [attempt, setAttempt] = React.useState(0);
   const [state, setState] = React.useState<DetailState>();
-  // 采用稳定的参数序列，父组件每次创建等值 query 对象时不会重复请求。
+  // 用筛选字段的值生成查询键。即使父组件重建了 query，只要搜索词等字段没变，详情也不用重新加载。
   const queryKey = JSON.stringify([
     query.q,
     query.category,
@@ -41,7 +42,7 @@ export function usePermissionDetails(
       PermissionQueryOptions['adminConsentRequired'],
       PermissionQueryOptions['showDisabled']
     ];
-    // JSON 数组中的 undefined 会变成 null；还原中立查询的可选字段。
+    // 筛选未设置时，序列化后的数组会用 null 占位。发请求前恢复为 undefined，布尔值 false 仍然保留。
     const snapshot: PermissionQueryOptions = {
       q: q ?? undefined,
       category: category ?? undefined,
@@ -65,6 +66,7 @@ export function usePermissionDetails(
       });
     return () => abort.abort();
   }, [client, resourceId, value, queryKey, requestKey]);
+  // 切换 permission 后，新的请求可能还没开始，这时先隐藏旧详情。
   const current = state?.key === requestKey ? state : undefined;
   return { current, retry: () => setAttempt((previous) => previous + 1) };
 }

@@ -1,4 +1,4 @@
-/** JSON 版 CatalogClient，管理会话快照、并发读取和重试，并复用中立目录查询。 */
+/** 从 current.json 找到并校验目录快照。界面随后可以从内存里的快照查询列表、计数和详情。 */
 import type {
   CatalogClient, CatalogJsonArtifactMetadata, CatalogJsonSnapshot, CatalogJsonSnapshotResource,
   CatalogJsonSnapshotSource, CategoryListResult, PermissionDetailResult, PermissionListResult,
@@ -10,10 +10,10 @@ import {
   JsonCatalogError, readJsonManifest, readJsonSnapshot
 } from './json-validation.js';
 
-/** 前端注入的文件读取函数；file 是固定目录内的文件名，signal 用于取消共享下载。 */
+/** 由前端提供的文件读取函数。file 是已配置目录中的文件名，signal 用来取消整次下载。 */
 export type JsonCatalogLoader = (file: string, signal: AbortSignal) => Promise<Response>;
 
-/** client 的可观察加载状态；读取失败由调用的 Promise 报告，已有有效快照仍可用。 */
+/** 客户端的四种状态。idle 和 loading 还没有快照，ready 和 refreshing 都可以查到有效快照。 */
 export type JsonCatalogState = 'idle' | 'loading' | 'ready' | 'refreshing';
 
 /** 会话中已通过全部校验的发布物，记录完整快照及已核验的文件摘要。 */
@@ -22,7 +22,7 @@ interface Publication {
   artifact: CatalogJsonArtifactMetadata;
 }
 
-/** 一次共享加载任务；订阅者全部取消后，可以丢弃任务并立即开始下一次加载。 */
+/** 多个调用共用的一次加载。subscribers 是等待结果的调用数，降到零时可以取消下载。 */
 interface Flight {
   controller: AbortController;
   subscribers: number;
@@ -41,12 +41,12 @@ function abortError(): DOMException {
   return new DOMException('Catalog request was aborted.', 'AbortError');
 }
 
-/** 中止检查函数，在下载、校验或等待之后的边界阻止取消的任务继续前进。 */
+/** 检查调用是否已取消。下载、校验和等待返回后都可能需要重新检查。 */
 function checkAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw abortError();
 }
 
-/** HTTP 响应的读取前检查函数，识别权限、缺失文件、部分响应、登录 HTML 及过大文件。 */
+/** 读取正文前检查 HTTP 状态和响应头。例如 403 表示访问被拒绝，200 也可能返回登录页 HTML。 */
 function checkResponse(response: Response, maxBytes: number): void {
   if (response.status === 401 || response.status === 403) {
     throw new JsonCatalogError('permission-denied', 'Access to the catalog file was denied.');
@@ -62,7 +62,7 @@ function checkResponse(response: Response, maxBytes: number): void {
   }
 }
 
-/** 单个发布文件的读取函数，流式限制实际接收字节，包含缺少 Content-Length 的响应。 */
+/** 分段读取一个发布文件。每段都检查累计字节数，所以响应没有 Content-Length 时也能限制文件大小。 */
 async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: number, signal: AbortSignal): Promise<Uint8Array> {
   try {
     checkAborted(signal);
@@ -75,7 +75,7 @@ async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: numb
       throw error;
     }
     const reader = response.body!.getReader();
-    /** 流读取的中止处理函数，释放可能没有监听 signal 的读取流。 */
+    /** 取消当前读取流，覆盖 loader 没有响应 signal 的情况。 */
     const cancelRead = (): void => { void reader.cancel().catch(() => undefined); };
     signal.addEventListener('abort', cancelRead, { once: true });
     let bytes = new Uint8Array(Math.min(8192, maxBytes));
@@ -96,7 +96,7 @@ async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: numb
         size = nextSize;
       }
     } finally {
-      // cancel() 也覆盖大小超限等提前退出，完成的流会立即返回。
+      // 文件超限或读取失败时也要停止接收剩余内容。已读完时，cancel() 会立即返回。
       cancelRead();
       signal.removeEventListener('abort', cancelRead);
       reader.releaseLock();
@@ -109,7 +109,7 @@ async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: numb
   }
 }
 
-/** 单个 resource 的查询查找函数，沿用 HTTP API 的 App ID 大小写规则与 not-found 语义。 */
+/** 按 App ID 查 resource，和 HTTP API 一样忽略大小写，查不到时报告 not-found。 */
 function findResource(publication: Publication, resourceId: string): CatalogJsonSnapshotResource {
   const normalized = resourceId.toLowerCase();
   const resource = publication.snapshot.resources.find(item => item.resourceId === normalized);
@@ -122,8 +122,9 @@ function queryMetadata({ snapshot, artifact }: Publication): JsonQueryMetadata {
   return { dataState: 'ready', source: { ...snapshot.source }, artifact: { ...artifact } };
 }
 
-/** 基于已验证发布文件的内存 CatalogClient，文件位置与访问权限由前端维护。 */
+/** 供界面使用的 JSON CatalogClient。前端负责文件位置和读取权限，客户端负责校验快照和执行查询。 */
 export class JsonCatalogClient implements CatalogClient {
+  // current 是已验证且可查询的快照，flight 是正在下载或校验的任务。刷新时两者可以同时存在。
   private current?: Publication;
   private flight?: Flight;
 
@@ -136,12 +137,12 @@ export class JsonCatalogClient implements CatalogClient {
     return this.flight ? 'loading' : 'idle';
   }
 
-  /** 初始化或重试入口；有效快照已存在时复用当前版本。 */
+  /** 确保已有可查询快照。首次加载失败后可以重试，已有快照时直接复用。 */
   async load(signal?: AbortSignal): Promise<void> {
     await this.getPublication(signal);
   }
 
-  /** 显式刷新入口；并发加载合并，刷新失败或取消时保留原有快照。 */
+  /** 主动读取 current.json 查看发布内容。并发调用共用一次加载，失败或取消时保留原有快照。 */
   async refresh(signal?: AbortSignal): Promise<void> {
     checkAborted(signal);
     await this.subscribe(signal);
@@ -167,7 +168,7 @@ export class JsonCatalogClient implements CatalogClient {
     return { ...queryMetadata(publication), ...countPermissions(rows), items: queryCategories(resource.categories, rows) };
   }
 
-  /** permission 列表查询，返回合并行和筛选统计；结果可由调用方修改。 */
+  /** permission 列表查询，返回合并行和筛选统计。复制行内 definitions，让调用方修改结果时保留快照原样。 */
   async permissions(resourceId: string, query?: PermissionQueryOptions, signal?: AbortSignal): Promise<PermissionListResult> {
     const publication = await this.getPublication(signal);
     checkAborted(signal);
@@ -187,7 +188,7 @@ export class JsonCatalogClient implements CatalogClient {
     return { ...queryMetadata(publication), ...structuredClone(detail) };
   }
 
-  /** 单次查询的版本选择函数，刷新期间仍固定使用调用时已有的有效快照。 */
+  /** 为一次查询取得快照。已有快照时，即使正在刷新也能立即用它查询。 */
   private async getPublication(signal?: AbortSignal): Promise<Publication> {
     checkAborted(signal);
     const publication = this.current ?? await this.subscribe(signal);
@@ -195,7 +196,7 @@ export class JsonCatalogClient implements CatalogClient {
     return publication;
   }
 
-  /** 共享加载任务的创建函数，校验全部文件后才切换快照。 */
+  /** 开始一次共享加载。先读 current.json，再读它指定的快照，两份文件都校验通过后才更新 current。 */
   private start(): Flight {
     const controller = new AbortController();
     const signal = controller.signal;
@@ -222,12 +223,12 @@ export class JsonCatalogClient implements CatalogClient {
     return flight;
   }
 
-  /** 单个调用的订阅函数；从共享任务取消一个订阅时，只结束该调用的等待。 */
+  /** 让一个调用等待共享任务。例如列表取消后，详情仍可继续等同一份快照。 */
   private subscribe(signal?: AbortSignal): Promise<Publication> {
     const flight = this.flight ?? this.start();
     flight.subscribers++;
     return new Promise((resolve, reject) => {
-      /** 订阅结束的清理函数，分别处理完成、失败与取消后的计数。 */
+      /** 结束这个调用的等待，移除监听并减去一个订阅者。 */
       const detach = (): void => {
         signal?.removeEventListener('abort', cancel);
         flight.subscribers--;

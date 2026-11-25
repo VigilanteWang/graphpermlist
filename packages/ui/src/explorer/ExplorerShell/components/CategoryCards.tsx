@@ -4,13 +4,13 @@ import { Body1, Button, Caption1, Title2 } from '@fluentui/react-components';
 import type { CatalogCategorySummary } from '@graph/contracts';
 import { useCategoryStyles } from './CategoryCards.styles.js';
 
-/** category 卡片的只读数据和选择回调，不持有筛选或展开状态。 */
+/** category 卡片的数据和点击操作。点击时把整条 category 摘要交给外壳。 */
 interface CategoryCardsProps {
   items: CatalogCategorySummary[];
   onOpen: (category: CatalogCategorySummary) => void;
 }
 
-/** 一级目录的 Fluent 操作按钮；data-category 供返回导航恢复原卡片焦点。 */
+/** category 卡片列表。每张卡片显示当前筛选后的计数，返回列表时外壳用 data-category 找回之前点过的卡片。 */
 export function CategoryCards({ items, onOpen }: CategoryCardsProps): React.ReactElement {
   const styles = useCategoryStyles();
   return (

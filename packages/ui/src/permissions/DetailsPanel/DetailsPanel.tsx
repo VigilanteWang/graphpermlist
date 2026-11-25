@@ -1,4 +1,4 @@
-/** permission 详情抽屉；编排完整定义展示和请求状态，不生成官方原文摘要。 */
+/** 点击 permission 名称后打开的详情抽屉。这里能看到该名称下的全部 definitions，包括禁用项。 */
 import * as React from 'react';
 import {
   Button,
@@ -17,7 +17,7 @@ import { DefinitionDetails } from './components/DefinitionDetails.js';
 import { usePermissionDetails } from './hooks/usePermissionDetails.js';
 import { useDetailStyles } from './DetailsPanel.styles.js';
 
-/** permission 详情面板的属性；mountNode 指定 portal 挂载到 FluentProvider 的局部容器中。 */
+/** 详情抽屉需要的查询条件和关闭操作。mountNode 让弹出的抽屉留在目录的 FluentProvider 容器内。 */
 export interface DetailsPanelProps {
   client: CatalogClient;
   resourceId: string;
@@ -27,7 +27,7 @@ export interface DetailsPanelProps {
   mountNode?: HTMLElement | null;
 }
 
-/** Fluent modal Drawer 详情面板；支持取消、过时结果隔离、Retry，以及全部定义的完整展示。 */
+/** permission 详情抽屉。查询完成前显示加载提示，失败可重试，成功后每条 definition 单独显示。 */
 export function DetailsPanel({
   client,
   resourceId,

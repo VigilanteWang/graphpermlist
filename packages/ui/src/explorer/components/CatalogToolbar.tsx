@@ -11,7 +11,7 @@ interface CatalogToolbarProps {
   updateCriteria: (patch: Partial<PermissionQueryOptions>) => void;
 }
 
-/** 目录筛选输入组件；通过回调让两个页面始终使用同一份条件。 */
+/** 搜索和筛选控件。每次只把变化的字段交给外壳，例如输入 mail 时传入 { q: "mail" }，其他筛选继续保留。 */
 export function CatalogToolbar({ criteria, families, updateCriteria }: CatalogToolbarProps): React.ReactElement {
   const styles = useToolbarStyles();
   return (

@@ -1,4 +1,4 @@
-/** 按 family 组织的 permission 浏览视图，展开状态由外壳生命周期内的 Hook 持有。 */
+/** 进入 category 后看到的 family 列表。展开一个 family 就会显示这一组的 permission 表格。 */
 import * as React from 'react';
 import {
   Accordion,
@@ -11,13 +11,13 @@ import { PermissionGrid } from '../../../permissions/PermissionGrid/PermissionGr
 import type { useFamilyBrowse } from '../hooks/useFamilyBrowse.js';
 import { useFamilyStyles } from './FamilyPermissions.styles.js';
 
-/** family 浏览视图的分组、受控展开模型和 permission 详情入口。 */
+/** family 列表需要的分组数据、已展开名单和打开 permission 详情的操作。 */
 interface FamilyPermissionsProps {
   browse: ReturnType<typeof useFamilyBrowse>;
   onOpenPermission: (value: string) => void;
 }
 
-/** 二级目录的 Fluent Accordion 和 DataGrid 组合，不重新执行 definition 筛选。 */
+/** family 折叠列表。用户点击标题时，把更新后的完整展开名单交给 useFamilyBrowse 保存。 */
 export function FamilyPermissions({ browse, onOpenPermission }: FamilyPermissionsProps): React.ReactElement {
   const styles = useFamilyStyles();
   return (

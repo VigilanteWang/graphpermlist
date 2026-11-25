@@ -1,7 +1,7 @@
 /** service category 操作卡片的响应式排版。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
-/** service category 操作卡片的响应式排版。仅作用于当前组件。 */
+/** category 卡片网格。空间足够时多列并排，容器比 230px 窄时允许单张卡片继续缩小。 */
 export const useCategoryStyles = makeStyles({
   cards: {
     display: 'grid',

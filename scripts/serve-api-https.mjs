@@ -1,9 +1,9 @@
-/** 本地只读 API 的 HTTPS 开发代理模块；证书由调用者提供，不修改系统信任或部署远端服务。 */
+/** 本地 HTTPS 开发代理。读取调用者提供的证书和私钥，将请求转给本机 HTTP API。 */
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:https';
 import { request } from 'node:http';
 
-/** HTTPS 开发代理的启动函数，仅监听 loopback，并将目录 GET/OPTIONS 请求转给本机 Nest。 */
+/** HTTPS 开发代理的启动函数。监听 127.0.0.1，将 /api/v1 下的 GET 和 OPTIONS 请求转给本机 Nest。 */
 function start() {
   const port = Number(process.env.LOCAL_HTTPS_PORT ?? 3443);
   const upstream = new URL(process.env.LOCAL_API_ORIGIN ?? 'http://127.0.0.1:3000');
@@ -14,7 +14,7 @@ function start() {
     key: readFileSync(process.env.LOCAL_HTTPS_KEY ?? ''),
     cert: readFileSync(process.env.LOCAL_HTTPS_CERT ?? '')
   }, (incoming, outgoing) => {
-    // 代理只接受目录路由和只读方法；不把 Cookie 或身份 header 转发给 Nest。
+    // 用相同的路径和方法请求本机 API，转发 Origin 等 CORS 相关 header 及 Accept。
     if (!incoming.url?.startsWith('/api/v1/') || !['GET', 'OPTIONS'].includes(incoming.method ?? '')) {
       outgoing.writeHead(404).end();
       return;

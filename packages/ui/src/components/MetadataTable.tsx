@@ -42,7 +42,7 @@ const useMetadataStyles = makeStyles({
   }
 });
 
-/** 只读的两列字段表；行标题由 Fluent TableHeaderCell 提供，值不参与筛选或格式重写。 */
+/** 左列显示字段名，右列显示传入的值。字段名是行标题，让屏幕阅读器能把 GUID 或文案和对应字段关联起来。 */
 export function MetadataTable({ label, fields }: MetadataTableProps): React.ReactElement {
   const styles = useMetadataStyles();
   return (

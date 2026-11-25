@@ -1,4 +1,4 @@
-/** JSON 发布格式的运行时校验模块，供离线工具和浏览器使用同一套 schema 1 规则。 */
+/** 校验 current.json 和它指向的目录快照。离线工具与浏览器都用同一套 schema 1 规则检查文件。 */
 import type {
   CatalogJsonClientError, CatalogJsonClientErrorCode, CatalogJsonManifest, CatalogJsonSnapshot
 } from '@graph/contracts';
@@ -35,7 +35,7 @@ export class JsonCatalogError extends Error implements CatalogJsonClientError {
   }
 }
 
-/** ISO UTC 时间格式的校验函数；同时确认日期真实存在，避免 Date 自动修正越界日期。 */
+/** 检查 ISO UTC 时间格式和日期。例如 2 月 30 日可能被 Date 转成 3 月，校验会拒绝这种输入。 */
 export function isJsonTimestamp(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return false;
   const instant = new Date(value);
@@ -113,7 +113,7 @@ function pattern(value: unknown, regex: RegExp): string {
   return value;
 }
 
-/** current.json 的解析与校验函数，路径只能是与版本一致的单个相对文件名。 */
+/** 从 current.json 取得快照文件名和摘要。版本为 v1 时，文件名必须是同一目录中的 catalog-v1.json。 */
 export function readJsonManifest(bytes: Uint8Array): CatalogJsonManifest {
   const manifest = parseDocument(decode(bytes, JSON_MANIFEST_MAX_BYTES), ['schemaVersion', 'version', 'snapshot', 'artifactSha256']);
   const version = pattern(manifest.version, VERSION);
@@ -133,7 +133,7 @@ function validateSource(value: unknown): void {
     && source.excludedRscCount >= 0, 'Invalid excluded RSC count.');
 }
 
-/** 单条普通 definition 的校验函数，确认导航归属及原始字段、展示字段和 consent 规则一致。 */
+/** 核对一条普通 definition 的导航和字段。同一 value 共用导航位置，界面文案和 consent 规则必须与原始字段对应。 */
 function validateDefinition(value: unknown, families: ReadonlyMap<string, Set<string>>,
   identities: Set<string>, locations: Map<string, string>): void {
   const entry = record(value, ['value', 'category', 'family', 'definition', 'rawDefinition']);
@@ -145,7 +145,7 @@ function validateDefinition(value: unknown, families: ReadonlyMap<string, Set<st
   expect((locations.get(permissionValue) ?? location) === location, 'A permission value must have one category and family.');
   locations.set(permissionValue, location);
 
-  // 类型决定两套字段的白名单，先识别类型再检查整个 definition 对象。
+  // Application 的原始字段来自 appRole，Delegated 来自 scope。识别类型后分别检查它们的字段。
   const permissionType = entry.definition && typeof entry.definition === 'object' && 'permissionType' in entry.definition
     ? entry.definition.permissionType : undefined;
   expect(permissionType === 'Application' || permissionType === 'Delegated', 'Invalid ordinary permission type.');
@@ -208,12 +208,13 @@ function validateResource(value: unknown, resourceIds: Set<string>, remainingDef
 
   const identities = new Set<string>();
   const locations = new Map<string, string>();
+  // 同名可以有多条定义。用类型和 GUID 识别重复定义，用 value 核对它们是否出现在同一个位置。
   const definitions = array(resource.definitions, remainingDefinitions);
   for (const definition of definitions) validateDefinition(definition, families, identities, locations);
   return definitions.length;
 }
 
-/** 快照读取函数，按完整文件字节核对摘要，再检查 schema、版本、字段和引用。 */
+/** 读取清单指定的快照。先按文件字节核对 SHA-256，再检查版本、字段和引用，全部通过才返回目录数据。 */
 export async function readJsonSnapshot(bytes: Uint8Array, manifest: CatalogJsonManifest): Promise<CatalogJsonSnapshot> {
   const text = decode(bytes, JSON_SNAPSHOT_MAX_BYTES);
   // 解码只用于识别 UTF-8 和 HTML；摘要始终对应传入的原始字节。
@@ -227,6 +228,7 @@ export async function readJsonSnapshot(bytes: Uint8Array, manifest: CatalogJsonM
 
   const resourceIds = new Set<string>();
   let remaining = MAX_DEFINITIONS;
+  // 上限约束的是整个文件。校验完一个 resource 后，扣掉它已使用的条数。
   for (const resource of array(snapshot.resources, MAX_RESOURCES)) {
     remaining -= validateResource(resource, resourceIds, remaining);
   }

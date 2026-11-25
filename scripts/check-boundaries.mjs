@@ -1,4 +1,4 @@
-/** 共享包与前端的依赖边界检查脚本，包含 SPFx 构建产物的 React 外部依赖检查。 */
+/** 检查共享包的依赖范围、网站和 SPFx 使用的 React 版本，以及 SPFx 的构建产物。 */
 import assert from 'node:assert/strict';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import { createRequire, builtinModules } from 'node:module';
@@ -41,7 +41,7 @@ const allowedDependencies = {
   'api-client': ['@graph/contracts'],
   ui: ['@graph/contracts', '@fluentui/react-components', 'react', 'react-dom']
 };
-/** 共享源码文件的递归枚举函数，覆盖嵌套目录而非只检查包的第一层。 */
+/** 要检查的源码文件列表，递归收集 src 下各级目录中的 JavaScript 和 TypeScript 文件。 */
 async function sourceFiles(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -51,7 +51,7 @@ async function sourceFiles(directory) {
   }
   return files;
 }
-/** 模块路径的边界检查函数，拒绝 Node 内置模块、前端包、后端包和相对路径越界。 */
+/** 单个依赖路径的检查。相对路径应留在当前共享包的 src 内，包名应出现在允许列表里。 */
 function checkSpecifier(specifier, file, directory, allowed) {
   assert.ok(!specifier.startsWith('node:') && !builtinModules.includes(specifier), `No Node builtin: ${specifier}`);
   if (specifier.startsWith('.')) {
@@ -71,7 +71,7 @@ for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
     const source = await readFile(file, 'utf8');
     assert.ok(!/@microsoft\/sp-|WebPartContext|AadHttpClient|MSGraphClient/.test(source), `${pkg} has no SPFx identity/context dependency`);
     const ast = ts.createSourceFile(file.pathname, source, ts.ScriptTarget.Latest, true);
-    /** 模块引用的 AST 访问函数，覆盖 import/export、动态 import、require 和手写类型引用。 */
+    /** 逐个检查 TypeScript 语法节点中的模块引用，包括静态导入、动态导入、require 和类型导入。 */
     function visit(node) {
       let specifier;
       if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) specifier = node.moduleSpecifier;
@@ -93,7 +93,7 @@ for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
     assert.equal(ast.typeReferenceDirectives.length, 0, 'Shared source cannot inject ambient host/Node types');
   }
 }
-// 双出口只允许下列内部运行时依赖；JSON client 的产物入口不能拉入导出模型和分类表。
+// 分别检查供 import 和 require 使用的构建产物。浏览器里的 JSON client 只需要查询与校验代码。
 const core = await json('packages/catalog-core/package.json');
 const coreModules = {
   'index': [],
@@ -114,7 +114,8 @@ for (const [condition, format] of [['import', 'esm'], ['require', 'cjs']]) {
     assert.deepEqual([...new Set(imports)].sort(), allowed, `Unexpected emitted dependencies in ${output}`);
   }
 }
-// 检查已构建 manifest 的 React 外部组件声明，再确认 bundle 包含共享界面且未嵌入指定 React 文件。
+// SPFx 的 manifest 应声明由 SharePoint 提供的 React 组件；bundle 应含共享界面的提示文案。
+// 再检查 bundle 中是否出现已知 React runtime 文件名。
 const manifest = await json('apps/spfx/dist/125b85bf-862e-4c47-b499-c56fc875169c.manifest.json');
 for (const name of ['react', 'react-dom/client']) {
   assert.equal(manifest.loaderConfig.scriptResources[name].type, 'component');

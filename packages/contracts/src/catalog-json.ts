@@ -1,9 +1,9 @@
-/** 离线导出与 JSON client 共用的发布文件及错误契约，描述 schema 1 的结构。 */
+/** 定义离线工具生成的 current.json 和目录快照，以及 JSON client 读取这两份文件时使用的错误类型。 */
 import type {
   CatalogCategoryMetadata, CatalogDefinitionEntry, CatalogFamily, CatalogJsonSnapshotSource
 } from './catalog-query.js';
 
-/** Application 原始安全字段的结构，保留官方 appRole 文案、成员类型和 origin。 */
+/** Application definition 对应的原始 appRole 字段，包括官方文案、成员类型和 origin。 */
 export interface CatalogJsonAppRoleFields {
   id: string;
   value: string;
@@ -13,7 +13,7 @@ export interface CatalogJsonAppRoleFields {
   displayName: string;
   description: string;
 }
-/** Delegated 原始安全字段的结构，保留官方 scope 的 consent type 和两套文案。 */
+/** Delegated definition 对应的原始 scope 字段，包括 consent type 及 admin 和 user 文案。 */
 export interface CatalogJsonScopeFields {
   id: string;
   value: string;
@@ -24,11 +24,11 @@ export interface CatalogJsonScopeFields {
   userConsentDisplayName: string;
   userConsentDescription: string;
 }
-/** 快照中的普通 definition，额外保留安全原始字段；运行时校验必须核对两份字段的一致性。 */
+/** 快照中的普通 definition。查询读取整理后的字段，校验时和 rawDefinition 对照。 */
 export interface CatalogJsonSnapshotDefinition extends CatalogDefinitionEntry {
   rawDefinition: CatalogJsonAppRoleFields | CatalogJsonScopeFields;
 }
-/** 一个 resource 的完整快照；categories/families 引用必须存在，definitions 的身份不能重复。 */
+/** 一个 resource 的完整目录数据。每条 definition 引用这个 resource 内已列出的 category 和 family。 */
 export interface CatalogJsonSnapshotResource {
   resourceId: string;
   displayName: string;
@@ -36,7 +36,7 @@ export interface CatalogJsonSnapshotResource {
   families: CatalogFamily[];
   definitions: CatalogJsonSnapshotDefinition[];
 }
-/** schema 1 的不可变 JSON 目录产物，包含资源定义、生成来源和分类信息。 */
+/** 一次发布的目录数据。schemaVersion 标识 JSON 结构，version 标识这次发布的数据版本。 */
 export interface CatalogJsonSnapshot {
   schemaVersion: 1;
   version: string;
@@ -44,7 +44,7 @@ export interface CatalogJsonSnapshot {
   classificationHash: string;
   resources: CatalogJsonSnapshotResource[];
 }
-/** 当前发布指针的 JSON 结构；snapshot 是受限相对路径，artifactSha256 对应完整快照文件字节。 */
+/** current.json 的内容。客户端用 snapshot 找到同一目录中的文件，再用 artifactSha256 核对该文件的完整字节。 */
 export interface CatalogJsonManifest {
   schemaVersion: 1;
   version: string;

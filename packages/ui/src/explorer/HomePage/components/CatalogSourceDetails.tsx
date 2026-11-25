@@ -9,7 +9,7 @@ interface CatalogSourceDetailsProps {
   source: CatalogSourceMetadata;
 }
 
-/** 可展开的来源详情；API 导入时间与 JSON 生成时间按契约分别显示。 */
+/** 首页的来源折叠项。API 数据显示导入时间，JSON 数据显示发布文件的生成时间。 */
 export function CatalogSourceDetails({ source }: CatalogSourceDetailsProps): React.ReactElement {
   // 不从浏览器时间或文件属性补造时间，保留来源本身的 UTC 值。
   const timestamp =

@@ -7,7 +7,7 @@ import { DefinitionLabel } from '../../components/DefinitionLabel.js';
 import { useDetailStyles } from '../DetailsPanel.styles.js';
 import { CopyValue } from './CopyValue.js';
 
-/** 完整定义详情；保留官方原文、admin consent 规则及 Delegated 专有字段。 */
+/** 一张 definition 详情卡。每条显示自己的 GUID 和官方文案，只有 Delegated 会多显示用户同意相关字段。 */
 export function DefinitionDetails({ definition }: { definition: PermissionDefinition }): React.ReactElement {
   const styles = useDetailStyles();
   const fields = [

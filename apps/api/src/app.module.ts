@@ -1,4 +1,4 @@
-/** Nest 应用的根模块文件，包含配置、数据库、目录模块和健康检查。 */
+/** HTTP 服务和导入命令从这里注册配置、SQLite 连接和目录功能。 */
 import { Controller, Get, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnvironment } from './configuration';
@@ -8,7 +8,7 @@ import { CatalogModule } from './catalog/catalog.module';
 /** HTTP 健康检查控制器，用于确认应用可以响应请求。 */
 @Controller('health')
 class HealthController {
-  /** 健康检查方法，返回固定存活状态；不代表目录已导入或数据库内容完整。 */
+  /** GET /api/v1/health 的响应。只要 HTTP 服务能响应，就返回固定的 ok，即使目录还没导入。 */
   @Get() health() { return { status: 'ok', stage: 'catalog-api' }; }
 }
 /** HTTP 与 CLI 共用的 Nest 根模块，注册全局环境配置、数据库及目录功能。 */

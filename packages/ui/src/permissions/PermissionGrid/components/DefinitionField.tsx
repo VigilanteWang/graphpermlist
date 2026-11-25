@@ -5,7 +5,7 @@ import type { MergedPermissionRow } from '@graph/contracts';
 import { DefinitionLabel } from '../../components/DefinitionLabel.js';
 import { useGridStyles } from '../PermissionGrid.styles.js';
 
-/** 列表中的官方字段视图，逐条保留 definitions，避免同类型的不同 GUID 文案被覆盖。 */
+/** 表格中的一个字段单元格，例如 Summary。若筛选结果里同为 Application 的 definition 有两条，就分别显示文案并带上各自的 GUID。 */
 export function DefinitionField({
   row,
   field

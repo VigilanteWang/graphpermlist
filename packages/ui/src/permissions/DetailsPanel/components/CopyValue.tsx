@@ -10,7 +10,7 @@ interface CopyValueProps {
   label: string;
 }
 
-/** 文本复制控件；写入状态由专用 Hook 维护，失败时保留可全选的只读文本。 */
+/** 复制按钮和反馈。浏览器拒绝复制时显示只读输入框，聚焦输入框会选中整段文字。 */
 export function CopyValue({ value, label }: CopyValueProps): React.ReactElement {
   const styles = useDetailStyles();
   const { status, copy } = useCopyValue(value);

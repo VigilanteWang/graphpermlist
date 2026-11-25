@@ -30,7 +30,7 @@ export interface ExplorerShellProps {
   viewportLayout?: boolean;
 }
 
-/** 完整目录组件的组合入口；交互 Hook 保持唯一状态，子视图只接收数据与操作。 */
+/** 目录页面的入口。外壳记住当前页面、筛选条件和打开的详情，再把数据和点击操作传给各个区块。 */
 export function ExplorerShell({
   client,
   hostLabel,
@@ -39,6 +39,7 @@ export function ExplorerShell({
   viewportLayout = false
 }: ExplorerShellProps): React.ReactElement {
   const styles = useExplorerStyles();
+  // 目录外壳保留筛选和展开记录，切换子页面时可以继续用同一份状态。
   const model = useExplorerController(client, viewportLayout);
   const { resources, graph, resourceId, enabled, familySource, families } = model.catalog;
   return (

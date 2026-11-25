@@ -1,4 +1,4 @@
-/** Graph permission 的离线导入服务，负责将共享目录模型原子写入 SQLite。 */
+/** 把本地 Graph permission 文件整理成目录数据，写入 API 查询使用的 SQLite 数据库。 */
 import { createHash, randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,7 +7,7 @@ import { buildCatalogModel, CATALOG_SOURCE_BASENAME } from '@graph/catalog-core/
 import { loadPermissionsSource } from '../../../../scripts/permissions-source.cjs';
 import { CatalogCategory, CatalogDefinition, CatalogFamily, CatalogImport, CatalogResource } from './catalog.entities';
 
-/** permission 数据的离线导入服务，负责校验、转换、串行写入和事务内的活动快照切换。 */
+/** 本地目录的导入服务。每个 resource 的新快照写完后，才会设为当前查询使用的版本。 */
 @Injectable()
 export class CatalogImportService {
   // 同一 SQLite 连接不能安全执行重叠的 TypeORM 事务，因此将导入任务串行排队。
@@ -15,14 +15,15 @@ export class CatalogImportService {
   /** 导入服务的构造函数，接收 Nest 注入的数据库连接和配置服务。 */
   constructor(private readonly database: DataSource, private readonly config: ConfigService) {}
 
-  /** 一次文件导入的公开入口方法，将任务排队执行；某次失败不会阻断后续任务。 */
+  /** 文件导入的入口。任务按调用顺序执行，返回快照 ID、是否复用已有版本以及 definition 数量。 */
   importFile(): Promise<{ versionId: string; reused: boolean; definitionCount: number }> {
     const work = this.pending.then(() => this.importSnapshot());
+    // 调用者收到本次失败，队列仍可继续执行下一次导入。
     this.pending = work.catch(() => undefined);
     return work;
   }
 
-  /** 单次快照导入的内部方法，读取和校验源数据，复用未变化的快照或原子写入新快照。 */
+  /** 一次实际导入的流程，先读文件并分类，再在同一事务中保存新版本并切换当前快照。 */
   private async importSnapshot(): Promise<{ versionId: string; reused: boolean; definitionCount: number }> {
     const { data, sha256 } = await loadPermissionsSource({
       source: this.config.get<string>('PERMISSIONS_SOURCE'),
@@ -34,7 +35,7 @@ export class CatalogImportService {
 
     return this.database.transaction(async manager => {
       const active = await manager.findOneBy(CatalogImport, { resourceId, active: true });
-      // 源文件和分类结果都未变化时复用活动版本，避免重复写入。
+      // 源文件字节和分类输入的摘要都与当前版本相同时，沿用已有快照 ID。
       if (active?.source.sha256 === sha256 && active.classificationHash === classificationHash) {
         return { versionId: active.id, reused: true, definitionCount: definitions.length };
       }
