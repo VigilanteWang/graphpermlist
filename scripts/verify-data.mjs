@@ -1,4 +1,4 @@
-/** permission 数据校验的命令行入口文件，同时转导出共享加载器。 */
+/** npm run verify:data 的入口。用共享加载器检查本地 permission 文件，再输出摘要和数量。 */
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadPermissionsSource } from './permissions-source.cjs';

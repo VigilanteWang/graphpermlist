@@ -1,15 +1,14 @@
-/** 本地目录的 TypeORM 实体文件，描述 resource、快照及 permission 定义等数据的存储结构。 */
-import type { RawPermission } from '../../../../scripts/permissions-source.cjs';
+/** 目录的 TypeORM 实体。每个类对应一张 SQLite 表，供导入服务写入、查询服务读取。 */
 import { Column, Entity, PrimaryColumn } from 'typeorm';
-import type { CatalogImportSource, PermissionDefinition, PermissionType } from '@graph/contracts';
+import type { CatalogImportSource, CatalogJsonSnapshotDefinition, PermissionDefinition, PermissionType } from '@graph/contracts';
 
-/** Graph resource 的数据库实体；resourceId 是该表的主键。 */
+/** Graph resource 的记录。每个 resource 保存一条记录，可关联多次导入的快照。 */
 @Entity('catalog_resource')
 export class CatalogResource {
-  // @PrimaryColumn 声明主键；同一个 resource 只保存一个标识。
+  // resourceId 保存 Graph resource 的 App ID。
   @PrimaryColumn('text') resourceId!: string;
 }
-/** 一次导入快照的数据库实体；active 标识当前查询使用的版本，source 保存来源信息。 */
+/** 一次导入的快照记录。active 为 true 时 API 使用这一版，source 记录文件摘要、导入时间等来源信息。 */
 @Entity('catalog_import')
 export class CatalogImport {
   @PrimaryColumn('text') id!: string;
@@ -19,7 +18,7 @@ export class CatalogImport {
   @Column('text') classificationHash!: string;
   @Column('simple-json') source!: CatalogImportSource;
 }
-/** 某个快照内服务 category 的数据库实体；versionId 与 category 共同组成主键。 */
+/** 一版快照中某个 category 的记录，保存界面显示用的名称和描述。versionId 和 category 共同标识这一行。 */
 @Entity('catalog_category')
 export class CatalogCategory {
   @PrimaryColumn('text') versionId!: string;
@@ -27,14 +26,14 @@ export class CatalogCategory {
   @Column('text') displayName!: string;
   @Column('text') description!: string;
 }
-/** 快照中 family 与 category 关系的数据库实体，允许同一 family 出现在不同 category 中。 */
+/** 一版快照中 family 所属 category 的记录。同名 family 在不同 category 中各有一条记录。 */
 @Entity('catalog_family')
 export class CatalogFamily {
   @PrimaryColumn('text') versionId!: string;
   @PrimaryColumn('text') family!: string;
   @PrimaryColumn('text') category!: string;
 }
-/** 单条 Application 或 Delegated permission 定义的数据库实体，由快照、类型和 ID 共同标识。 */
+/** 一条 Application 或 Delegated definition。同名 permission 可以有多个 definition，各自按版本、类型和 ID 保存。 */
 @Entity('catalog_definition')
 export class CatalogDefinition {
   @PrimaryColumn('text') versionId!: string;
@@ -43,10 +42,10 @@ export class CatalogDefinition {
   @Column('text') value!: string;
   @Column('text') category!: string;
   @Column('text') family!: string;
-  // simple-json 将完整定义序列化存入单列，读取时恢复为对象。
+  // TypeORM 把对象转成 JSON 文本存入一列，查询时再读成对象供列表和详情使用。
   @Column('simple-json') definition!: PermissionDefinition;
-  // 仅保留安全的原始定义字段（含 appRole 来源和成员类型），不保存租户元数据。
-  @Column('simple-json') rawDefinition!: RawPermission;
+  // 保存源定义中允许保留的字段，例如 appRole 的 origin 和 allowedMemberTypes。
+  @Column('simple-json') rawDefinition!: CatalogJsonSnapshotDefinition['rawDefinition'];
 }
 // 集中导出实体列表，供数据库连接和功能模块注册使用。
 export const CATALOG_ENTITIES = [CatalogResource, CatalogImport, CatalogCategory, CatalogFamily, CatalogDefinition];

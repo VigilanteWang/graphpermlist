@@ -1,4 +1,4 @@
-/** 离线迁移和导入的命令行入口，不启动 HTTP 服务器。 */
+/** 本地 SQLite 的命令行入口，供 npm run db:migrate 和 npm run import:data 使用。 */
 import 'reflect-metadata';
 import { type INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -6,15 +6,16 @@ import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { CatalogImportService } from './catalog/catalog-import.service';
 
-/** CLI 的异步主函数，选择迁移或导入命令，复用 Nest 服务并在结束时关闭连接。 */
+/** 命令行主函数。migrate 更新 SQLite 表结构，import 读取本地 permission 文件并写入目录。 */
 async function main(): Promise<void> {
   let app: INestApplicationContext | undefined;
   try {
     const command = process.argv[2];
     if (command !== 'migrate' && command !== 'import') throw new Error('Expected migrate or import');
-    // 只创建依赖注入上下文，不启动 HTTP；禁用默认日志以免泄漏本机路径。
+    // 通过 Nest 取得数据库连接和导入服务即可执行命令。关闭 Nest 日志，避免在错误输出里暴露本机路径。
     app = await NestFactory.createApplicationContext(AppModule, { logger: false, abortOnError: false });
     if (command === 'migrate') {
+      // 本次待执行的迁移放在同一个事务中，成功后输出实际执行的迁移名称。
       const migrations = await app.get(DataSource).runMigrations({ transaction: 'all' });
       console.log(JSON.stringify({ status: 'ok', migrations: migrations.map(item => item.name) }));
     } else {

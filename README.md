@@ -5,7 +5,7 @@
 Microsoft Graph Permissions Explorer 是一个面向 Microsoft Graph 全球云权限目录的只读应用，以仓库中的权限定义快照作为数据输入，不在线采集租户数据，也不执行权限授予或撤销。
 
 - **独立网站前端**：Vite + React + TypeScript，可在浏览器中独立运行。
-- **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、中立数据类型及宿主注入的 HTTP client。
+- **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、中立数据类型及前端注入的 HTTP client。
 - **共享界面**：Fluent UI React v9，React 18.3.1；提供英文 Home、分类卡片、搜索筛选、family DataGrid 和完整详情。
 - **后端**：NestJS，使用默认 Express adapter，通过 HTTP API 为前端提供数据。
 - **数据库**：TypeORM + better-sqlite3，本地运行无需单独安装数据库服务或 Docker。
@@ -23,7 +23,7 @@ graphpermlist/
 │   │   │   ├── app.module.ts             组装应用模块
 │   │   │   ├── bootstrap.ts              API 前缀、参数校验和 CORS
 │   │   │   ├── configuration.ts          环境变量读取与校验
-│   │   │   ├── catalog/                  目录路由、实体、分类、导入和查询服务
+│   │   │   ├── catalog/                  目录路由、实体、SQLite 导入和查询服务
 │   │   │   └── database/                 TypeORM / SQLite 配置与版本化迁移
 │   │   └── tsconfig.json                 后端 TypeScript 配置
 │   ├── web/                              Vite 独立网站
@@ -45,7 +45,7 @@ graphpermlist/
 ├── packages/
 │   ├── ui/src/index.tsx                  两个前端共用的 Fluent UI 界面
 │   ├── api-client/src/index.ts           HTTP 请求、查询参数和错误处理
-│   ├── catalog-core/src/index.ts         浏览器/Node 共用的纯查询规则
+│   ├── catalog-core/src/                 纯查询规则、共享建模、JSON 校验与 client
 │   └── contracts/src/index.ts            中立 client、响应及 JSON snapshot/manifest 类型
 ├── data/
 │   ├── commercial-graph-permlist.json    版本化的安全权限快照
@@ -58,6 +58,7 @@ graphpermlist/
 │   └── verification/                     验证记录与截图
 ├── scripts/
 │   ├── verify-data.mjs                   数据结构和快照完整性检查
+│   ├── catalog-json.mjs                  离线导出与校验 JSON 发布文件
 │   └── check-boundaries.mjs              React 依赖与共享代码边界检查
 ├── tests/                                API、客户端、数据和浏览器测试
 │   └── fixtures/                         仅供测试的契约样例
@@ -99,7 +100,7 @@ npm run start:api
 npm run dev:web
 ```
 
-打开 [http://localhost:5173](http://localhost:5173)。导入成功后 Home 显示普通定义和排除的 RSC 数量；展开 **Catalog data details** 查看来源、导入时间和分类版本。点击 **Microsoft Graph** 浏览分类、搜索筛选、permission family 和完整详情。两级页面保留当前筛选条件，导航仅改变服务范围。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和双宿主配置见 [共享 UI 开发与验收](docs/ui-development.md)。
+打开 [http://localhost:5173](http://localhost:5173)。导入成功后 Home 显示普通定义和排除的 RSC 数量；展开 **Catalog data details** 查看来源、导入时间和分类版本。点击 **Microsoft Graph** 浏览分类、搜索筛选、permission family 和完整详情。两级页面保留当前筛选条件，导航仅改变服务范围。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和两个前端的配置见 [共享 UI 开发与验收](docs/ui-development.md)。
 
 后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
@@ -112,6 +113,15 @@ npm run build
 ```
 
 独立网站输出到 `apps/web/dist/`，SharePoint 包输出到 `apps/spfx/sharepoint/solution/graph-permissions-explorer.sppkg`。构建不会自动部署；在 SharePoint 中运行还需要部署到 App Catalog，并为 Web Part 配置可访问的 HTTPS API 地址和对应 CORS 来源。
+
+## 离线生成 JSON 目录
+
+```sh
+npm run export:json -- --output ./release/catalog
+npm run verify:json -- --output ./release/catalog
+```
+
+命令直接读取已校验的安全源，生成 `current.json` 和不可变的 `catalog-<version>.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。独立 JSON 版 SPFx 及三入口接入由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 交付。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
 
 ## 本地验证与交付状态
 
@@ -130,7 +140,7 @@ npm run test:browser
 
 阶段 [PR #7](https://github.com/VigilanteWang/graphpermlist/pull/7)、[PR #8](https://github.com/VigilanteWang/graphpermlist/pull/8)、[PR #9](https://github.com/VigilanteWang/graphpermlist/pull/9) 已合入 main。最终独立审查、#2 逐项验收、干净安装回归及修复见[阶段 4 交付记录](docs/verification/phase-4.md)，人工操作见[交付审查清单](docs/verification/phase-4-human-review.md)。
 
-**当前为本地 Demo 与双宿主构建/打包交付。实际 SharePoint 页面及双宿主同数据对比仍待授权测试环境；#2 尚未全部验收，未部署。** Heft 没有 Web Part 专属 Jest 套件；其他目标浏览器版本、平台及 hosted CI 未验证。
+**当前为本地 Demo 与两个前端的构建与打包交付。实际 SharePoint 页面及两个前端使用相同数据的对比仍待授权测试环境；#2 尚未全部验收，未部署。** Heft 没有 Web Part 专属 Jest 套件；其他目标浏览器版本、平台及 hosted CI 未验证。
 
 ## TypeScript 与浏览器兼容基线
 
@@ -149,10 +159,10 @@ Web 在 `vite.config.ts` 显式保留 Chrome 107、Edge 107、Firefox 104、Safa
 
 共享包使用 NodeNext 检查模块加载规则，以兼容 Node ESM 测试及 Vite/Webpack 消费；新增相对运行时导入时使用输出对应的 `.js` 扩展名。API 对 contracts 使用 type-only imports，不产生运行时 ESM 依赖。不要把 `NodeNext` 等同于 ESM 迁移，也不要直接修改 `node_modules` 中的 SPFx 配置。
 
-阶段 #5 保留这组宿主边界，并通过真实导入 API 的 Chromium UI 回归和 Vite/SPFx 构建。真实 SharePoint 页面及其他目标浏览器版本的验收仍需单列，见 [阶段 3 验证](docs/verification/phase-3.md)。配置修改的实际验证结果见[阶段 2 验证补充](docs/verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。
+阶段 #5 保留这组前端边界，并通过真实导入 API 的 Chromium UI 回归和 Vite/SPFx 构建。真实 SharePoint 页面及其他目标浏览器版本的验收仍需单列，见 [阶段 3 验证](docs/verification/phase-3.md)。配置修改的实际验证结果见[阶段 2 验证补充](docs/verification/phase-2.md#typescript-configuration-follow-up--2026-11-16)。
 
 ## SharePoint JSON 增量
 
-父需求 [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) 保留现有 API 网站和 API SPFx，后续新增独立 JSON SPFx solution，最终产出两个独立 .sppkg、三个入口共用一份 UI。当前 [#12](https://github.com/VigilanteWang/graphpermlist/issues/12) 仅提取中立 CatalogClient、schema 1 类型和浏览器安全查询核心，接回现有 API；尚未提供 JSON 导出/client 或第二个 Web Part。UI 只依赖 contracts，由宿主注入 client；api-client 的旧 CatalogClient 类型入口保持可用。
+父需求 [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) 保留现有 API 网站和 API SPFx，后续新增独立 JSON SPFx solution，最终产出两个独立 .sppkg、三个入口共用一份 UI。当前 [#12](https://github.com/VigilanteWang/graphpermlist/issues/12) 仅提取中立 CatalogClient、schema 1 类型和浏览器安全查询核心，接回现有 API；尚未提供 JSON 导出/client 或第二个 Web Part。UI 只依赖 contracts，由前端注入 client；api-client 的旧 CatalogClient 类型入口保持可用。
 
 查询核心使用同一份源码生成 ESM/CommonJS，保留现有筛选、合并、计数与详情行为。JSON generatedAt、源摘要和产物摘要与 API importedAt 分开；类型不代替运行时校验。决策、阶段证据及人工交接见 [SharePoint JSON 计划](docs/sharepoint-json-plan.md)。实际 SharePoint 运行继续待验，本阶段不上传或部署，不自动启动 #13。

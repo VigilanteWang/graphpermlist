@@ -1,7 +1,7 @@
 /** resource 主导航的宽窄容器与页脚排版。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
-/** resource 主导航的宽窄容器与页脚排版。仅作用于当前组件。 */
+/** 主导航的布局。较宽时是侧栏，窄布局下导航项排成两列。 */
 export const useNavigationStyles = makeStyles({
   nav: {
     display: 'flex',

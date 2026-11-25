@@ -1,4 +1,4 @@
-/** 各宿主共用的目录外壳，组合 Fluent 主题、主导航、页面内容和详情面板。 */
+/** 独立网站和 SharePoint 共用的目录外壳，组合 Fluent 主题、主导航、页面内容和详情面板。 */
 import * as React from 'react';
 import {
   Body1,
@@ -21,7 +21,7 @@ import { CatalogContent } from './components/CatalogContent.js';
 import { useExplorerController } from './hooks/useExplorerController.js';
 import { useExplorerStyles } from './ExplorerShell.styles.js';
 
-/** 共享外壳的宿主参数；数据源、标识、主题与独立网站布局均由宿主配置。 */
+/** 共享外壳接收的前端配置，包括目录客户端、前端名称、主题和布局选项。 */
 export interface ExplorerShellProps {
   client: CatalogClient;
   hostLabel: string;
@@ -30,7 +30,7 @@ export interface ExplorerShellProps {
   viewportLayout?: boolean;
 }
 
-/** 完整目录组件的组合入口；交互 Hook 保持唯一状态，子视图只接收数据与操作。 */
+/** 目录页面的入口。外壳记住当前页面、筛选条件和打开的详情，再把数据和点击操作传给各个区块。 */
 export function ExplorerShell({
   client,
   hostLabel,
@@ -39,6 +39,7 @@ export function ExplorerShell({
   viewportLayout = false
 }: ExplorerShellProps): React.ReactElement {
   const styles = useExplorerStyles();
+  // 目录外壳保留筛选和展开记录，切换子页面时可以继续用同一份状态。
   const model = useExplorerController(client, viewportLayout);
   const { resources, graph, resourceId, enabled, familySource, families } = model.catalog;
   return (
@@ -95,9 +96,9 @@ export function ExplorerShell({
           )}
           {enabled && (
             <>
-              <CatalogToolbar criteria={model.criteria} families={families} updateQuery={model.updateQuery} />
+              <CatalogToolbar criteria={model.criteria} families={families} updateCriteria={model.updateCriteria} />
               <CatalogContent
-                key={model.viewKey}
+                key={model.categoryKey}
                 category={model.category}
                 catalog={model.catalog}
                 browse={model.browse}

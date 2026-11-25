@@ -1,7 +1,7 @@
 /** permission 表格的局部滚动、单元格与 definition 排版样式。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
-/** permission 表格的局部滚动、单元格与 definition 排版样式。仅生成局部类名，不修改宿主全局样式。 */
+/** permission 表格的样式。单元格允许长文本换行，表格仍放不下时只在表格区域横向滚动。 */
 export const useGridStyles = makeStyles({
   scroll: { overflowX: 'auto', width: '100%', minWidth: '0' },
   grid: { minWidth: '960px' },

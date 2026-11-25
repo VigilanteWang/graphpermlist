@@ -1,4 +1,4 @@
-/** 目录 HTTP API 的响应正文契约，由 Nest 服务和 HTTP client 共用。 */
+/** 定义 Nest 服务返回给 HTTP client 的成功和错误响应正文。 */
 import type {
   CatalogImportSource,
   CatalogQueryMetadata,
@@ -8,7 +8,7 @@ import type {
   ResourceListResult
 } from './catalog-query.js';
 
-/** HTTP 成功响应的结构，复用查询结果的业务字段，来源使用数据库导入元数据。 */
+/** HTTP 成功响应沿用查询结果的列表、计数或详情字段，source 记录数据库导入来源。 */
 type CatalogApiResponse<TResult extends CatalogQueryMetadata> = Omit<TResult, 'source' | 'artifact'> & {
   source: CatalogImportSource | null;
 };

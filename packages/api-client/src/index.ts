@@ -1,4 +1,4 @@
-/** 目录 HTTP API 的共享客户端模块，供 Vite 和 SPFx 使用。 */
+/** 把网站和 SPFx 的目录查询转换成 HTTP GET 请求，并把 API 响应交给共享界面。 */
 import type {
   CatalogApiCategoryListResponse,
   CatalogApiErrorBody,
@@ -9,32 +9,32 @@ import type {
   PermissionQueryOptions
 } from '@graph/contracts';
 
-/** 目录 API 请求失败的错误类，包含 HTTP 状态码和错误正文。 */
+/** 目录 API 请求失败时抛出的错误，保留 HTTP 状态码和服务端给出的错误正文。 */
 export class CatalogApiError extends Error {
-  /** API 错误类的构造函数，将单条或多条消息组合为标准 Error 的 message。 */
+  /** 用 API 的错误正文创建 Error。多个校验错误合并成一条可显示的消息。 */
   constructor(public readonly status: number, public readonly body: CatalogApiErrorBody) {
     super(Array.isArray(body.message) ? body.message.join('; ') : body.message);
     this.name = 'CatalogApiError';
   }
 }
 
-// 保留旧入口的类型导出，已有宿主无需同步修改调用方式。
+// 保留旧入口的类型导出，已有前端无需同步修改调用方式。
 export type { CatalogClient } from '@graph/contracts';
 
 /**
- * 目录客户端的工厂函数，返回不依赖宿主身份信息的客户端对象。
+ * 创建只读目录客户端。四种查询使用同一个 API 基址，发送请求时省略浏览器凭据。
  * @param baseUrl - 包含 /api/v1 的 API 基址。
- * @param fetcher - 发起请求的函数，可由宿主传入。
+ * @param fetcher - 发起请求的函数，默认是浏览器的 fetch。
  * @returns 可取消请求的只读客户端。
  */
 export function createCatalogClient(baseUrl: string, fetcher: typeof fetch = globalThis.fetch): CatalogClient {
   // 去掉末尾斜杠，避免拼接路径时出现重复分隔符。
   const base = baseUrl.replace(/\/+$/, '');
-  /** 客户端内部的 GET 请求函数，序列化查询参数并解析 HTTP 正文，错误沿用 CatalogApiError。 */
+  /** 执行一次 GET 查询。把筛选值放入 URL，成功时读 JSON，HTTP 失败时抛出 CatalogApiError。 */
   async function get<T>(path: string, query?: PermissionQueryOptions, signal?: AbortSignal): Promise<T> {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query ?? {})) {
-      // 只跳过未提供的值；false 必须发送，不能当作空值丢弃。
+      // 例如 adminConsentRequired=false 表示只查无需 admin consent 的定义，必须随请求发送。
       if (value !== undefined) params.set(key, String(value));
     }
     const suffix = params.size ? `?${params}` : '';

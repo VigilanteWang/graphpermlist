@@ -21,7 +21,7 @@ export interface PermissionGridProps {
   onOpen: (value: string) => void;
 }
 
-/** 基于 Fluent DataGrid 的 permission 列表；全部字段和类型标签均从当前 definitions 读取。 */
+/** 一个 family 的 permission 表格。同名 permission 合在一行，列里的文案和标签来自命中筛选的 definitions。 */
 export function PermissionGrid({ rows, onOpen }: PermissionGridProps): React.ReactElement {
   const styles = useGridStyles();
   const columns = [

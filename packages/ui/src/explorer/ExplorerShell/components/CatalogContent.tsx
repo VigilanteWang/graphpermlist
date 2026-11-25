@@ -1,4 +1,4 @@
-/** 两级目录的内容主体，组合标题、请求状态、category 卡片与 family 浏览。 */
+/** Microsoft Graph 的浏览区。先显示 category 卡片，点进 category 后按 family 显示 permission。 */
 import * as React from 'react';
 import { Body1, Button, Spinner, Text, mergeClasses } from '@fluentui/react-components';
 import type { CatalogCategorySummary } from '@graph/contracts';
@@ -9,7 +9,7 @@ import { CategoryCards } from './CategoryCards.js';
 import { FamilyPermissions } from './FamilyPermissions.js';
 import { useContentStyles } from './CatalogContent.styles.js';
 
-/** 内容主体的查询结果、展开模型及导航回调，标题引用用于跨视图焦点恢复。 */
+/** 浏览区需要的数据和点击操作。headingRef 指向页面标题，外壳切换视图时可以把键盘焦点移到这里。 */
 interface CatalogContentProps {
   category?: CatalogCategorySummary;
   catalog: ReturnType<typeof useExplorerCatalog>;
@@ -20,7 +20,7 @@ interface CatalogContentProps {
   onOpenPermission: (value: string) => void;
 }
 
-/** 当前目录范围的 Fluent 内容视图；错误、加载、零结果始终保持不同状态。 */
+/** 目录浏览区。统计数字跟随当前视图：category 列表使用分类查询结果，进入 category 后使用 permission 查询结果。 */
 export function CatalogContent({
   category,
   catalog,

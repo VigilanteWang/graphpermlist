@@ -9,7 +9,7 @@ import { ResourceCards } from './components/ResourceCards.js';
 import { Statistics } from './components/Statistics.js';
 import { useHomeStyles } from './HomePage.styles.js';
 
-/** Home 的只读数据和导航入口；异步请求由外壳持有，切换页面不会重复加载。 */
+/** 首页接收的目录数据、统计查询状态和打开 Microsoft Graph 的操作。外壳在页面切换时继续保留这些查询状态。 */
 interface HomePageProps {
   resources: ResourceListResult;
   graph?: CatalogResourceSummary;
@@ -17,7 +17,7 @@ interface HomePageProps {
   onBrowseGraph: () => void;
 }
 
-/** 共享目录的介绍页面；子区块只呈现数据，外壳继续拥有请求与导航状态。 */
+/** 首页。统计请求失败时可以在这里重试，目录返回来源记录时才显示来源详情。 */
 export function HomePage({
   resources,
   graph,

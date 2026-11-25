@@ -1,17 +1,20 @@
-/** permission 快照加载器的手写类型声明文件，包含数据结构及公开函数签名。 */
+/** 本地 permission 文件加载器的类型声明，供 TypeScript 调用 JavaScript 实现时使用。 */
 
-/** 原始 permission 字段的汇总结构；实际必需字段由所属集合的运行时校验决定。 */
-export interface RawPermission {
-  id: string; value: string; isEnabled: boolean;
-  allowedMemberTypes: string[]; origin: string; displayName: string; description: string;
-  type: 'Admin' | 'User'; adminConsentDisplayName: string; adminConsentDescription: string;
-  userConsentDisplayName: string; userConsentDescription: string;
+import type { CatalogJsonAppRoleFields, CatalogJsonScopeFields } from '@graph/contracts';
+
+/** 输入文件中一条 RSC definition 的字段。目录模型会单独统计这组 definition。 */
+interface RawRscPermission {
+  id: string;
+  value: string;
+  isEnabled: boolean;
+  displayName: string;
+  description: string;
 }
-/** Graph resource 的快照结构，包含 appRoles、Delegated scopes 和 RSC 集合。 */
+/** 输入 JSON 的顶层结构，包含一个 Graph resource 的名称、App ID 和三组 permission definition。 */
 export interface PermissionsSource {
   appId: string; displayName: string; appDisplayName: string;
-  appRoles: RawPermission[]; oauth2PermissionScopes: RawPermission[];
-  resourceSpecificApplicationPermissions: RawPermission[];
+  appRoles: CatalogJsonAppRoleFields[]; oauth2PermissionScopes: CatalogJsonScopeFields[];
+  resourceSpecificApplicationPermissions: RawRscPermission[];
 }
 /** 默认本地 permission 快照的绝对路径。 */
 export const DEFAULT_PERMISSIONS_SOURCE: string;
@@ -25,7 +28,7 @@ export const SNAPSHOT_SHA256: string;
 export function validatePermissionsData(data: unknown): Record<string, unknown>;
 /**
  * permission 快照的异步加载函数，返回已校验数据、来源信息和统计。
- * @param options - 可选的快照路径和预期 SHA-256 摘要。
+ * @param options - 可选文件路径和预期 SHA-256 摘要，省略时从相应环境变量读取。
  * @returns 已校验的数据、来源路径、实际摘要和统计。
  */
 export function loadPermissionsSource(options?: {source?: string; expectedSha256?: string}): Promise<{

@@ -1,9 +1,9 @@
-/** 目录 HTTP API 的程序入口，负责启动应用并报告启动失败。 */
+/** 目录 HTTP API 的启动入口，由 npm run start:api 运行编译后的文件。 */
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { createApp } from './bootstrap';
 
-/** HTTP 服务的异步启动函数，创建应用并按已校验的 HOST 和 PORT 监听请求。 */
+/** HTTP 服务的启动函数。先创建已配置路由的应用，再按 Nest 配置的 HOST 和 PORT 开始监听。 */
 async function main(): Promise<void> {
   const app = await createApp();
   const config = app.get(ConfigService);

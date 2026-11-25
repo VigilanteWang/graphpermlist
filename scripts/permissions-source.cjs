@@ -1,4 +1,4 @@
-/** Graph resource 的本地 permission 快照加载器，包含结构、完整性和摘要校验。 */
+/** 为 SQLite 导入、JSON 导出和数据校验读取同一套本地 Graph permission 输入。 */
 const { createHash } = require('node:crypto');
 const { readFile } = require('node:fs/promises');
 const path = require('node:path');
@@ -25,14 +25,14 @@ function requireCondition(condition, message) {
 }
 
 /**
- * permission 快照的结构校验函数，检查 Graph resource 和各类字段，并汇总数量。
+ * permission 文件的结构校验函数。确认文件对应 Microsoft Graph，再检查各类 definition 的字段并统计数量。
  * @param {unknown} data 从 JSON 解析得到、尚未校验的数据。
  * @returns {Record<string, unknown>} 各集合总数、禁用数量及 Application permission 数量。
  */
 function validatePermissionsData(data) {
   requireCondition(data !== null && typeof data === 'object' && !Array.isArray(data), 'Permissions input must be a JSON object.');
   requireCondition(data.appId === GRAPH_APP_ID, 'Permissions input must identify the Microsoft Graph resource appId.');
-  // 只允许约定字段，避免将租户元数据或凭据混入本地目录。
+  // 资源信息只接受允许列表中的字段，遇到额外字段就要求先清理源文件。
   for (const key of Object.keys(data)) {
     requireCondition(ROOT_KEYS.includes(key), `Unsupported root field "${key}"; sanitize tenant metadata and credentials before importing.`);
   }
@@ -70,14 +70,14 @@ function validatePermissionsData(data) {
     }
     counts[collection] = { total: items.length, disabled: items.filter(item => !item.isEnabled).length };
   }
-  // appRoles 也可能包含 User 成员类型，此处单独统计允许 Application 的项目。
+  // appRoles 可以允许 User、Application 或两者。这里只统计 allowedMemberTypes 包含 Application 的项。
   counts.applicationPermissions = data.appRoles.filter(item => item.allowedMemberTypes.includes('Application')).length;
   return counts;
 }
 
 /**
- * permission 快照的异步加载函数，读取文件、校验摘要与内容，并返回来源信息。
- * @param {{source?: string, expectedSha256?: string}} [options] 可选路径和预期摘要，默认取对应环境变量。
+ * permission 文件的加载函数。从文件读取原始字节，检查摘要后再解码和校验 JSON。
+ * @param {{source?: string, expectedSha256?: string}} [options] 文件路径和预期摘要，省略时从 PERMISSIONS_SOURCE 和 PERMISSIONS_SHA256 读取。
  * @returns {Promise<{data: object, sourcePath: string, sha256: string, counts: Record<string, unknown>}>} 已校验数据、文件路径、实际摘要及数量统计。
  */
 async function loadPermissionsSource({ source = process.env.PERMISSIONS_SOURCE, expectedSha256 = process.env.PERMISSIONS_SHA256 } = {}) {
@@ -89,7 +89,7 @@ async function loadPermissionsSource({ source = process.env.PERMISSIONS_SOURCE, 
     throw new Error(`Cannot read permissions input "${source || 'data/commercial-graph-permlist.json'}": ${error.code || error.message}. Set PERMISSIONS_SOURCE to an existing sanitized JSON file.`, { cause: error });
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  // 仓库快照使用固定摘要校验，不依赖记录数量；自定义路径可另行指定摘要。
+  // 预期摘要优先取调用方或环境变量传入的值。仓库默认文件还可使用内置摘要，自定义文件没有这一默认值。
   const expected = expectedSha256 || (sourcePath === DEFAULT_PERMISSIONS_SOURCE ? SNAPSHOT_SHA256 : undefined);
   if (expected) {
     requireCondition(/^[a-f0-9]{64}$/i.test(expected), 'PERMISSIONS_SHA256 must be a 64-character SHA256 hex digest.');
@@ -97,7 +97,8 @@ async function loadPermissionsSource({ source = process.env.PERMISSIONS_SOURCE, 
   }
   let data;
   try {
-    data = JSON.parse(bytes.toString('utf8'));
+    // 拒绝损坏的 UTF-8，避免在官方文案中悄悄写入替代字符。
+    data = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
   } catch (error) {
     throw new Error(`Permissions input is not valid JSON: ${error.message}`, { cause: error });
   }

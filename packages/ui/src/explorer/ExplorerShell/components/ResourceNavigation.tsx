@@ -4,7 +4,7 @@ import { Caption1, Nav, NavItem, Text, mergeClasses } from '@fluentui/react-comp
 import type { ExplorerPage } from '../hooks/useExplorerController.js';
 import { useNavigationStyles } from './ResourceNavigation.styles.js';
 
-/** 主导航的当前页面、宿主说明与容器布局参数；只允许导航到已实现页面。 */
+/** 主导航的当前页面、前端名称与容器布局参数；只允许导航到已实现页面。 */
 interface ResourceNavigationProps {
   page: ExplorerPage;
   hostLabel: string;
@@ -13,7 +13,7 @@ interface ResourceNavigationProps {
   onNavigate: (page: ExplorerPage) => void;
 }
 
-/** resource 导航组件；Fluent NavItem 提供选中样式、aria-current 和禁用语义。 */
+/** 页面左侧或顶部的主导航。当前页会标为选中，只有 Home 和 Microsoft Graph 可以打开。 */
 export function ResourceNavigation({
   page,
   hostLabel,

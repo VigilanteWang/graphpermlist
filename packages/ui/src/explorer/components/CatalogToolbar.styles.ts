@@ -1,7 +1,7 @@
 /** 目录搜索与筛选控件的响应式样式。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
-/** 目录搜索与筛选控件的响应式样式。仅生成局部类名，不修改宿主全局样式。 */
+/** 搜索和筛选区的样式。筛选项占满一行后可以换到下一行。 */
 export const useToolbarStyles = makeStyles({
   toolbar: {
     display: 'flex',

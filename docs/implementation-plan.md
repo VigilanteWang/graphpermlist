@@ -221,7 +221,7 @@ still applies; this follow-up does not add deployment or next-stage authorizatio
 
 本次为阶段 2 的注释维护，沿用当前阶段分支，不启动 #5。已为 22 个手写
 程序源码文件补充面向初学者的中文 TSDoc/JSDoc，涵盖 API 模块、实体、迁移、
-导入/查询服务、契约、client、UI、两个宿主入口及工具脚本。每个文件说明用途，
+导入/查询服务、契约、client、UI、两个前端入口及工具脚本。每个文件说明用途，
 类、接口、函数和方法说明职责，关键逻辑说明规则或边界。Graph 领域词
 resource、Application、Delegated、permission、scope、appRole、admin consent、
 RSC、family 等保留英文。配置（含环境配置源码）、测试/夹具、编译产物和
@@ -245,7 +245,7 @@ HTML 等静态文件未修改。产品文本、契约和运行逻辑保持原样
 - `git diff --check` 通过。没有新增依赖，未改 manifests 或 lockfile。
 
 本次仅修改源码注释与维护文档，因此未重复安装依赖、执行本地数据库迁移/导入、
-完整双宿主打包或浏览器验收；不增加任何 SharePoint 运行验收结论。
+完整两个前端的打包或浏览器验收；不增加任何 SharePoint 运行验收结论。
 交接检查：对照 AGENTS.md 检查声明用途、关键逻辑和英文术语保留，确认排除文件
 未被修改；可运行上述命令复核。变更保留在当前工作区供审阅，本次未提交或推送，
 未合并、关闭 issue、部署或启动下一阶段。
@@ -278,7 +278,7 @@ removeComments printer 对比，22 个文件的去注释输出均完全一致且
 存储和历史保留/清理策略，保持事务发布、失败回滚及来源追溯。本次仅记录后续
 需求，不提前实施；文档执行 `git diff --check`，无需重复运行应用测试。
 
-模块配置维护（2026-11-16）：已按宿主明确 NodeNext / Bundler 规则，API 保持
+模块配置维护（2026-11-16）：已按运行环境明确 NodeNext / Bundler 规则，API 保持
 CommonJS，共享包保持 ESM，SPFx 保留官方 rig。安装、数据校验、类型检查、
 14 项测试、完整构建/打包、React 边界及 2 项浏览器测试均通过；隔离数据库的
 迁移、两次导入和 HTTP 启动通过。最终基线见 [README](../README.md#typescript-与浏览器兼容基线)，
@@ -780,3 +780,23 @@ pending. This publication-record update changes documentation only.
 The existing #12 branch groups the shared TypeScript contracts by query, HTTP,
 and JSON publication. See the [contract follow-up](sharepoint-json-plan.md#12-follow-up-contract-modules-and-names)
 for the naming conventions, verification and handoff.
+
+## SharePoint JSON stage 2 — #13
+
+[Stage 2 delivery, commands and human review](sharepoint-json-plan.md#stage-2-delivery-and-verification)
+records the #16 prerequisite merge, shared import model, offline publication,
+strict validation, session JSON client, isolated real HTTP comparison and browser
+regression in [PR #17](https://github.com/VigilanteWang/graphpermlist/pull/17).
+The [issue review checklist](https://github.com/VigilanteWang/graphpermlist/issues/13#issuecomment-7015149708)
+links to the verified commands and expected results. The existing API SPFx package
+is available from the production build.
+The independent JSON SPFx and three-entry integration remain #14 work. Review and
+merge #13 before starting that stage in a separate chat.
+
+### Shared UI README follow-up
+
+The [package README](../packages/ui/README.md) describes the wired Web and API SPFx
+hosts, the planned JSON SPFx host, and the component and Hook flow. Verified
+relative links and the architecture diagram's render and Hook relationships
+against the working tree, rendered both Mermaid diagrams in Chromium, and ran
+`git diff --check`. Host runtime acceptance remains with its stage.
