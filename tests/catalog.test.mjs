@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 const require = createRequire(import.meta.url);
 process.env.SQLITE_PATH = ':memory:';
@@ -15,9 +16,11 @@ const { validateEnvironment } = require('../apps/api/dist/configuration.js');
 const { configureApp } = require('../apps/api/dist/bootstrap.js');
 const { CatalogService } = require('../apps/api/dist/catalog/catalog.service.js');
 const { CatalogImportService } = require('../apps/api/dist/catalog/import/catalog-import.service.js');
-const { CatalogImport, CatalogDefinition } = require('../apps/api/dist/catalog/catalog.entities.js');
+const { CatalogImport, CatalogDefinition, CatalogCategory, CatalogFamily } = require('../apps/api/dist/catalog/catalog.entities.js');
+const { CATALOG_READER } = require('../apps/api/dist/catalog/read/catalog-reader.js');
 const { classifyPermission, CATEGORIES } = require('@graph/catalog-ingest');
 const graph = '00000003-0000-0000-c000-000000000000';
+const graphSourcePath = fileURLToPath(new URL('../data/commercial-graph-permlist.json', import.meta.url));
 const source = JSON.parse(await readFile(new URL('../data/commercial-graph-permlist.json', import.meta.url), 'utf8'));
 
 function wire(raw, permissionType) {
@@ -37,7 +40,7 @@ const expected = [
 
 async function setup() {
   const module = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(ConfigService).useValue(new ConfigService(validateEnvironment({SQLITE_PATH:':memory:'}))).compile();
+    .overrideProvider(ConfigService).useValue(new ConfigService(validateEnvironment({ SQLITE_PATH: ':memory:', PERMISSIONS_SOURCE: graphSourcePath }))).compile();
   const app = module.createNestApplication({ logger: false });
   configureApp(app);
   await app.get(DataSource).runMigrations();
@@ -294,4 +297,44 @@ test('classification exact overrides, OIDC, complete prefixes and conservative f
   for (const value of ['MailUnknown.Read','mail.Read','constructor.Read','toString']) assert.equal(classifyPermission(value).category,'uncategorized');
   const categories=new Set(CATEGORIES.map(c => c.category));
   for (const d of expected) assert.ok(categories.has(classifyPermission(d.value).category));
+});
+
+test('injected TypeORM reader holds one version when the active snapshot changes mid-read', async () => {
+  const { app, database, importer } = await setup();
+  try {
+    const { versionId } = await importer.importFile();
+    const imports = database.getRepository(CatalogImport);
+    const old = await imports.findOneByOrFail({ id: versionId });
+    const nextId = 'reader-test-replacement';
+    await imports.insert({ ...old, id: nextId, displayName: 'Replacement', active: false });
+
+    const categories = database.getRepository(CatalogCategory);
+    const originalFind = categories.find.bind(categories);
+    categories.find = async options => {
+      await imports.update({ id: versionId }, { active: false });
+      await imports.update({ id: nextId }, { active: true });
+      return originalFind(options);
+    };
+
+    const reader = app.get(CATALOG_READER);
+    const snapshot = await reader.readActive(graph.toUpperCase());
+    assert.equal(snapshot.versionId, versionId);
+    assert.equal(snapshot.displayName, old.displayName);
+    assert.deepEqual(snapshot.source, old.source);
+    assert.equal(snapshot.classificationHash, old.classificationHash);
+    assert.ok(snapshot.categories.length);
+    assert.deepEqual(snapshot.families.length, await database.getRepository(CatalogFamily).countBy({ versionId }));
+    assert.equal(snapshot.definitions.length, expected.length);
+    for (const entry of [...snapshot.categories, ...snapshot.families, ...snapshot.definitions]) {
+      assert.equal(Object.getPrototypeOf(entry), Object.prototype);
+      assert.ok(!Object.hasOwn(entry, 'versionId'));
+    }
+    assert.deepEqual(await reader.readActive(graph), {
+      versionId: nextId, resourceId: graph, displayName: 'Replacement',
+      source: old.source, classificationHash: old.classificationHash,
+      categories: [], families: [], definitions: []
+    });
+  } finally {
+    await app.close();
+  }
 });
