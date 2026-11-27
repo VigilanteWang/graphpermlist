@@ -828,3 +828,7 @@ acceptance. Stage 4 requires #18 to be merged and verified.
 [PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19) is open for
 review. The [#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
 was published and verified on the issue.
+
+The [#18 review follow-up](sharepoint-json-plan.md#stage-3-review-follow-up--18)
+records the ETL and JSON format layout changes, commands, schema 2 rollback
+verification and the schema 1 migration handoff to #14 and #15.

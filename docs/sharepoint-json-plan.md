@@ -38,13 +38,15 @@ compatibility. #15 owns actual SharePoint runtime acceptance.
   `@graph/catalog-core`. The Node API and JSON client share this package.
 - `catalog/api-client` provides `createApiCatalogClient()` and its compatible
   `createCatalogClient()` alias. `catalog/json-client` provides `JsonCatalogClient`.
-- `common/catalog-json` validates both file formats via
+- `catalog/json-format` validates both file formats via
   `@graph/catalog-json/validation`. The offline CLI manages file I/O under
-  `tools/catalog-json`, using the same validation as the browser.
-- SQLite import and offline export use `@graph/catalog-source` for Node-only input
-  reads and `@graph/catalog-ingest` for permission modeling and classification.
-  Browser paths exclude these two packages. JSON runtime requires no Nest, SQLite
-  or customer Azure resources.
+  `catalog/etl/src/export`, using the same validation as the browser.
+- `catalog/etl/src/extract` retains the Node-only `@graph/catalog-source` entry for
+  resource manifests, source validation and sanitization. `catalog/etl/src/transform`
+  provides pure modeling and classification through `@graph/catalog-ingest`.
+  The JSON exporter and the SQLite writer in `apps/api/src/catalog/load` consume
+  the same transform output. Browser paths use the query and format packages.
+  JSON runtime requires no Nest, SQLite or customer Azure resources.
 
 All query filters act on the same definition before value merging. Same-type,
 same-value definitions with different GUIDs survive. Counts and visibleTypes use
@@ -601,16 +603,16 @@ flowchart LR
     Adapter --> SQLite
     Service --> Query["catalog/query"]
     JSONClient["catalog/json-client"] --> Query
-    JSONClient --> Validation["common/catalog-json"]
+    JSONClient --> Validation["catalog/json-format"]
     Query --> Contracts
     Validation --> Contracts
-    Import["SQLite import"] --> SQLite
-    Import --> Source["catalog/source (Node)"]
-    Import --> Ingest["catalog/ingest"]
-    Publication["tools/catalog-json (Node)"] --> Source
-    Publication --> Ingest
+    Import["apps/api/src/catalog/load"] --> SQLite
+    Import --> Source["catalog/etl/src/extract (Node)"]
+    Import --> Transform["catalog/etl/src/transform"]
+    Publication["catalog/etl/src/export (Node)"] --> Source
+    Publication --> Transform
     Publication --> Validation
-    Ingest --> Contracts
+    Transform --> Contracts
 ```
 
 ### Results
@@ -640,3 +642,41 @@ was published and verified on the issue. The main conversation did not expose
 a model override. Bounded data review used GPT-6.2 Sol / low and shared UI work
 used GPT-6.2 Sol / high. Stage #14 starts after separate authorization and
 verification of the #18 merge.
+
+## Stage 3 review follow-up — #18
+
+The existing [PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19)
+includes the ETL and JSON format moves shown above. The two existing internal
+workspace packages retain their Node entry points. The root npm CLI names and
+arguments, `@graph/catalog-json/validation`, shared contracts and app entry points
+stay compatible. The transform receives validated input and performs pure
+modeling. SQLite load owns the TypeORM write and transaction, and JSON export
+owns offline serialization, validation and publication.
+
+Node 22.16.0 and npm 10.9.2, run from the repository root:
+
+| Command or check | Result |
+| --- | --- |
+| `npm ci`, `npm ls --workspaces --depth=0` | Installed 1,429 packages. The lock changed only workspace locations; source, transform and format resolved to the new directories. |
+| `npm run verify:data`, `npm run sanitize:data` | All three pinned digests matched. A temporary sanitized Graph copy passed explicit-source verification; repeat sanitization rejected the existing destination. |
+| `npm run typecheck`, `npm test` | Passed. All 94 Node tests passed, including real HTTP/JSON parity, failed SQLite batch rollback and CLI verification plus client rollback between two schema 2 snapshots. |
+| `npm run db:migrate`, `npm run import:data` twice | Used scratch SQLite. Imported 1,917 definitions and reused all three version IDs on repeat. |
+| `npm run export:json`, `npm run verify:json` | Both schemas matched the fixed-time SHA-256 baselines above. |
+| `npm run build`, `npm run check:react` | Passed Vite and SPFx production builds, React 18.3.1 and shared dependency checks. Direct Node import/require of transform and JSON validation worked. |
+| `CATALOG_TEST_API_PORT=3238 CATALOG_TEST_WEB_PORT=5338 npm run test:browser` | 33 passed; the synthetic-only case was skipped as expected. A second run of `tests/browser/multi-resource.spec.ts` with the fourth-resource manifest passed all 4 cases. Chromium required a retry outside the macOS sandbox after Mach port registration failed. |
+| Source and diff review | Build and workspace changes preserve Chinese module headers and purpose-first declaration comments. Reviewed path changes, transform/format browser boundaries and unchanged English product text. `git diff --check` passed. |
+
+Both shipped host entry points still use HTTP. Repository history and the #13
+handoff show local schema 1 artifacts only; they do not establish whether copies
+were distributed elsewhere. New releases use the resource manifest and schema 2,
+with the previous verified schema 2 pair as the rollback target. [#14](https://github.com/VigilanteWang/graphpermlist/issues/14)
+owns the inventory and conditional retirement of the legacy JSON paths. If old
+files are in use, replace them and verify their readers before removing the
+legacy branch. Keep standalone Graph SQLite input available. [#15](https://github.com/VigilanteWang/graphpermlist/issues/15)
+reviews the migration evidence and verifies actual permissions and schema 2
+rollback in authorized SharePoint.
+
+The [manual review checklist](verification/spfx-json-3-human-review.md) and
+[#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
+cover the revised layout. The main model settings could not be changed from this
+chat. The next implementation stage starts after #18 merges and is verified.

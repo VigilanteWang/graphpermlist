@@ -1,7 +1,7 @@
 # Permission classification
 
 Version: `2026-11-13.1`, implemented in
-`catalog/ingest/src/classification.ts`. This is a versioned, editorial navigation
+`catalog/etl/src/transform/classification.ts`. This is a versioned, editorial navigation
 map for the local catalog. Categories are not Microsoft permission boundaries and
 do not prove that an operation, product license or cloud deployment supports a permission.
 The source's official names, identifiers and consent descriptions remain authoritative.

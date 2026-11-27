@@ -18,7 +18,7 @@ const { DataSource } = require('typeorm');
 const { AppModule } = require('../apps/api/dist/app.module.js');
 const { configureApp } = require('../apps/api/dist/bootstrap.js');
 const { validateEnvironment } = require('../apps/api/dist/configuration.js');
-const { CatalogImportService } = require('../apps/api/dist/catalog/import/catalog-import.service.js');
+const { CatalogImportService } = require('../apps/api/dist/catalog/load/catalog-import.service.js');
 const { CatalogCategory, CatalogDefinition, CatalogFamily, CatalogImport } = require('../apps/api/dist/catalog/catalog.entities.js');
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -49,7 +49,7 @@ async function catalogCli(args, inputPath) {
   delete env.PERMISSIONS_SOURCE;
   delete env.PERMISSIONS_SHA256;
   env.PERMISSIONS_SOURCE = inputPath ?? sourcePath;
-  await run(process.execPath, ['tools/catalog-json/cli.mjs', ...args], { cwd: root, env, timeout: 15_000 });
+  await run(process.execPath, ['catalog/etl/src/export/cli.mjs', ...args], { cwd: root, env, timeout: 15_000 });
 }
 
 async function publish(output, inputPath = sourcePath) {

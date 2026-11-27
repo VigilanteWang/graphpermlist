@@ -2,7 +2,7 @@
 const { resolve, dirname } = require('node:path');
 const { readFile } = require('node:fs/promises');
 
-const DEFAULT_CONFIG = resolve(__dirname, '../../../data/catalog-resources.json');
+const DEFAULT_CONFIG = resolve(__dirname, '../../../../data/catalog-resources.json');
 const GRAPH_APP_ID = '00000003-0000-0000-c000-000000000000';
 const GRAPH_FILE_NAME = 'commercial-graph-permlist.json';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

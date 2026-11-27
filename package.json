@@ -10,17 +10,19 @@
   "workspaces": [
     "common/*",
     "catalog/*",
+    "catalog/etl/src/extract",
+    "catalog/etl/src/transform",
     "apps/*"
   ],
   "scripts": {
-    "verify:data": "node scripts/verify-data.mjs",
-    "sanitize:data": "node scripts/sanitize-data.mjs",
+    "verify:data": "node catalog/etl/src/extract/verify-data.mjs",
+    "sanitize:data": "node catalog/etl/src/extract/sanitize-data.mjs",
     "build:catalog-core": "npm run build -w @graph/contracts && npm run build -w @graph/catalog-core && npm run build -w @graph/catalog-ingest && npm run build -w @graph/catalog-json && npm run build -w @graph/json-client",
     "build:shared": "npm run build:catalog-core && npm run build -w @graph/api-client && npm run build -w @graph/ui",
     "preexport:json": "npm run build:catalog-core",
-    "export:json": "node tools/catalog-json/cli.mjs export",
+    "export:json": "node catalog/etl/src/export/cli.mjs export",
     "preverify:json": "npm run build:catalog-core",
-    "verify:json": "node tools/catalog-json/cli.mjs verify",
+    "verify:json": "node catalog/etl/src/export/cli.mjs verify",
     "build:api": "npm run build -w @graph/api",
     "build:web": "npm run build -w @graph/web",
     "build:spfx": "npm run build -w @graph/spfx",

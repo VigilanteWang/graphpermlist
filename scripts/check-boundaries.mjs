@@ -5,6 +5,8 @@ import { createRequire, builtinModules } from 'node:module';
 import ts from 'typescript';
 
 const root = new URL('../', import.meta.url);
+const transformPackage = 'catalog/etl/src/transform';
+const transformOutput = new URL(`${transformPackage}/dist/`, root);
 /**
  * 仓库内 JSON 文件的异步读取函数，路径相对于仓库根目录。
  * @param {string} path 文件在仓库中的相对路径。
@@ -37,28 +39,30 @@ for (const name of ['react', 'react-dom']) {
 // 按角色列出全部允许的外部依赖；新增依赖必须显式审查，避免共享包依赖后端或特定前端。
 const allowedDependencies = {
   'common/contracts': [],
-  'common/catalog-json': ['@graph/contracts'],
+  'catalog/json-format': ['@graph/contracts'],
   'common/ui': ['@graph/contracts', '@fluentui/react-components', 'react', 'react-dom'],
   'catalog/query': ['@graph/contracts'],
   'catalog/json-client': ['@graph/contracts', '@graph/catalog-core', '@graph/catalog-json'],
   'catalog/api-client': ['@graph/contracts'],
-  'catalog/ingest': ['@graph/contracts']
+  [transformPackage]: ['@graph/contracts']
 };
-/** 要检查的源码文件列表，递归收集 src 下各级目录中的 JavaScript 和 TypeScript 文件。 */
+/** 要检查的源码文件列表，递归收集 JavaScript 和 TypeScript 文件，跳过 transform 的构建产物。 */
 async function sourceFiles(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const url = new URL(entry.name + (entry.isDirectory() ? '/' : ''), directory);
-    if (entry.isDirectory()) files.push(...await sourceFiles(url));
+    if (entry.isDirectory() && url.href !== transformOutput.href) files.push(...await sourceFiles(url));
     else if (/\.[cm]?[jt]sx?$/.test(entry.name)) files.push(url);
   }
   return files;
 }
-/** 单个依赖路径的检查。相对路径应留在当前共享包的 src 内，包名应出现在允许列表里。 */
+/** 单个依赖路径的检查。相对路径应留在当前源码范围内，包名应出现在允许列表里。 */
 function checkSpecifier(specifier, file, directory, allowed) {
   assert.ok(!specifier.startsWith('node:') && !builtinModules.includes(specifier), `No Node builtin: ${specifier}`);
   if (specifier.startsWith('.')) {
-    assert.ok(new URL(specifier, file).href.startsWith(directory.href), `No shared source escape: ${specifier}`);
+    const target = new URL(specifier, file);
+    assert.ok(target.href.startsWith(directory.href) && !target.href.startsWith(transformOutput.href),
+      `No shared source escape: ${specifier}`);
   } else {
     const name = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
     assert.ok(allowed.includes(name), `Unapproved shared dependency: ${specifier}`);
@@ -69,7 +73,7 @@ for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
   for (const name of Object.keys({ ...metadata.dependencies, ...metadata.peerDependencies, ...metadata.optionalDependencies })) {
     assert.ok(allowed.includes(name), `${pkg} has unapproved runtime dependency ${name}`);
   }
-  const directory = new URL(`${pkg}/src/`, root);
+  const directory = new URL(pkg === transformPackage ? `${pkg}/` : `${pkg}/src/`, root);
   for (const file of await sourceFiles(directory)) {
     const source = await readFile(file, 'utf8');
     assert.ok(!/@microsoft\/sp-|WebPartContext|AadHttpClient|MSGraphClient/.test(source), `${pkg} has no SPFx identity/context dependency`);
@@ -99,10 +103,10 @@ for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
 // 分别检查供 import 和 require 使用的构建产物。浏览器里的 JSON client 只需要查询与校验代码。
 const dualModules = [
   ['catalog/query', 'index', '.', []],
-  ['catalog/ingest', 'permission-model', '.', ['./classification.js', './resource-classification.js']],
-  ['catalog/ingest', 'classification', undefined, []],
-  ['catalog/ingest', 'resource-classification', undefined, []],
-  ['common/catalog-json', 'validation', './validation', []],
+  [transformPackage, 'permission-model', '.', ['./classification.js', './resource-classification.js']],
+  [transformPackage, 'classification', undefined, []],
+  [transformPackage, 'resource-classification', undefined, []],
+  ['catalog/json-format', 'validation', './validation', []],
   ['catalog/json-client', 'index', '.', ['@graph/catalog-core', '@graph/catalog-json/validation']]
 ];
 for (const [directory, moduleName, entry, allowed] of dualModules) {

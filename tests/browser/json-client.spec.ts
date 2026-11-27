@@ -12,7 +12,7 @@ test('Chromium streams the real offline publication, verifies it and queries the
   env.PERMISSIONS_SOURCE = resolve('data/commercial-graph-permlist.json');
   delete env.PERMISSIONS_SHA256;
   try {
-    await promisify(execFile)(process.execPath, ['tools/catalog-json/cli.mjs', 'export', '--output', dir,
+    await promisify(execFile)(process.execPath, ['catalog/etl/src/export/cli.mjs', 'export', '--output', dir,
       '--generated-at', generatedAt], { env, timeout: 15_000 });
     const manifest = JSON.parse(await readFile(join(dir, 'current.json'), 'utf8'));
     const requested: string[] = [];
@@ -64,7 +64,7 @@ test('Chromium validates schema 2 and refreshes back to the real Graph schema 1 
   try {
     const run = promisify(execFile);
     const publish = (output: string, source: string) => run(process.execPath,
-      ['tools/catalog-json/cli.mjs', 'export', '--output', output, '--generated-at', generatedAt],
+      ['catalog/etl/src/export/cli.mjs', 'export', '--output', output, '--generated-at', generatedAt],
       { env: { ...env, PERMISSIONS_SOURCE: source }, timeout: 15_000 });
     const multi = join(dir, 'multi');
     const graphOnly = join(dir, 'legacy');

@@ -23,7 +23,7 @@ graphpermlist/
 │   │   │   ├── app.module.ts             组装应用模块
 │   │   │   ├── bootstrap.ts              API 前缀、参数校验和 CORS
 │   │   │   ├── configuration.ts          环境变量读取与校验
-│   │   │   ├── catalog/                  目录路由、实体、SQLite 导入和查询服务
+│   │   │   ├── catalog/                  目录路由、实体、查询服务与 load/ 下的 SQLite 写入
 │   │   │   └── database/                 TypeORM / SQLite 配置与版本化迁移
 │   │   └── tsconfig.json                 后端 TypeScript 配置
 │   ├── web/                              Vite 独立网站
@@ -44,15 +44,16 @@ graphpermlist/
 │           └── serve.json                SPFx 开发服务配置
 ├── common/
 │   ├── contracts/                       中立 client、查询、数据模型和传输契约
-│   ├── catalog-json/                    浏览器与离线工具共用的 JSON 校验
 │   └── ui/                              两个前端共用的 Fluent UI 界面
 ├── catalog/
 │   ├── api-client/                      HTTP 请求、查询参数和错误处理
 │   ├── json-client/                     从宿主加载快照，在内存查询
+│   ├── json-format/                     浏览器与离线工具共用的 JSON 校验
 │   ├── query/                           纯查询规则（@graph/catalog-core）
-│   ├── ingest/                          导入 SQLite、导出 JSON 共用的写入前建模
-│   └── source/                          Node 输入读取和校验
-├── tools/catalog-json/                  离线导出和校验 JSON 发布文件
+│   └── etl/src/
+│       ├── extract/                     Node 输入读取、校验和脱敏
+│       ├── transform/                   SQLite 和 JSON 共用的纯建模与分类
+│       └── export/                      离线导出和校验 JSON 发布文件
 ├── data/
 │   ├── catalog-resources.json           三个默认 resource 和源文件校验值
 │   ├── commercial-*-permlist.json       脱敏 permission 快照
@@ -64,7 +65,6 @@ graphpermlist/
 │   ├── implementation-plan.md            实施计划与交接说明
 │   └── verification/                     验证记录与截图
 ├── scripts/
-│   ├── verify-data.mjs                   数据结构和快照完整性检查
 │   └── check-boundaries.mjs              React 依赖与共享代码边界检查
 ├── tests/                                API、客户端、数据和浏览器测试
 │   └── fixtures/                         仅供测试的契约样例
@@ -127,7 +127,7 @@ npm run export:json -- --output ./release/catalog
 npm run verify:json -- --output ./release/catalog
 ```
 
-默认从三份脱敏源生成 schema 2 快照 `catalog-<version>.json` 和版本指针 `current.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。显式设置 `PERMISSIONS_SOURCE` 可导出 Graph schema 1。网站及单一 SPFx 的配置选源由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 接入。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
+默认从三份脱敏源生成 schema 2 快照 `catalog-<version>.json` 和版本指针 `current.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。显式设置 `PERMISSIONS_SOURCE` 可生成兼容用的 Graph schema 1。网站及单一 SPFx 的配置选源和 schema 1 退役条件见 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14)。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
 
 ## 本地验证与交付状态
 

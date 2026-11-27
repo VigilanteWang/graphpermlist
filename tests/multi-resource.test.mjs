@@ -14,7 +14,7 @@ import { addVerificationResource, sourceDigest, verificationId } from './fixture
 
 const require = createRequire(import.meta.url);
 const { configureApp } = require('../apps/api/dist/bootstrap.js');
-const { CatalogImportService } = require('../apps/api/dist/catalog/import/catalog-import.service.js');
+const { CatalogImportService } = require('../apps/api/dist/catalog/load/catalog-import.service.js');
 const { CatalogImport, CatalogDefinition } = require('../apps/api/dist/catalog/catalog.entities.js');
 const { AppModule } = require('../apps/api/dist/app.module.js');
 const { validateEnvironment } = require('../apps/api/dist/configuration.js');
@@ -38,7 +38,7 @@ async function directory(t) {
 }
 
 async function cli(command, output, { source = '', config = '' } = {}) {
-  return exec(process.execPath, ['tools/catalog-json/cli.mjs', command, '--output', output,
+  return exec(process.execPath, ['catalog/etl/src/export/cli.mjs', command, '--output', output,
     ...(command === 'export' ? ['--generated-at', generatedAt] : [])],
   { env: { ...process.env, PERMISSIONS_SOURCE: source, PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: config }, timeout: 15_000 });
 }
@@ -259,6 +259,15 @@ test('fourth resource uses files and config only; failed batches and publication
   const mismatched = new JsonCatalogClient(async file => new Response(file === 'current.json'
     ? JSON.stringify({ ...schema2.manifest, schemaVersion: 1 }) : schema2.bytes));
   await assert.rejects(mismatched.resources(), { code: 'invalid-snapshot' });
+
+  await writeFile(join(release, 'current.json'), publishedFour.manifestBytes);
+  await cli('verify', release);
+  await json.refresh();
+  const rolledBack = await json.detail(verificationId, 'Tenant.Read.All');
+  assert.equal(rolledBack.artifact.schemaVersion, 2);
+  assert.equal(rolledBack.artifact.version, publishedFour.manifest.version);
+  assert.equal(rolledBack.item.category, 'all-permissions');
+
   await cli('export', release, { source: graphSource });
   const legacy = await published(release);
   assert.equal(legacy.manifest.schemaVersion, 1);

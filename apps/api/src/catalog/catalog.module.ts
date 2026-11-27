@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
-import { CatalogImportService } from './import/catalog-import.service';
+import { CatalogImportService } from './load/catalog-import.service';
 import { CATALOG_ENTITIES } from './catalog.entities';
 import { CATALOG_READER } from './read/catalog-reader';
 import { TypeOrmCatalogReader } from './read/typeorm-catalog-reader';

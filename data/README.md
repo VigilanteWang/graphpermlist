@@ -79,6 +79,7 @@ also applies the serialized size and collection limits used by the browser.
 Run `verify:json` to validate a candidate release against those limits.
 See [publication limits](../docs/catalog-operations.md#offline-json-publication).
 
-An explicit `PERMISSIONS_SOURCE` selects Graph compatibility mode and schema 1
-export. Pin the external bytes with `PERMISSIONS_SHA256` when using a custom
+An explicit `PERMISSIONS_SOURCE` selects Graph-only input and currently emits
+schema 1 for legacy consumers. Use the resource manifest for new schema 2
+publications. Pin the external bytes with `PERMISSIONS_SHA256` when using a custom
 Graph file. See [catalog operations](../docs/catalog-operations.md).

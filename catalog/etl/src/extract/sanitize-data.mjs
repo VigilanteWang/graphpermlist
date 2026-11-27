@@ -1,7 +1,7 @@
 /** 离线脱敏命令。保存字段白名单中的公开定义，原始导出和已有目标文件继续保留。 */
 import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { sanitizePermissionsData } from '@graph/catalog-source';
+import { sanitizePermissionsData } from './permissions-source.cjs';
 
 const USAGE = 'Usage: npm run sanitize:data -- --input <export.json> --output <sanitized.json> --app-id <Resource App ID>';
 

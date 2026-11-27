@@ -88,7 +88,8 @@ npm run export:json -- --output ./release/catalog
 npm run verify:json -- --output ./release/catalog
 ```
 
-Default export uses the resource manifest and writes schema 2. A snapshot's
+Use the resource manifest and schema 2 for new publications. This is the default
+export format. A snapshot's
 `generatedAt` applies to the entire release. Each resource supplies its browse
 mode, source file SHA-256, classification version/hash, and excluded RSC count.
 SQLite reports a separate `importedAt` for each resource.
@@ -99,7 +100,7 @@ PERMISSIONS_SOURCE=./data/commercial-graph-permlist.json \
 npm run verify:json -- --output ./release/graph-only
 ```
 
-Explicit Graph export emits schema 1, using the same bytes as #13 for identical
+For legacy consumers, explicit Graph export emits schema 1, using the same bytes as #13 for identical
 input and generation time. Both formats derive the version from content.
 `current.json` points to the versioned basename and records the separate
 SHA-256 over the exact snapshot file bytes. For reproducible output, use fixed
@@ -111,10 +112,17 @@ with different bytes fails and preserves the previous pointer. Keep verified
 version files and manifests for rollback. Update consumers to the reader that
 accepts schema 1 and 2 before switching a shared pointer to schema 2.
 
+[#14](https://github.com/VigilanteWang/graphpermlist/issues/14) tracks retiring
+schema 1 publication and reading after inventorying callers, active manifests and
+rollback files. If an active legacy release exists, switch it to a verified schema
+2 pair and confirm that its readers can load it. Keep the previous verified
+schema 2 release available as a rollback target. The standalone Graph SQLite
+input remains available through `PERMISSIONS_SOURCE`.
+
 ### Manual switch and rollback in SharePoint
 
 Use a designated, authorized document library and confirm file access as an
-intended reader. Keep the old manifest for rollback.
+intended reader. Save the previous verified schema 2 manifest for rollback.
 
 1. Generate and verify the pair locally. Upload the new versioned snapshot first
    to the configured directory, leaving the previous version readable.

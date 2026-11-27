@@ -1,6 +1,6 @@
 /** npm run verify:data 的入口。用导入和导出共用的加载器校验所有已配置的源。 */
-import { loadPermissionsSources } from '@graph/catalog-source';
-export { loadPermissionsSource, validatePermissionsData } from '@graph/catalog-source';
+import { loadPermissionsSources } from './permissions-source.cjs';
+export { loadPermissionsSource, validatePermissionsData } from './permissions-source.cjs';
 
 try {
   const { inputs, schemaVersion } = await loadPermissionsSources();

@@ -25,15 +25,20 @@ PERMISSIONS_SOURCE=./data/commercial-graph-permlist.json npm run export:json -- 
 npm run verify:json -- --output "$catalog_review_dir/legacy"
 ```
 
-1. Review the three implementation commits in order. The package move leaves
+1. Review the three original implementation commits in order. The package move leaves
    the existing bundles and source semantics intact. The reader uses one
    version ID for categories, families and definitions. The feature commit
-   adds the default resources, migration, schema 2 and shared navigation.
+   adds the default resources, migration, schema 2 and shared navigation. Then
+   review the ETL follow-up. Extract, transform and export live under
+   `catalog/etl/src`, the SQLite writer is under `apps/api/src/catalog/load`,
+   and `catalog/json-format` still exposes `@graph/catalog-json/validation`.
 2. Check that the first default import saves 1,917 ordinary definitions and
    the repeat reports the same three version IDs with `reused: true`. The two
    releases verify with schema 2 and schema 1 respectively. The schema 1
    artifact has SHA-256
    `c36f834e8c98d9cd14eda29878c2ab9f646fa161284dc7a99ae569c37294d409`.
+   The schema 2 artifact has SHA-256
+   `f03b0daffb23e8dccaf55c2fc6158fafb2905c0961d3cdde8af325efa9cf2f47`.
 3. Run the API against the scratch SQLite file with
    `PORT=3228 CORS_ORIGINS=http://127.0.0.1:5328 npm run start:api`. In
    another terminal run
@@ -58,7 +63,10 @@ npm run verify:json -- --output "$catalog_review_dir/legacy"
 4. Run `node --test tests/multi-resource.test.mjs tests/json-parity.test.mjs`.
    Expect all tests to pass, including invalid App ID/digest rollback,
    SQLite write failure in a mixed batch, fixed-time publication, schema
-   validation, schema 1 rollback and per-resource source/definition parity.
+   validation and per-resource source/definition parity. The client refreshes
+   from two schema 2 versions, then loads the previous verified manifest and
+   restores that version's category and details. The schema 1 compatibility
+   cases still pass during migration.
 5. Run both Chromium checks. The test-only generator writes two fake
    definitions and registers them in a copy of the real manifest.
 
@@ -77,8 +85,9 @@ npm run verify:json -- --output "$catalog_review_dir/legacy"
 6. Check that the production build still emits the existing API SPFx package
    and that React and compiled dependency checks pass. The website and SPFx
    retain API clients in this stage. Two-mode host initialization and
-   SharePoint transport are #14, with actual tenant runtime, permissions
-   and upload/rollback acceptance in #15.
+   SharePoint transport are #14. #14 also tracks replacing any distributed
+   schema 1 releases before retiring compatibility. Actual tenant runtime,
+   permissions and rollback to the previous verified schema 2 release are #15.
 
 Record `pass`, `change-needed` or `blocked` on [#18](https://github.com/VigilanteWang/graphpermlist/issues/18)
 with the step, expected/observed result and sanitized evidence.
