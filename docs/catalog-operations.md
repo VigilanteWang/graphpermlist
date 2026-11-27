@@ -88,20 +88,21 @@ npm run export:json -- --output ./release/catalog
 npm run verify:json -- --output ./release/catalog
 ```
 
-Use the resource manifest and schema 2 for new publications. This is the default
-export format. A snapshot's
+JSON publication uses a resource manifest and `schemaVersion: 2`. A snapshot's
 `generatedAt` applies to the entire release. Each resource supplies its browse
 mode, source file SHA-256, classification version/hash, and excluded RSC count.
 SQLite reports a separate `importedAt` for each resource.
 
+To publish only Graph, copy its entry into a manifest with a single resource
+and place the manifest beside the sanitized Graph source.
+
 ```sh
-PERMISSIONS_SOURCE=./data/commercial-graph-permlist.json \
+PERMISSIONS_SOURCE= PERMISSIONS_CONFIG=./release/graph-resources.json \
   npm run export:json -- --output ./release/graph-only --generated-at 2026-11-20T00:00:00.000Z
 npm run verify:json -- --output ./release/graph-only
 ```
 
-For legacy consumers, explicit Graph export emits schema 1, using the same bytes as #13 for identical
-input and generation time. Both formats derive the version from content.
+The version is derived from the snapshot content.
 `current.json` points to the versioned basename and records the separate
 SHA-256 over the exact snapshot file bytes. For reproducible output, use fixed
 inputs, classification and `--generated-at`.
@@ -109,15 +110,8 @@ inputs, classification and `--generated-at`.
 Local export stages and verifies both files, publishes the immutable snapshot,
 then replaces `current.json`. Identical version files can be reused. A collision
 with different bytes fails and preserves the previous pointer. Keep verified
-version files and manifests for rollback. Update consumers to the reader that
-accepts schema 1 and 2 before switching a shared pointer to schema 2.
-
-[#14](https://github.com/VigilanteWang/graphpermlist/issues/14) tracks retiring
-schema 1 publication and reading after inventorying callers, active manifests and
-rollback files. If an active legacy release exists, switch it to a verified schema
-2 pair and confirm that its readers can load it. Keep the previous verified
-schema 2 release available as a rollback target. The standalone Graph SQLite
-input remains available through `PERMISSIONS_SOURCE`.
+schema 2 version files and manifests for rollback. Readers return
+`unsupported-schema` for retired or unknown numeric schema versions.
 
 ### Manual switch and rollback in SharePoint
 

@@ -127,7 +127,7 @@ npm run export:json -- --output ./release/catalog
 npm run verify:json -- --output ./release/catalog
 ```
 
-默认从三份脱敏源生成 schema 2 快照 `catalog-<version>.json` 和版本指针 `current.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。显式设置 `PERMISSIONS_SOURCE` 可生成兼容用的 Graph schema 1。网站及单一 SPFx 的配置选源和 schema 1 退役条件见 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14)。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
+默认从三份脱敏源生成 schema 2 快照 `catalog-<version>.json` 和版本指针 `current.json`，无需启动 API 或打开 SQLite。JSON 发布统一使用资源清单。只发布 Graph 时，用 `PERMISSIONS_CONFIG` 指向仅含 Graph 的清单。`PERMISSIONS_SOURCE` 继续用于 SQLite 单源导入和源数据校验。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。网站和 SPFx 的配置选源见 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14)。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
 
 ## 本地验证与交付状态
 

@@ -1,6 +1,6 @@
 /** 从 current.json 找到并校验目录快照。界面随后可以从内存里的快照查询列表、计数和详情。 */
 import type {
-  CatalogClient, CatalogJsonArtifactMetadata, CatalogJsonResource, CatalogJsonSnapshot, CatalogResourceModel,
+  CatalogClient, CatalogJsonArtifactMetadata, CatalogJsonResource, CatalogJsonSnapshot,
   CatalogJsonSnapshotSource, CategoryListResult, PermissionDetailResult, PermissionListResult,
   PermissionQueryOptions, ResourceListResult
 } from '@graph/contracts';
@@ -110,7 +110,7 @@ async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: numb
 }
 
 /** 按 App ID 查 resource，和 HTTP API 一样忽略大小写，查不到时报告 not-found。 */
-function findResource(publication: Publication, resourceId: string): CatalogResourceModel | CatalogJsonResource {
+function findResource(publication: Publication, resourceId: string): CatalogJsonResource {
   const normalized = resourceId.toLowerCase();
   const resource = publication.snapshot.resources.find(item => item.resourceId === normalized);
   if (!resource) throw new JsonCatalogError('not-found', 'Resource not found.');
@@ -123,9 +123,8 @@ function resourceSource(resource: CatalogJsonResource, generatedAt: string): Cat
 }
 
 /** 查询结果的来源构造函数，复制元数据以免调用方修改会话快照。 */
-function queryMetadata({ snapshot, artifact }: Publication, resource?: CatalogResourceModel | CatalogJsonResource): JsonQueryMetadata {
-  const source = snapshot.schemaVersion === 1 ? { ...snapshot.source }
-    : resource && 'source' in resource ? resourceSource(resource, snapshot.generatedAt) : null;
+function queryMetadata({ snapshot, artifact }: Publication, resource?: CatalogJsonResource): JsonQueryMetadata {
+  const source = resource ? resourceSource(resource, snapshot.generatedAt) : null;
   return { dataState: 'ready', source, artifact: { ...artifact } };
 }
 
@@ -166,11 +165,9 @@ export class JsonCatalogClient implements CatalogClient {
       const counts = countPermissions(queryPermissions(resourceId, definitions));
       return {
         resourceId, displayName, ...counts,
-        ...(snapshot.schemaVersion === 2 && 'source' in resource ? {
-          browseMode: resource.browseMode,
-          totalDefinitionCount: definitions.length,
-          source: resourceSource(resource, snapshot.generatedAt)
-        } : {})
+        browseMode: resource.browseMode,
+        totalDefinitionCount: definitions.length,
+        source: resourceSource(resource, snapshot.generatedAt)
       };
     }).sort((a, b) => a.resourceId.localeCompare(b.resourceId));
     return { ...queryMetadata(publication, snapshot.resources.length === 1 ? snapshot.resources[0] : undefined), items };

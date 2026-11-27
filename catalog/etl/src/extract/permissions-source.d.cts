@@ -50,9 +50,9 @@ interface ConfiguredPermissionsSource extends LoadedPermissionsSource {
 /** Graph 单源的异步加载函数，兼容显式文件和预期 SHA-256。 */
 export function loadPermissionsSource(options?: SourceOptions): Promise<LoadedPermissionsSource>;
 
-/** 批次加载函数，返回全部已校验源和离线发布所用的 schema 版本。 */
+/** 批次加载函数，返回输入选择模式及全部已校验的源。 */
 export function loadPermissionsSources(options?: SourceOptions): Promise<{
-  schemaVersion: 1 | 2;
+  mode: 'single-source' | 'manifest';
   inputs: ConfiguredPermissionsSource[];
 }>;
 

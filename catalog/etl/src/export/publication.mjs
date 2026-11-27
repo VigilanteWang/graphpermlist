@@ -85,37 +85,34 @@ async function publish(directory, manifest, bytes) {
   }
 }
 
-/** 快照输入的加载入口。读取或校验失败时，用固定说明提醒检查环境变量和输入文件。 */
+/** 快照输入的加载入口。JSON 发布使用清单，可以用只含一项的清单发布单个 resource。 */
 async function loadSource() {
+  if (process.env.PERMISSIONS_SOURCE) {
+    throw new JsonCatalogError('invalid-snapshot',
+      'JSON export requires a resource manifest. Unset PERMISSIONS_SOURCE and use PERMISSIONS_CONFIG for a custom or single-resource manifest.');
+  }
   try {
-    return await loadPermissionsSources();
+    return await loadPermissionsSources({ source: '' });
   } catch (error) {
     if (error.cause?.code) {
-      throw new JsonCatalogError('load-failed', 'Cannot read the permissions input. Check PERMISSIONS_SOURCE and file access.');
+      throw new JsonCatalogError('load-failed', 'Cannot read the permissions input. Check PERMISSIONS_CONFIG and file access.');
     }
-    throw new JsonCatalogError('invalid-snapshot', 'Permissions input failed JSON, schema, or digest validation. Check the sanitized source and PERMISSIONS_SHA256.');
+    throw new JsonCatalogError('invalid-snapshot', 'Permissions input failed JSON, schema, or digest validation. Check the resource manifest and the sanitized source files.');
   }
 }
 
 /** 生成目录快照的入口。使用与 SQLite 导入相同的目录模型，另在 JSON 中记录生成时间。 */
 export async function generate(directory, generatedAt) {
-  const { schemaVersion, inputs } = await loadSource();
-  const models = inputs.map(({ data, sha256: sourceSha256, classification, displayName, fileName }) => {
+  const { inputs } = await loadSource();
+  const resources = inputs.map(({ data, sha256: sourceSha256, classification, displayName, fileName }) => {
     const { resource, browseMode, classificationInput, classificationVersion, excludedRscCount } =
       buildCatalogModel(data, { classification, displayName });
     const source = { fileName, sha256: sourceSha256, classificationVersion, excludedRscCount };
-    return { resource, browseMode, source, classificationHash: sha256(classificationInput) };
+    return { ...resource, browseMode, source, classificationHash: sha256(classificationInput) };
   });
 
-  let content;
-  if (schemaVersion === 1) {
-    // 保留 schema 1 的字段顺序，让同一份 Graph 输入和时间生成与 #13 完全相同的文件。
-    const [{ resource, classificationHash, source: { fileName, sha256, classificationVersion, excludedRscCount } }] = models;
-    content = { schemaVersion, source: { fileName, sha256, generatedAt, classificationVersion, excludedRscCount },
-      classificationHash, resources: [resource] };
-  } else {
-    content = { schemaVersion, generatedAt, resources: models.map(({ resource, ...metadata }) => ({ ...resource, ...metadata })) };
-  }
+  const schemaVersion = 2;
+  const content = { schemaVersion, generatedAt, resources };
   // version 用来命名快照，取自加入 version 字段前的 JSON。
   // artifactSha256 按最终文件字节计算，供读取方检查文件是否完整。
   const version = sha256(serialize(content));

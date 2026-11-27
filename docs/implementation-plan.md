@@ -831,4 +831,5 @@ was published and verified on the issue.
 
 The [#18 review follow-up](sharepoint-json-plan.md#stage-3-review-follow-up--18)
 records the ETL and JSON format layout changes, commands, schema 2 rollback
-verification and the schema 1 migration handoff to #14 and #15.
+verification and the [schema 1 retirement](sharepoint-json-plan.md#schema-1-retirement--18).
+#14 and #15 use the schema 2-only contract for host integration and acceptance.

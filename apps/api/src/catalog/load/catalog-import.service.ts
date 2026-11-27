@@ -39,7 +39,7 @@ export class CatalogImportService {
 
   /** 导入批次。全部源完成校验和建模后，才开启一个事务写入或复用各 resource 的版本。 */
   private async importSnapshot(): Promise<ImportedVersion | ImportedBatch> {
-    const { inputs, schemaVersion } = await loadPermissionsSources({
+    const { inputs, mode } = await loadPermissionsSources({
       source: this.config.get<string>('PERMISSIONS_SOURCE'),
       expectedSha256: this.config.get<string>('PERMISSIONS_SHA256'),
       configPath: this.config.get<string>('PERMISSIONS_CONFIG')
@@ -52,7 +52,7 @@ export class CatalogImportService {
       const resources: ImportedBatch['resources'] = [];
       for (const { model, fileName, sha256 } of models) {
         const imported = await this.writeVersion(manager, model, fileName, sha256);
-        if (schemaVersion === 1) return imported;
+        if (mode === 'single-source') return imported;
         resources.push({ resourceId: model.resource.resourceId, ...imported });
       }
       return {

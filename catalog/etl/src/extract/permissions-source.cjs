@@ -89,7 +89,7 @@ async function loadPermissionsSource({ source = process.env.PERMISSIONS_SOURCE, 
   return loadFile(sourcePath, GRAPH_APP_ID, expected, GRAPH_FILE_NAME);
 }
 
-/** 加载整批目录输入；显式 Graph 源保持 schema 1，清单模式的每个源都通过验证后才返回。 */
+/** 加载目录输入。返回单源或清单模式，所有输入都通过验证后才返回。 */
 async function loadPermissionsSources({
   source = process.env.PERMISSIONS_SOURCE,
   expectedSha256 = process.env.PERMISSIONS_SHA256,
@@ -97,7 +97,7 @@ async function loadPermissionsSources({
 } = {}) {
   if (source) {
     const input = await loadPermissionsSource({ source, expectedSha256 });
-    return { schemaVersion: 1, inputs: [{ ...input, classification: { mode: 'graph' } }] };
+    return { mode: 'single-source', inputs: [{ ...input, classification: { mode: 'graph' } }] };
   }
   const entries = await loadResourceConfig(configPath || undefined);
   requireCondition(!expectedSha256 || entries.some(entry => entry.appId === GRAPH_APP_ID),
@@ -107,7 +107,7 @@ async function loadPermissionsSources({
     const input = await loadFile(sourcePath, appId, (appId === GRAPH_APP_ID && expectedSha256) || sha256, fileName);
     inputs.push({ ...input, displayName, classification });
   }
-  return { schemaVersion: 2, inputs };
+  return { mode: 'manifest', inputs };
 }
 
 /** 公开资源字段投影。同一白名单适用于三个集合，数组中的对象也需要经过校验。 */

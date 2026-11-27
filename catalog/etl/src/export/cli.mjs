@@ -23,8 +23,7 @@ async function main() {
   const disabled = definitions.filter(entry => !entry.definition.isEnabled).length;
   console.log(`${command === 'verify' ? 'Verified' : 'Published'} ${manifest.snapshot} (${byteLength} bytes)`);
   console.log(`SHA256: ${manifest.artifactSha256}`);
-  const excludedRscCount = snapshot.schemaVersion === 1 ? snapshot.source.excludedRscCount
-    : snapshot.resources.reduce((sum, resource) => sum + resource.source.excludedRscCount, 0);
+  const excludedRscCount = snapshot.resources.reduce((sum, resource) => sum + resource.source.excludedRscCount, 0);
   console.log(`Definitions: ${definitions.length} total, ${disabled} disabled, ${excludedRscCount} RSC excluded`);
 }
 

@@ -1,4 +1,4 @@
-/** 校验 current.json 和它指向的目录快照。离线工具与浏览器都用同一套 schema 1 和 2 规则检查文件。 */
+/** 校验 current.json 和它指向的 schema 2 快照，供离线工具与浏览器共用。 */
 import type {
   CatalogJsonError, CatalogJsonErrorCode, CatalogJsonManifest, CatalogJsonSnapshot
 } from '@graph/contracts';
@@ -63,8 +63,8 @@ function decode(bytes: Uint8Array, maxBytes: number): string {
   return text;
 }
 
-/** 发布文件的顶层解析函数，按已支持的 schema 版本选择字段要求。 */
-function parseDocument(text: string, fields: readonly string[], schema2Fields = fields): Record<string, unknown> {
+/** 发布文件的顶层解析函数，只接受 schema 2 和对应的字段。 */
+function parseDocument(text: string, fields: readonly string[]): Record<string, unknown> {
   let value: unknown;
   try {
     value = JSON.parse(text);
@@ -72,11 +72,11 @@ function parseDocument(text: string, fields: readonly string[], schema2Fields = 
     throw new JsonCatalogError('invalid-snapshot', 'Catalog file is not valid JSON.');
   }
   const schema = value && typeof value === 'object' && 'schemaVersion' in value ? value.schemaVersion : undefined;
-  if (Number.isInteger(schema) && schema !== 1 && schema !== 2) {
+  if (Number.isInteger(schema) && schema !== 2) {
     throw new JsonCatalogError('unsupported-schema', 'Catalog schema version is not supported.');
   }
-  const document = record(value, schema === 2 ? schema2Fields : fields);
-  expect(schema === 1 || schema === 2, 'Invalid catalog schema version.');
+  const document = record(value, fields);
+  expect(schema === 2, 'Invalid catalog schema version.');
   return document;
 }
 
@@ -113,7 +113,7 @@ function pattern(value: unknown, regex: RegExp): string {
   return value;
 }
 
-/** 从 current.json 取得快照文件名和摘要。版本为 v1 时，文件名必须是同一目录中的 catalog-v1.json。 */
+/** 从 current.json 取得快照文件名和摘要。文件名必须与 version 对应，并位于同一目录。 */
 export function readJsonManifest(bytes: Uint8Array): CatalogJsonManifest {
   const manifest = parseDocument(decode(bytes, JSON_MANIFEST_MAX_BYTES), ['schemaVersion', 'version', 'snapshot', 'artifactSha256']);
   const version = pattern(manifest.version, VERSION);
@@ -122,15 +122,12 @@ export function readJsonManifest(bytes: Uint8Array): CatalogJsonManifest {
   return manifest as unknown as CatalogJsonManifest;
 }
 
-/** 发布来源的校验函数，确保摘要、时间、逻辑文件名和排除数量可用于追溯。 */
-function validateSource(value: unknown, embeddedTimestamp: boolean): void {
-  const fields = ['fileName', 'sha256', 'classificationVersion', 'excludedRscCount'];
-  if (embeddedTimestamp) fields.push('generatedAt');
-  const source = record(value, fields);
+/** resource 来源的校验函数，核对原始文件名、摘要、分类版本和排除数量。 */
+function validateSource(value: unknown): void {
+  const source = record(value, ['fileName', 'sha256', 'classificationVersion', 'excludedRscCount']);
   pattern(source.fileName, LOGICAL_FILENAME);
   pattern(source.sha256, SHA256);
   pattern(source.classificationVersion, CLASSIFICATION_VERSION);
-  if (embeddedTimestamp) expect(isIsoUtcTimestamp(source.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
   expect(typeof source.excludedRscCount === 'number' && Number.isSafeInteger(source.excludedRscCount)
     && source.excludedRscCount >= 0, 'Invalid excluded RSC count.');
 }
@@ -184,19 +181,16 @@ function validateDefinition(value: unknown, families: ReadonlyMap<string, Set<st
 }
 
 /** 单个 resource 的结构校验函数，对定义应用快照剩余的记录预算并返回实际记录数。 */
-function validateResource(value: unknown, resourceIds: Set<string>, remainingDefinitions: number, multiResource: boolean): number {
-  const fields = ['resourceId', 'displayName', 'categories', 'families', 'definitions'];
-  if (multiResource) fields.push('browseMode', 'source', 'classificationHash');
-  const resource = record(value, fields);
+function validateResource(value: unknown, resourceIds: Set<string>, remainingDefinitions: number): number {
+  const resource = record(value,
+    ['resourceId', 'displayName', 'categories', 'families', 'definitions', 'browseMode', 'source', 'classificationHash']);
   const id = pattern(resource.resourceId, UUID);
   expect(!resourceIds.has(id), 'Duplicate resource App ID.');
   resourceIds.add(id);
   label(resource.displayName);
-  if (multiResource) {
-    expect(resource.browseMode === 'category' || resource.browseMode === 'family', 'Invalid resource browse mode.');
-    pattern(resource.classificationHash, SHA256);
-    validateSource(resource.source, false);
-  }
+  expect(resource.browseMode === 'category' || resource.browseMode === 'family', 'Invalid resource browse mode.');
+  pattern(resource.classificationHash, SHA256);
+  validateSource(resource.source);
 
   const families = new Map<string, Set<string>>();
   for (const value of array(resource.categories, MAX_CATEGORIES_PER_RESOURCE)) {
@@ -207,11 +201,9 @@ function validateResource(value: unknown, resourceIds: Set<string>, remainingDef
     officialText(category.description);
     families.set(key, new Set());
   }
-  if (multiResource) {
-    // family 浏览复用内部 category；category 浏览的配置不能占用这个保留标识。
-    expect(resource.browseMode === 'family' ? families.size === 1 && families.has('all-permissions')
-      : !families.has('all-permissions'), 'Categories do not match the resource browse mode.');
-  }
+  // family 浏览复用内部 category；category 浏览的配置不能占用这个保留标识。
+  expect(resource.browseMode === 'family' ? families.size === 1 && families.has('all-permissions')
+    : !families.has('all-permissions'), 'Categories do not match the resource browse mode.');
   for (const value of array(resource.families, MAX_FAMILIES_PER_RESOURCE)) {
     const family = record(value, ['category', 'family']);
     const names = families.get(pattern(family.category, CATEGORY));
@@ -224,7 +216,7 @@ function validateResource(value: unknown, resourceIds: Set<string>, remainingDef
   const locations = new Map<string, string>();
   // 同名可以有多条定义。用类型和 GUID 识别重复定义，用 value 核对它们是否出现在同一个位置。
   const definitions = array(resource.definitions, remainingDefinitions);
-  if (multiResource) expect(definitions.length > 0, 'A resource must contain an ordinary permission definition.');
+  expect(definitions.length > 0, 'A resource must contain an ordinary permission definition.');
   for (const definition of definitions) validateDefinition(definition, families, identities, locations);
   return definitions.length;
 }
@@ -236,25 +228,18 @@ export async function readJsonSnapshot(bytes: Uint8Array, manifest: CatalogJsonM
   const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
   const sha256 = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
   expect(sha256 === manifest.artifactSha256, 'Catalog snapshot SHA-256 does not match the manifest.');
-  const snapshot = parseDocument(text, ['schemaVersion', 'version', 'source', 'classificationHash', 'resources'],
-    ['schemaVersion', 'version', 'generatedAt', 'resources']);
+  const snapshot = parseDocument(text, ['schemaVersion', 'version', 'generatedAt', 'resources']);
   expect(snapshot.schemaVersion === manifest.schemaVersion, 'Catalog snapshot schema does not match the manifest.');
   expect(snapshot.version === manifest.version, 'Catalog snapshot version does not match the manifest.');
-  const multiResource = snapshot.schemaVersion === 2;
-  if (multiResource) {
-    expect(isIsoUtcTimestamp(snapshot.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
-  } else {
-    pattern(snapshot.classificationHash, SHA256);
-    validateSource(snapshot.source, true);
-  }
+  expect(isIsoUtcTimestamp(snapshot.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
 
   const resourceIds = new Set<string>();
   let remaining = MAX_DEFINITIONS;
   // 上限约束的是整个文件。校验完一个 resource 后，扣掉它已使用的条数。
   const resources = array(snapshot.resources, MAX_RESOURCES);
-  if (multiResource) expect(resources.length > 0, 'The catalog must contain at least one resource.');
+  expect(resources.length > 0, 'The catalog must contain at least one resource.');
   for (const resource of resources) {
-    remaining -= validateResource(resource, resourceIds, remaining, multiResource);
+    remaining -= validateResource(resource, resourceIds, remaining);
   }
   return snapshot as unknown as CatalogJsonSnapshot;
 }

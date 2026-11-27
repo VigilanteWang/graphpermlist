@@ -38,7 +38,7 @@ compatibility. #15 owns actual SharePoint runtime acceptance.
   `@graph/catalog-core`. The Node API and JSON client share this package.
 - `catalog/api-client` provides `createApiCatalogClient()` and its compatible
   `createCatalogClient()` alias. `catalog/json-client` provides `JsonCatalogClient`.
-- `catalog/json-format` validates both file formats via
+- `catalog/json-format` validates schema 2 manifests and snapshots via
   `@graph/catalog-json/validation`. The offline CLI manages file I/O under
   `catalog/etl/src/export`, using the same validation as the browser.
 - `catalog/etl/src/extract` retains the Node-only `@graph/catalog-source` entry for
@@ -55,19 +55,20 @@ case-sensitive value. Disabled is hidden by default; upstream validation/import
 excludes RSC. Unknown category/family yields no matches. Text sorting remains JS
 lexical ordering; definitions sort by type, with stable input order within a type.
 
-## Schema 1 decisions for #13
+## JSON publication contract
 
 The [JSON contract](../common/contracts/src/catalog-json-format.ts) describes the static
-schema. Stage #13 implements runtime validation.
+schema. #18 retires the schema 1 format introduced by #13.
 
-- CatalogJsonManifest: schemaVersion: 1, version, snapshot, artifactSha256.
+- CatalogJsonManifest: schemaVersion: 2, version, snapshot, artifactSha256.
   snapshot is a filename relative to the configured manifest directory, such as
   catalog-<version>.json. Version/path validation must reject absolute URLs,
   schemes, encoded separators, dot segments and directory escape. The host can
   configure a different site path on its own origin with real file access.
-- CatalogJsonSnapshot: schemaVersion: 1, version, source, classificationHash, resources.
-  Each resource includes resourceId (Resource App ID), displayName, categories,
-  category/family pairs and definitions. Each definition has value/category/family,
+- CatalogJsonSnapshot: schemaVersion: 2, version, generatedAt, resources.
+  Each resource includes its own source, classificationHash, browseMode,
+  resourceId (Resource App ID), displayName, categories, category/family pairs
+  and definitions. Each definition has value/category/family,
   the current PermissionDefinition and safe rawDefinition fields (Application
   allowedMemberTypes/origin/displayName/description; Delegated type/admin/user
   consent fields). Do not retain tenant/object/credential fields. Validation must
@@ -77,13 +78,12 @@ schema. Stage #13 implements runtime validation.
   GUIDs must never be deduplicated by value. Resource/category/family identifiers
   and references must be validated before any core query.
 - source.sha256 hashes original input bytes; source.fileName is a safe logical
-  name, never a private input path. source.classificationVersion and top-level
+  name, never a private input path. source.classificationVersion and per-resource
   classificationHash identify classification; source.excludedRscCount traces RSC.
-- CatalogJsonSnapshotSource.generatedAt is the actual offline generation timestamp
-  (UTC ISO 8601). CatalogImportSource.importedAt is the real database import time.
-  Both source types share the input file name, digest and classification fields.
-  Deterministic reproduction requires the same input/rules/schema/generation
-  timestamp; #13 must provide an explicit reproducible timestamp input.
+- generatedAt is the actual offline generation timestamp (UTC ISO 8601). The JSON
+  client includes it in query source metadata. CatalogImportSource.importedAt is the
+  actual database import time. Reproduce an artifact with the same inputs,
+  classification rules and explicit generation timestamp.
 - manifest.artifactSha256 is lowercase SHA256 over the exact snapshot file bytes,
   not the parsed/re-serialized object. Keep it outside the snapshot to avoid a
   circular self-digest. The client adds optional CatalogQueryMetadata.artifact with
@@ -92,11 +92,11 @@ schema. Stage #13 implements runtime validation.
   shape, duplicate identity, inconsistent reference/raw fields or digest mismatch
   rejects the candidate. No fallback to empty directory on corrupt/missing data.
   Static types do not establish runtime trust; unknown fields also need policy.
-- #13 should set and document finite byte/record/string/depth limits based on the
-  measured source, with tests at boundaries and explanations. Current input counts
-  are acceptance evidence, never schema requirements for future valid catalogs.
+- Publication limits are defined in [catalog operations](catalog-operations.md#offline-json-publication).
+  The current resource counts are acceptance evidence. A valid publication
+  contains at least one resource, each with at least one ordinary definition.
 
-CatalogJsonClientError.code defines load-failed (network, other unsuccessful status
+CatalogJsonError.code defines load-failed (network, other unsuccessful status
 or login HTML), permission-denied (401/403), file-not-found (404), invalid-snapshot
 (format, reference, digest, version or limits), unsupported-schema and not-found
 (resource or detail query). JSON errors reject promises. Cancellation uses
@@ -112,7 +112,7 @@ snapshot with an observable error. Concurrent loads, cancel/retry and stale resu
 must not mix versions. Initially no persistent/offline cache is required.
 
 Offline publication order: validate -> upload immutable snapshot -> confirm readable
--> switch current.json last. Rollback switches to a previously valid version. No
+-> switch current.json last. Rollback switches to a previously verified schema 2 version. No
 SharePoint multi-file transaction is assumed. Digest checks integrity, not publisher
 trust or authorization. Upload/permission/runtime testing still needs separate user
 authorization and an actual designated test environment.
@@ -666,17 +666,42 @@ Node 22.16.0 and npm 10.9.2, run from the repository root:
 | `CATALOG_TEST_API_PORT=3238 CATALOG_TEST_WEB_PORT=5338 npm run test:browser` | 33 passed; the synthetic-only case was skipped as expected. A second run of `tests/browser/multi-resource.spec.ts` with the fourth-resource manifest passed all 4 cases. Chromium required a retry outside the macOS sandbox after Mach port registration failed. |
 | Source and diff review | Build and workspace changes preserve Chinese module headers and purpose-first declaration comments. Reviewed path changes, transform/format browser boundaries and unchanged English product text. `git diff --check` passed. |
 
-Both shipped host entry points still use HTTP. Repository history and the #13
-handoff show local schema 1 artifacts only; they do not establish whether copies
-were distributed elsewhere. New releases use the resource manifest and schema 2,
-with the previous verified schema 2 pair as the rollback target. [#14](https://github.com/VigilanteWang/graphpermlist/issues/14)
-owns the inventory and conditional retirement of the legacy JSON paths. If old
-files are in use, replace them and verify their readers before removing the
-legacy branch. Keep standalone Graph SQLite input available. [#15](https://github.com/VigilanteWang/graphpermlist/issues/15)
-reviews the migration evidence and verifies actual permissions and schema 2
-rollback in authorized SharePoint.
+Both existing host entry points still use HTTP. The ETL follow-up preceded
+schema 1 retirement. Its two-format results above record that earlier
+revision. Current publication and retirement checks are below.
 
 The [manual review checklist](verification/spfx-json-3-human-review.md) and
 [#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
 cover the revised layout. The main model settings could not be changed from this
 chat. The next implementation stage starts after #18 merges and is verified.
+
+## Schema 1 retirement — #18
+
+The user confirmed that schema 1 is no longer needed. The repository scan covered
+contracts, validator, client, CLI, both host entry points, tests, documentation
+and local publication files. Website and SPFx still initialize the HTTP client.
+The gitignored `release/stage-13-catalog` pair is a historical #13 artifact with
+no application or script reference. It was kept as a local record.
+
+The exporter, validator and browser reader now use schema 2. A custom JSON
+publication uses `PERMISSIONS_CONFIG`. A one-entry Graph manifest produces a
+Graph-only schema 2 release. The exporter rejects `PERMISSIONS_SOURCE` with a
+migration message. SQLite import and `verify:data` retain their explicit Graph
+input and output shapes. The rollback target is the previous verified schema 2
+manifest and snapshot. See the [current checks](verification/spfx-json-3-human-review.md).
+
+| Command or check | Result |
+| --- | --- |
+| `npm run verify:data` with default and explicit Graph inputs | Passed, retaining their batch and single-source shapes. Existing installation reused. Manifests and lockfile are unchanged. |
+| `npm run typecheck`, strict standalone browser-spec typecheck, `npm test` | Final run passed. 98 Node tests cover schema 1 rejection at the manifest and snapshot, required schema 2 collections, Graph-only JSON and real HTTP parity, publication failure and rollback. The first run caught a fixture syntax error, which was corrected. |
+| `npm run db:migrate`, `npm run import:data` | Scratch SQLite received 1,917 definitions from the default manifest, with all three versions reused on repeat. The explicit Graph import in a separate database reported one version and 1,664 definitions. |
+| `npm --ignore-scripts run export:json` and `npm --ignore-scripts run verify:json` after building | The default publication kept the fixed-time schema 2 digest above. Verification rejected the actual #13 manifest. The shared validator also rejected its snapshot with `unsupported-schema` after matching the snapshot digest. |
+| `npm run build`, `npm run check:react` | Passed Vite, SPFx packaging and browser dependency checks for the CommonJS and ESM outputs. |
+| `CATALOG_TEST_API_PORT=3239 CATALOG_TEST_WEB_PORT=5339 npm run test:browser` | 33 passed, including loading verified bytes and rolling back to a previous schema 2 publication. The fourth-resource case was skipped in the default run and passed with the three other cases in the separate fixture run. |
+| Source and diff review | Reviewed updated Chinese comments and English error text. Remaining schema 1 references describe historical evidence or rejection. `git diff --check` passed. |
+
+The revised [#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
+tracks review of [PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19).
+[#14](https://github.com/VigilanteWang/graphpermlist/issues/14) integrates schema 2
+into both hosts. Actual SharePoint file access and rollback are pending under
+[#15](https://github.com/VigilanteWang/graphpermlist/issues/15).

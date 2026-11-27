@@ -14,7 +14,7 @@ export interface CatalogSourceFileMetadata {
 export interface CatalogImportSource extends CatalogSourceFileMetadata {
   importedAt: string; // 数据库导入时间，采用 ISO 8601 UTC。
 }
-/** 离线生成的 JSON 快照中的来源元数据。 */
+/** JSON 查询返回的 resource 来源元数据，带上整份快照的生成时间。 */
 export interface CatalogJsonSnapshotSource extends CatalogSourceFileMetadata {
   generatedAt: string; // 离线快照生成时间，采用 ISO 8601 UTC。
 }
@@ -23,7 +23,7 @@ export type CatalogSourceMetadata = CatalogImportSource | CatalogJsonSnapshotSou
 
 /** JSON client 加载的快照产物标识，sha256 对应完整快照文件字节。 */
 export interface CatalogJsonArtifactMetadata {
-  schemaVersion: 1 | 2;
+  schemaVersion: 2;
   version: string;
   sha256: string;
 }
@@ -43,7 +43,7 @@ export interface PermissionCounts {
 export interface CatalogResourceSummary extends PermissionCounts {
   resourceId: string; // resource 的 App ID，在各数据源中标识同一个应用。
   displayName: string;
-  // schema 1 和旧 HTTP 服务仍可返回只有计数的 resource 概览。
+  // 旧 HTTP 服务仍可返回只有计数的 resource 概览。
   browseMode?: CatalogBrowseMode;
   totalDefinitionCount?: number;
   source?: CatalogSourceMetadata;

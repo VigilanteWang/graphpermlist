@@ -28,8 +28,9 @@ result and sanitized evidence. Do not include local paths, credentials or tenant
    interaction/error/keyboard/layout/stale-response cases. The isolated test API
    imports real safe data into memory; response interception is only test-specific
    state/metadata/error simulation, not a production JSON client.
-4. **Inspect boundaries and contracts.** Read packages/contracts/src/index.ts and the plan's
-   schema 1 decisions. Confirm source.sha256 vs manifest.artifactSha256, generatedAt
+4. **Inspect the stage 1 boundaries and contracts.** Read packages/contracts/src/index.ts
+   at the #12 baseline and the original schema 1 decisions in that revision's plan.
+   Confirm source.sha256 vs manifest.artifactSha256, generatedAt
    vs database importedAt, raw official fields and classification references. Check
    that schema validation/load/refresh/publication are explicitly #13 work. Review
    catalog-core source and both outputs: no IO/Nest/TypeORM/Node/identity dependency;

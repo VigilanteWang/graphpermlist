@@ -37,10 +37,10 @@ async function directory(t) {
   return path;
 }
 
-async function cli(command, output, { source = '', config = '' } = {}) {
+async function cli(command, output, { config = '' } = {}) {
   return exec(process.execPath, ['catalog/etl/src/export/cli.mjs', command, '--output', output,
     ...(command === 'export' ? ['--generated-at', generatedAt] : [])],
-  { env: { ...process.env, PERMISSIONS_SOURCE: source, PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: config }, timeout: 15_000 });
+  { env: { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: config }, timeout: 15_000 });
 }
 
 async function published(directory) {
@@ -256,10 +256,6 @@ test('fourth resource uses files and config only; failed batches and publication
       file === 'current.json' ? JSON.stringify(manifest) : bytes));
     await assert.rejects(malformed.resources(), { code: 'invalid-snapshot' });
   }
-  const mismatched = new JsonCatalogClient(async file => new Response(file === 'current.json'
-    ? JSON.stringify({ ...schema2.manifest, schemaVersion: 1 }) : schema2.bytes));
-  await assert.rejects(mismatched.resources(), { code: 'invalid-snapshot' });
-
   await writeFile(join(release, 'current.json'), publishedFour.manifestBytes);
   await cli('verify', release);
   await json.refresh();
@@ -268,19 +264,12 @@ test('fourth resource uses files and config only; failed batches and publication
   assert.equal(rolledBack.artifact.version, publishedFour.manifest.version);
   assert.equal(rolledBack.item.category, 'all-permissions');
 
-  await cli('export', release, { source: graphSource });
-  const legacy = await published(release);
-  assert.equal(legacy.manifest.schemaVersion, 1);
-  assert.equal(legacy.manifest.artifactSha256, 'c36f834e8c98d9cd14eda29878c2ab9f646fa161284dc7a99ae569c37294d409');
-  await json.refresh();
-  assert.equal((await json.resources()).items.length, 1);
-  await assert.rejects(json.detail(verificationId, 'Tenant.Read.All'), { code: 'not-found' });
-
-  // Pointing to broken schema 2 keeps the valid schema 1 session available.
+  // A failed refresh keeps the preceding, verified publication pinned.
   await writeFile(join(release, schema2.manifest.snapshot), Buffer.concat([schema2.bytes, Buffer.from(' ')]));
   await writeFile(join(release, 'current.json'), schema2.manifestBytes);
   await assert.rejects(json.refresh(), { code: 'invalid-snapshot' });
-  assert.equal((await json.resources()).artifact.schemaVersion, 1);
+  assert.equal((await json.resources()).artifact.version, publishedFour.manifest.version);
+  assert.equal((await json.detail(verificationId, 'Tenant.Read.All')).item.category, 'all-permissions');
 });
 
 test('source whitelist and config reject missing collections and duplicate identifiers', async t => {

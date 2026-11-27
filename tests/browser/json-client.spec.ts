@@ -8,9 +8,7 @@ import { promisify } from 'node:util';
 test('Chromium streams the real offline publication, verifies it and queries the pinned version', async ({ page }) => {
   const dir = await mkdtemp(join(tmpdir(), 'catalog-json-browser-'));
   const generatedAt = '2026-11-20T00:00:00.000Z';
-  const env = { ...process.env };
-  env.PERMISSIONS_SOURCE = resolve('data/commercial-graph-permlist.json');
-  delete env.PERMISSIONS_SHA256;
+  const env = { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_CONFIG: '', PERMISSIONS_SHA256: '' };
   try {
     await promisify(execFile)(process.execPath, ['catalog/etl/src/export/cli.mjs', 'export', '--output', dir,
       '--generated-at', generatedAt], { env, timeout: 15_000 });
@@ -39,7 +37,7 @@ test('Chromium streams the real offline publication, verifies it and queries the
         counts: [resources.items[0].definitionCount, all.definitionCount],
         definitions: [detail.item.definitions.length, detail.allDefinitions.length],
         types: detail.item.visibleTypes,
-        source: resources.source,
+        source: resources.items[0].source,
         artifact: resources.artifact,
         nodePresent: 'process' in globalThis || 'require' in globalThis
       };
@@ -47,7 +45,7 @@ test('Chromium streams the real offline publication, verifies it and queries the
     expect(result).toMatchObject({
       counts: [1660, 1664], definitions: [1, 2], types: ['Delegated'],
       source: { generatedAt, excludedRscCount: 60 },
-      artifact: { schemaVersion: 1, version: manifest.version, sha256: manifest.artifactSha256 },
+      artifact: { schemaVersion: 2, version: manifest.version, sha256: manifest.artifactSha256 },
       nodePresent: false
     });
     expect(result.source).not.toHaveProperty('importedAt');
@@ -57,25 +55,27 @@ test('Chromium streams the real offline publication, verifies it and queries the
   }
 });
 
-test('Chromium validates schema 2 and refreshes back to the real Graph schema 1 publication', async ({ page }) => {
+test('Chromium rolls back to a previous verified schema 2 publication', async ({ page }) => {
   const dir = await mkdtemp(join(tmpdir(), 'catalog-json-multi-browser-'));
   const generatedAt = '2026-11-20T00:00:00.000Z';
-  const env = { ...process.env, PERMISSIONS_CONFIG: '', PERMISSIONS_SHA256: '' };
+  const previousGeneratedAt = '2026-11-19T00:00:00.000Z';
+  const env = { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_CONFIG: '', PERMISSIONS_SHA256: '' };
   try {
     const run = promisify(execFile);
-    const publish = (output: string, source: string) => run(process.execPath,
-      ['catalog/etl/src/export/cli.mjs', 'export', '--output', output, '--generated-at', generatedAt],
-      { env: { ...env, PERMISSIONS_SOURCE: source }, timeout: 15_000 });
-    const multi = join(dir, 'multi');
-    const graphOnly = join(dir, 'legacy');
-    await Promise.all([publish(multi, ''), publish(graphOnly, resolve('data/commercial-graph-permlist.json'))]);
-    let active = multi;
+    const publish = (output: string, timestamp: string) => run(process.execPath,
+      ['catalog/etl/src/export/cli.mjs', 'export', '--output', output, '--generated-at', timestamp],
+      { env, timeout: 15_000 });
+    const current = join(dir, 'current');
+    const previous = join(dir, 'previous');
+    await Promise.all([publish(current, generatedAt), publish(previous, previousGeneratedAt)]);
+    const previousManifest = JSON.parse(await readFile(join(previous, 'current.json'), 'utf8'));
+    let active = current;
     const requests: string[] = [];
     await page.route('**/stage-18-files/*', async route => {
       const file = new URL(route.request().url()).pathname.split('/').at(-1)!;
       requests.push(file);
       const directory = active;
-      if (file !== 'current.json') active = graphOnly;
+      if (file !== 'current.json') active = previous;
       await route.fulfill({ path: join(directory, file), contentType: 'application/json' });
     });
     await page.goto('/');
@@ -92,9 +92,10 @@ test('Chromium validates schema 2 and refreshes back to the real Graph schema 1 
       ]);
       await client.refresh();
       const rollback = await client.resources();
+      const rollbackTenant = await client.detail(powerBi, 'Tenant.Read.All');
       return {
         resources, tenant: tenant.item.visibleTypes, tenantSource: tenant.source, sites: sites.allDefinitions,
-        graphSites: graphSites.allDefinitions, rollback
+        graphSites: graphSites.allDefinitions, rollback, rollbackTenant
       };
     }, `/@fs${resolve('catalog/json-client/dist/esm/index.js')}`);
     expect(result.resources).toMatchObject({
@@ -109,8 +110,15 @@ test('Chromium validates schema 2 and refreshes back to the real Graph schema 1 
     expect(result.sites).toHaveLength(1);
     expect(result.graphSites).toHaveLength(2);
     expect(result.graphSites.map((definition: { id: string }) => definition.id)).not.toContain(result.sites[0].id);
-    expect(result.rollback).toMatchObject({ artifact: { schemaVersion: 1 }, source: { generatedAt } });
-    expect(result.rollback.items).toHaveLength(1);
+    expect(result.rollback).toMatchObject({
+      artifact: { schemaVersion: 2, version: previousManifest.version, sha256: previousManifest.artifactSha256 },
+      items: result.resources.items.map((item: { source: object }) =>
+        ({ ...item, source: { ...item.source, generatedAt: previousGeneratedAt } }))
+    });
+    expect(result.rollback.artifact.version).not.toBe(result.resources.artifact.version);
+    expect(result.rollbackTenant).toMatchObject({
+      item: { visibleTypes: result.tenant }, source: { generatedAt: previousGeneratedAt }
+    });
     expect(requests).toHaveLength(4);
     expect(requests.filter(file => file === 'current.json')).toHaveLength(2);
   } finally {
