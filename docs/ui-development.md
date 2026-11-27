@@ -12,8 +12,8 @@ splitting, state ownership, colocated styles and data boundaries. `src/index.ts`
 - `src/explorer/ExplorerShell/`: composition entry, internal `components/` for
   Fluent resource navigation, catalog content, category cards and family rendering;
   `hooks/` for interaction orchestration, requests, expansion memory and container width.
-- `src/explorer/HomePage/`: composition entry and `components/` for statistics,
-  resource actions, glossary and source Accordion. Shared toolbar stays in
+- `src/explorer/HomePage/`: composition entry and `components/` for resource cards and counts, glossary
+  and per-resource source Accordion. Shared toolbar stays in
   `src/explorer/components/` because it serves both catalog levels.
 - `src/permissions/DetailsPanel/`: drawer entry, `components/` for complete
   definitions/Clipboard and `hooks/` for detail requests/Clipboard state.
@@ -25,7 +25,7 @@ splitting, state ownership, colocated styles and data boundaries. `src/index.ts`
 
 Main navigation uses controlled Fluent Nav/NavItem selection. Text uses Fluent
 Typography, metadata uses a read-only Fluent Table with accessible row headers,
-source details use Accordion, and statistics/definition surfaces use Card. Native
+source details use Accordion, and resource/definition surfaces use Card. Native
 main/layout divs and Select's option children retain their semantic/layout roles.
 No frontend-specific branches, store or duplicate transport/service layer were added.
 The installed 9.75.2 types were checked alongside official docs; no dependency
@@ -83,19 +83,19 @@ The CLI and HTTP server must use the same `SQLITE_PATH`; use an isolated file wh
 reviewing without changing an existing local database. No startup auto-import occurs.
 `PERMISSIONS_SOURCE` can override the versioned `data/commercial-graph-permlist.json`.
 
-Home displays the snapshot name, SHA-256, import time in UTC, classification version,
-enabled ordinary definitions, all ordinary definitions and excluded RSC count.
-Microsoft Graph shows service cards with merged permission counts and definition counts.
-SharePoint / OneDrive is a Graph service category; the separate SharePoint resource and
-Power BI navigation entries remain disabled Coming soon items.
+Home and the sidebar use the same resource list. Each resource displays its
+permission and definition counts. Its source details include the snapshot name,
+SHA-256, import time in UTC, classification version and excluded RSC count.
+Microsoft Graph shows category cards and then families. Power BI Service and
+SharePoint Online open directly to family groups. The SharePoint / OneDrive
+category still belongs to Microsoft Graph.
 
-Search covers all Graph services on the category page and the selected service on its
-family page. The type/admin consent/family/Show disabled controls share the API query.
-Search automatically opens matching families; clearing it restores the previous
-non-search expansion state. Both levels share the current search criteria; entering a
-service only narrows the search scope. Returning to categories retains those criteria
-and focuses the card that opened the service. State persists during component navigation,
-not across browser refreshes or frontend teardown.
+Search covers the current resource and is scoped to a category when one is
+open. Search temporarily expands matching families. Clearing it restores the
+stored expansion for that resource and category. Changing resources preserves
+search, type, admin consent and disabled filters, then clears category, family
+filter and detail. Returning to a Graph category list focuses the previous
+category card. This state lives in the active component instance.
 
 Each DataGrid row uses only matching definitions. A GUID search or Delegated filter
 can therefore show a single type, while the details panel intentionally displays every

@@ -2,7 +2,7 @@
 
 ## 项目介绍
 
-Microsoft Graph Permissions Explorer 是一个面向 Microsoft Graph 全球云权限目录的只读应用，以仓库中的权限定义快照作为数据输入，不在线采集租户数据，也不执行权限授予或撤销。
+Microsoft Graph Permissions Explorer 是一个全球云只读权限目录，默认覆盖 Microsoft Graph、Power BI Service 和 SharePoint Online，以仓库中的脱敏权限定义快照作为数据输入，不在线采集租户数据，也不执行权限授予或撤销。
 
 - **独立网站前端**：Vite + React + TypeScript，可在浏览器中独立运行。
 - **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、中立数据类型及前端注入的 HTTP client。

@@ -575,7 +575,7 @@ Node 22.16.0 and npm 10.9.2 on macOS arm64. The ordered commits are:
    switches the active version during a real SQLite read and verifies version
    pinning and plain entity mapping. API build, 91 Node tests, standalone
    migration/import/reimport/HTTP smoke, and 29 Chromium tests passed.
-3. The multi-resource commit extends import, publication and shared UI.
+3. `740ddb0` extends import, publication and shared UI.
    Source App IDs, optional classification and input digests come from the same
    manifest for verification, SQLite and offline publication.
 
@@ -630,3 +630,13 @@ flowchart LR
 expected observations and scratch-data setup. The shipped hosts continue using
 HTTP. #14 owns host selection and SharePoint transport. Actual SharePoint
 runtime and tenant publication/rollback acceptance remain for #15.
+
+### Handoff
+
+[PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19) targets `main`
+from `codex/spfx-json-3-multi-resource` and is open for review. The
+[#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
+was published and verified on the issue. The main conversation did not expose
+a model override. Bounded data review used GPT-6.2 Sol / low and shared UI work
+used GPT-6.2 Sol / high. Stage #14 starts after separate authorization and
+verification of the #18 merge.

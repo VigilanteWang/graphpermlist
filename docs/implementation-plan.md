@@ -805,8 +805,8 @@ regression in [PR #17](https://github.com/VigilanteWang/graphpermlist/pull/17).
 The [issue review checklist](https://github.com/VigilanteWang/graphpermlist/issues/13#issuecomment-7015149708)
 links to the verified commands and expected results. The existing API SPFx package
 is available from the production build.
-The independent JSON SPFx and three-entry integration remain #14 work. Review and
-merge #13 before starting that stage in a separate chat.
+The original #13 handoff described two SPFx solutions. The current #11 scope
+and stage index appear at the top of this plan.
 
 ### Shared UI README follow-up
 
@@ -824,3 +824,7 @@ CatalogReader commits, three-resource SQLite and JSON delivery, and fourth
 resource verification. The [manual review checklist](verification/spfx-json-3-human-review.md)
 covers isolated setup, source and count checks, Chromium and pending SharePoint
 acceptance. Stage 4 requires #18 to be merged and verified.
+
+[PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19) is open for
+review. The [#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
+was published and verified on the issue.
