@@ -1,4 +1,4 @@
-/** 进入 category 后看到的 family 列表。展开一个 family 就会显示这一组的 permission 表格。 */
+/** 当前 resource 或 category 的 family 列表。展开一个 family 就会显示这一组的 permission 表格。 */
 import * as React from 'react';
 import {
   Accordion,

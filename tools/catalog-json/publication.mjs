@@ -3,19 +3,19 @@ import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { link, mkdir, mkdtemp, open, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { buildCatalogModel, CATALOG_SOURCE_BASENAME } from '@graph/catalog-ingest';
+import { buildCatalogModel } from '@graph/catalog-ingest';
 import {
   JSON_MANIFEST_FILE, JSON_MANIFEST_MAX_BYTES, JSON_SNAPSHOT_MAX_BYTES, JsonCatalogError,
   readJsonManifest, readJsonSnapshot
 } from '@graph/catalog-json/validation';
-import { loadPermissionsSource } from '@graph/catalog-source';
+import { loadPermissionsSources } from '@graph/catalog-source';
 
 /** SHA-256 摘要函数。对传入的内容计算摘要，返回十六进制字符串。 */
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-/** schema 1 JSON 的文件编码。空格和换行都会改变文件摘要，这里固定用紧凑 JSON 加一个末尾换行。 */
+/** 发布 JSON 的文件编码。空格和换行都会改变文件摘要，这里固定用紧凑 JSON 加一个末尾换行。 */
 function serialize(document) {
   return Buffer.from(JSON.stringify(document) + '\n', 'utf8');
 }
@@ -88,7 +88,7 @@ async function publish(directory, manifest, bytes) {
 /** 快照输入的加载入口。读取或校验失败时，用固定说明提醒检查环境变量和输入文件。 */
 async function loadSource() {
   try {
-    return await loadPermissionsSource();
+    return await loadPermissionsSources();
   } catch (error) {
     if (error.cause?.code) {
       throw new JsonCatalogError('load-failed', 'Cannot read the permissions input. Check PERMISSIONS_SOURCE and file access.');
@@ -99,18 +99,27 @@ async function loadSource() {
 
 /** 生成目录快照的入口。使用与 SQLite 导入相同的目录模型，另在 JSON 中记录生成时间。 */
 export async function generate(directory, generatedAt) {
-  const { data, sha256: sourceSha256 } = await loadSource();
-  const { resource, classificationInput, classificationVersion, excludedRscCount } = buildCatalogModel(data);
-  const content = {
-    schemaVersion: 1,
-    source: { fileName: CATALOG_SOURCE_BASENAME, sha256: sourceSha256, generatedAt, classificationVersion, excludedRscCount },
-    classificationHash: sha256(classificationInput),
-    resources: [resource]
-  };
+  const { schemaVersion, inputs } = await loadSource();
+  const models = inputs.map(({ data, sha256: sourceSha256, classification, displayName, fileName }) => {
+    const { resource, browseMode, classificationInput, classificationVersion, excludedRscCount } =
+      buildCatalogModel(data, { classification, displayName });
+    const source = { fileName, sha256: sourceSha256, classificationVersion, excludedRscCount };
+    return { resource, browseMode, source, classificationHash: sha256(classificationInput) };
+  });
+
+  let content;
+  if (schemaVersion === 1) {
+    // 保留 schema 1 的字段顺序，让同一份 Graph 输入和时间生成与 #13 完全相同的文件。
+    const [{ resource, classificationHash, source: { fileName, sha256, classificationVersion, excludedRscCount } }] = models;
+    content = { schemaVersion, source: { fileName, sha256, generatedAt, classificationVersion, excludedRscCount },
+      classificationHash, resources: [resource] };
+  } else {
+    content = { schemaVersion, generatedAt, resources: models.map(({ resource, ...metadata }) => ({ ...resource, ...metadata })) };
+  }
   // version 用来命名快照，取自加入 version 字段前的 JSON。
   // artifactSha256 按最终文件字节计算，供读取方检查文件是否完整。
   const version = sha256(serialize(content));
   const bytes = serialize({ ...content, version });
-  const manifest = { schemaVersion: 1, version, snapshot: `catalog-${version}.json`, artifactSha256: sha256(bytes) };
+  const manifest = { schemaVersion, version, snapshot: `catalog-${version}.json`, artifactSha256: sha256(bytes) };
   return publish(directory, manifest, bytes);
 }

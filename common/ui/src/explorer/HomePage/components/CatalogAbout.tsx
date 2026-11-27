@@ -26,9 +26,9 @@ const glossaryFields = [
   {
     label: 'How permissions are organized',
     value:
-      'Choose an API resource, then a service category such as Exchange or Microsoft Entra ID. Within' +
-      ' each service, permissions are grouped into families, usually by the name before the first ' +
-      'dot: Mail.Read and Mail.Send belong to Mail. OpenID scopes have their own family.'
+      'Choose an API resource. Some catalogs organize families into categories, such as Exchange in ' +
+      'Microsoft Graph. Others open directly to families. A family usually comes from the text before ' +
+      'the first dot in a permission name. Mail.Read and Mail.Send belong to Mail.'
   },
   {
     label: 'One name, one row',
@@ -48,8 +48,8 @@ const glossaryFields = [
   {
     label: 'SharePoint and Microsoft Graph',
     value:
-      'SharePoint / OneDrive is a service category inside Microsoft Graph. The separate SharePoint ' +
-      'API resource is coming soon.'
+      'SharePoint / OneDrive is a service category inside Microsoft Graph. SharePoint Online has its ' +
+      'own set of permission definitions.'
   }
 ];
 
@@ -59,9 +59,8 @@ export function CatalogAbout(): React.ReactElement {
     <>
       <Title2 as="h2">About this catalog</Title2>
       <Body1>
-        Permissions Explorer helps you browse and understand the Microsoft Graph API permissions in this
-        catalog. Search for a permission, explore services and compare official descriptions and consent
-        requirements.
+        Search by permission name, GUID or official wording. Open a permission to see all of its
+        definitions, including entries hidden by the current filters.
       </Body1>
       <MetadataTable label="Catalog glossary" fields={glossaryFields} />
     </>

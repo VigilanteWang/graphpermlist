@@ -48,11 +48,11 @@ async function catalogCli(args, inputPath) {
   const env = { ...process.env };
   delete env.PERMISSIONS_SOURCE;
   delete env.PERMISSIONS_SHA256;
-  if (inputPath) env.PERMISSIONS_SOURCE = inputPath;
+  env.PERMISSIONS_SOURCE = inputPath ?? sourcePath;
   await run(process.execPath, ['tools/catalog-json/cli.mjs', ...args], { cwd: root, env, timeout: 15_000 });
 }
 
-async function publish(output, inputPath) {
+async function publish(output, inputPath = sourcePath) {
   await catalogCli(['export', '--output', output, '--generated-at', generatedAt], inputPath);
   const manifestBytes = await readFile(join(output, 'current.json'));
   const manifest = JSON.parse(manifestBytes);
@@ -120,7 +120,7 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   assert.deepEqual(await readFile(sourcePath), sourceBytes);
 
   const invalidInput = join(dir, 'incomplete.json');
-  await writeFile(invalidInput, JSON.stringify({ ...source, appRoles: [] }));
+  await writeFile(invalidInput, JSON.stringify({ ...source, appRoles: undefined }));
   const snapshotFile = `catalog-${artifact.version}.json`;
   await assert.rejects(catalogCli(['export', '--output', firstOutput, '--generated-at', generatedAt], invalidInput), { code: 1 });
   assert.deepEqual((await readdir(firstOutput)).sort(), [snapshotFile, 'current.json'].sort());
@@ -164,7 +164,15 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
     new Map(expected.map(({ type, raw }) => [identity(type, raw.id), raw])));
 
   const id = source.appId;
-  const resources = await assertParity(http.resources(), json.resources(), artifact);
+  const resources = await assertParity(http.resources().then(response => ({
+    ...response,
+    items: response.items.map(({ browseMode, totalDefinitionCount, source: resourceSource, ...counts }) => {
+      assert.equal(browseMode, 'category');
+      assert.equal(totalDefinitionCount, expected.length);
+      assert.deepEqual(resourceSource, response.source);
+      return counts;
+    })
+  })), json.resources(), artifact);
   assert.equal(resources.items.length, 1);
   assertCounts(resources.items[0], expected.filter(({ raw }) => raw.isEnabled));
   const mail = expected.filter(({ raw }) => raw.value === 'Mail.Read');

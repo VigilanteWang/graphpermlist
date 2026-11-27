@@ -54,7 +54,8 @@ graphpermlist/
 │   └── source/                          Node 输入读取和校验
 ├── tools/catalog-json/                  离线导出和校验 JSON 发布文件
 ├── data/
-│   ├── commercial-graph-permlist.json    版本化的安全权限快照
+│   ├── catalog-resources.json           三个默认 resource 和源文件校验值
+│   ├── commercial-*-permlist.json       脱敏 permission 快照
 │   └── README.md                         数据来源、字段说明和校验值
 ├── docs/
 │   ├── api-contract.md                   API 请求、响应及错误语义
@@ -105,7 +106,7 @@ npm run start:api
 npm run dev:web
 ```
 
-打开 [http://localhost:5173](http://localhost:5173)。导入成功后 Home 显示普通定义和排除的 RSC 数量；展开 **Catalog data details** 查看来源、导入时间和分类版本。点击 **Microsoft Graph** 浏览分类、搜索筛选、permission family 和完整详情。两级页面保留当前筛选条件，导航仅改变服务范围。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和两个前端的配置见 [共享 UI 开发与验收](docs/ui-development.md)。
+打开 [http://localhost:5173](http://localhost:5173)。首页显示各 resource 的 permission 行数和 definition 数量，展开对应的 **catalog data details** 查看来源、导入时间、分类版本和 RSC 排除数。Microsoft Graph 先选 category，再浏览 family。Power BI Service 和 SharePoint Online 直接按 family 浏览。切换资源保留搜索、类型、admin consent 和禁用项筛选，并清除 category、family 筛选和详情。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和两个前端的配置见 [共享 UI 开发与验收](docs/ui-development.md)。
 
 后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
@@ -126,7 +127,7 @@ npm run export:json -- --output ./release/catalog
 npm run verify:json -- --output ./release/catalog
 ```
 
-命令直接读取已校验的安全源，生成 `current.json` 和不可变的 `catalog-<version>.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。独立 JSON 版 SPFx 及三入口接入由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 交付。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
+默认从三份脱敏源生成 schema 2 快照 `catalog-<version>.json` 和版本指针 `current.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。显式设置 `PERMISSIONS_SOURCE` 可导出 Graph schema 1。网站及单一 SPFx 的配置选源由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 接入。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
 
 ## 本地验证与交付状态
 
@@ -168,6 +169,6 @@ Web 在 `vite.config.ts` 显式保留 Chrome 107、Edge 107、Firefox 104、Safa
 
 ## SharePoint JSON 增量
 
-父需求 [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) 保留现有 API 网站和 API SPFx，后续新增独立 JSON SPFx solution，最终产出两个独立 .sppkg、三个入口共用一份 UI。当前 [#12](https://github.com/VigilanteWang/graphpermlist/issues/12) 仅提取中立 CatalogClient、schema 1 类型和浏览器安全查询核心，接回现有 API；尚未提供 JSON 导出/client 或第二个 Web Part。UI 只依赖 contracts，由前端注入 client；api-client 的旧 CatalogClient 类型入口保持可用。
+父需求 [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) 交付独立网站与一套 SPFx solution、Web Part 和 `.sppkg`。两个宿主通过中立 `CatalogClient` 使用同一份 UI。[#18](https://github.com/VigilanteWang/graphpermlist/issues/18) 已接通三个真实目录及两种 JSON 格式，现有两个宿主继续使用 HTTP。
 
-查询核心使用同一份源码生成 ESM/CommonJS，保留现有筛选、合并、计数与详情行为。JSON generatedAt、源摘要和产物摘要与 API importedAt 分开；类型不代替运行时校验。决策、阶段证据及人工交接见 [SharePoint JSON 计划](docs/sharepoint-json-plan.md)。实际 SharePoint 运行继续待验，本阶段不上传或部署，不自动启动 #13。
+HTTP 用 `createApiCatalogClient()`，原工厂名保留为别名。离线发布和 `JsonCatalogClient` 共用校验，SQLite 和 JSON 共用纯查询。新增同格式资源可按[数据说明](data/README.md)登记文件和摘要。计划与验证见 [SharePoint JSON 增量](docs/sharepoint-json-plan.md)，实际 SharePoint 运行验收在 #15。

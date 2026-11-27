@@ -40,6 +40,7 @@ export class TypeOrmCatalogReader implements CatalogReader {
       versionId: version.id,
       resourceId: version.resourceId,
       displayName: version.displayName,
+      browseMode: version.browseMode,
       classificationHash: version.classificationHash,
       source: version.source,
       categories: categories.map(({ category, displayName, description }) => ({ category, displayName, description })),

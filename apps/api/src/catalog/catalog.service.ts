@@ -21,8 +21,9 @@ export class CatalogService {
     const versions = await this.reader.listActive();
     if (!versions.length) return { dataState: 'not-imported', source: null, items: [] };
     const items = versions.map(version => ({ resourceId: version.resourceId,
-      displayName: version.displayName, ...countPermissions(queryPermissions(version.resourceId, version.definitions)) }));
-    return { dataState: 'ready', source: versions[0].source, items };
+      displayName: version.displayName, browseMode: version.browseMode, totalDefinitionCount: version.definitions.length,
+      source: version.source, ...countPermissions(queryPermissions(version.resourceId, version.definitions)) }));
+    return { dataState: 'ready', source: versions.length === 1 ? versions[0].source : null, items };
   }
 
   /** 当前筛选条件下的 permission 列表。相同 value 的命中项合并成一行，例如 User.Read.All 的两种类型。 */

@@ -1,11 +1,11 @@
 /** 目录的 TypeORM 实体。每个类对应一张 SQLite 表，供导入服务写入、查询服务读取。 */
 import { Column, Entity, PrimaryColumn } from 'typeorm';
-import type { CatalogImportSource, CatalogDefinitionWithRawFields, PermissionDefinition, PermissionType } from '@graph/contracts';
+import type { CatalogBrowseMode, CatalogImportSource, CatalogDefinitionWithRawFields, PermissionDefinition, PermissionType } from '@graph/contracts';
 
-/** Graph resource 的记录。每个 resource 保存一条记录，可关联多次导入的快照。 */
+/** 目录 resource 的记录。每个 resource 保存一条记录，可关联多次导入的快照。 */
 @Entity('catalog_resource')
 export class CatalogResource {
-  // resourceId 保存 Graph resource 的 App ID。
+  // resourceId 保存 resource 的 App ID。
   @PrimaryColumn('text') resourceId!: string;
 }
 /** 一次导入的快照记录。active 为 true 时 API 使用这一版，source 记录文件摘要、导入时间等来源信息。 */
@@ -15,6 +15,7 @@ export class CatalogImport {
   @Column('text') resourceId!: string;
   @Column('text') displayName!: string;
   @Column('boolean') active!: boolean;
+  @Column('text', { default: 'category' }) browseMode!: CatalogBrowseMode;
   @Column('text') classificationHash!: string;
   @Column('simple-json') source!: CatalogImportSource;
 }

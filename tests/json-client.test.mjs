@@ -150,7 +150,7 @@ test('JSON client rejects invalid and out-of-directory manifest references befor
     ['array', () => []],
     ['missing snapshot', ({ snapshot: omitted, ...rest }) => rest],
     ['wrong version type', manifest => ({ ...manifest, version: 1 })],
-    ['unsupported schema', manifest => ({ ...manifest, schemaVersion: 2 }), 'unsupported-schema'],
+    ['unsupported schema', manifest => ({ ...manifest, schemaVersion: 3 }), 'unsupported-schema'],
     ['invalid schema type', manifest => ({ ...manifest, schemaVersion: '1' })],
     ['oversize version', manifest => ({ ...manifest, version: 'x'.repeat(81) })],
     ['uppercase digest', manifest => ({ ...manifest, artifactSha256: manifest.artifactSha256.toUpperCase() })],
@@ -207,7 +207,7 @@ test('manifest byte limit includes whitespace and applies to bodies without Cont
 
 test('JSON client rejects invalid snapshot structures even when their digest matches', async t => {
   const modifications = [
-    ['unsupported schema', data => { data.schemaVersion = 2; }, 'unsupported-schema'],
+    ['unsupported schema', data => { data.schemaVersion = 3; }, 'unsupported-schema'],
     ['classification digest', data => { data.classificationHash = 'bad'; }],
     ['source traversal', data => { data.source.fileName = '../example-source.json'; }],
     ['source invalid timestamp', data => { data.source.generatedAt = '2026-02-30T00:00:00Z'; }],

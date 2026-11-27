@@ -2,6 +2,7 @@
 import type {
   CatalogImportSource,
   CatalogQueryMetadata,
+  CatalogResourceSummary,
   CategoryListResult,
   PermissionDetailResult,
   PermissionListResult,
@@ -13,8 +14,13 @@ type CatalogApiResponse<TResult extends CatalogQueryMetadata> = Omit<TResult, 's
   source: CatalogImportSource | null;
 };
 
+/** HTTP resource 概览的来源对应 SQLite 的活动版本及实际导入时间。 */
+export type CatalogApiResourceSummary = Omit<CatalogResourceSummary, 'source'> & { source?: CatalogImportSource };
+
 /** HTTP resource 列表响应，尚无导入时返回空列表。 */
-export type CatalogApiResourceListResponse = CatalogApiResponse<ResourceListResult>;
+export type CatalogApiResourceListResponse = Omit<CatalogApiResponse<ResourceListResult>, 'items'> & {
+  items: CatalogApiResourceSummary[];
+};
 /** HTTP category 列表响应，包含筛选后的分类及计数。 */
 export type CatalogApiCategoryListResponse = CatalogApiResponse<CategoryListResult>;
 /** HTTP permission 列表响应，包含合并行及计数。 */

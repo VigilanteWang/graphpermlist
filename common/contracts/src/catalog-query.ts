@@ -1,10 +1,10 @@
 /** 客户端的查询参数、目录概要、列表、计数和详情。 */
-import type { CatalogCategoryMetadata, PermissionDefinition, PermissionType } from './catalog-model.js';
+import type { CatalogBrowseMode, CatalogCategoryMetadata, PermissionDefinition, PermissionType } from './catalog-model.js';
 
 /** 界面需要知道的目录状态。not-imported 表示尚无导入数据，ready 表示已有可查询数据。 */
 export type CatalogDataState = 'not-imported' | 'ready';
 /** 目录输入文件的共同来源字段，供数据库导入和离线 JSON 生成记录使用。 */
-interface CatalogSourceFileMetadata {
+export interface CatalogSourceFileMetadata {
   fileName: string;
   sha256: string; // 原始输入文件字节的 SHA-256。
   classificationVersion: string;
@@ -23,7 +23,7 @@ export type CatalogSourceMetadata = CatalogImportSource | CatalogJsonSnapshotSou
 
 /** JSON client 加载的快照产物标识，sha256 对应完整快照文件字节。 */
 export interface CatalogJsonArtifactMetadata {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   version: string;
   sha256: string;
 }
@@ -43,6 +43,10 @@ export interface PermissionCounts {
 export interface CatalogResourceSummary extends PermissionCounts {
   resourceId: string; // resource 的 App ID，在各数据源中标识同一个应用。
   displayName: string;
+  // schema 1 和旧 HTTP 服务仍可返回只有计数的 resource 概览。
+  browseMode?: CatalogBrowseMode;
+  totalDefinitionCount?: number;
+  source?: CatalogSourceMetadata;
 }
 /** 单个服务 category 的查询概览，包含分类元数据和命中筛选的数量。 */
 export interface CatalogCategorySummary extends CatalogCategoryMetadata, PermissionCounts {}
@@ -60,7 +64,7 @@ export interface MergedPermissionRow {
   definitions: PermissionDefinition[]; // 仅包含命中筛选的可见定义
 }
 
-/** resource 列表的中立查询结果，包含 resource 概览和目录元数据。 */
+/** resource 列表的中立结果。存在不同来源时，统一 source 为 null，每个概览提供自己的来源。 */
 export interface ResourceListResult extends CatalogQueryMetadata {
   items: CatalogResourceSummary[];
 }

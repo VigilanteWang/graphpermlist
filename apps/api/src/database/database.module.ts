@@ -5,6 +5,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CATALOG_ENTITIES } from '../catalog/catalog.entities';
+import { CatalogBrowseMode1795737600000 } from './catalog-browse-mode.migration';
 import { CatalogSchema1794528000000 } from './catalog.migration';
 
 /** 数据库模块。用已校验的 SQLite 路径建立 TypeORM 连接，查询和导入服务复用这一连接。 */
@@ -17,7 +18,7 @@ import { CatalogSchema1794528000000 } from './catalog.migration';
       // 内存数据库无需文件目录；文件数据库先确保父目录存在。
       if (database !== ':memory:') mkdirSync(dirname(database), { recursive: true });
       // 表结构由 npm run db:migrate 更新，启动 API 时只建立连接。
-      return { type: 'better-sqlite3' as const, database, entities: CATALOG_ENTITIES, migrations: [CatalogSchema1794528000000], synchronize: false, migrationsRun: false, retryAttempts: 1 };
+      return { type: 'better-sqlite3' as const, database, entities: CATALOG_ENTITIES, migrations: [CatalogSchema1794528000000, CatalogBrowseMode1795737600000], synchronize: false, migrationsRun: false, retryAttempts: 1 };
     }
   })]
 })

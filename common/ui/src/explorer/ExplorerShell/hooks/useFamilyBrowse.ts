@@ -1,13 +1,13 @@
-/** 记住每个 category 里哪些 permission family 已展开，搜索时自动展开所有命中的 family。 */
+/** 记住各 resource 和 category 里展开的 permission family，搜索时自动展开所有命中的 family。 */
 import * as React from "react";
 import type { MergedPermissionRow } from "@graph/contracts";
 
 /**
  * 每个 family 显示为一个折叠项，展开后就能看到这一组的 permission。
- * 展开的状态，记录存在state里，切换 category 再回来时可以接着浏览。
+ * 普通浏览的展开状态由外壳保留，切换 resource 或 category 再回来时可以接着浏览。
  *
  * @param rows - 查到的 permission 列表，数据还没回来时按空列表处理。
- * @param expansionKey - 用来查找和保存展开记录的键。进入 category 后，用 category 名作为键。
+ * @param expansionKey - 展开记录的键，由 Resource App ID 和可选的 category 组成。
  * @param searching - 搜索框里是否有搜索词。只输入空格也算普通浏览。
  */
 export function useFamilyBrowse(
@@ -15,7 +15,7 @@ export function useFamilyBrowse(
   expansionKey: string,
   searching: boolean,
 ) {
-  // 记住每个 category 在普通浏览时打开了哪些 family，例如 { identity: ['User'] }。
+  // 同名 family 可以出现在不同 resource，所以按当前浏览范围分别保存。
   const [savedOpen, setSavedOpen] = React.useState<Record<string, string[]>>(
     {},
   );
@@ -38,8 +38,8 @@ export function useFamilyBrowse(
     if (searching) setSearchOpen(groups.map(([family]) => family));
   }, [groups, searching]);
   /**
-   * 搜索时调用 setSearchOpen，更新搜索时展开的 family 列表。
-   * 普通浏览时调用 setSavedOpen，更新当前 category 的展开记录。
+   * 当前浏览范围的 family 展开更新操作。搜索时只更新临时展开名单。
+   * 普通浏览时调用 setSavedOpen，更新当前 resource 和 category 的展开记录。
    *
    * @param open - 这次更新后应展开的所有 family 名称。传入空数组就会全部收起。
    */
@@ -49,7 +49,7 @@ export function useFamilyBrowse(
   }
   return {
     groups,
-    // 界面只展开名单里的 family。普通浏览时，第一次进入某个 category 默认全部收起。
+    // 界面只展开名单里的 family。普通浏览时，第一次进入一个浏览范围默认全部收起。
     open: searching ? searchOpen : (savedOpen[expansionKey] ?? []),
     setOpen,
     expandAll: () => setOpen(groups.map(([family]) => family)),

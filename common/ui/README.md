@@ -1,20 +1,20 @@
 # Common UI · `@graph/ui`
 
-`@graph/ui` 是 Permissions Explorer 三个前端共用的 UI。前端通过 `CatalogClient` 提供 permission 数据，可以通过 HTTP API 读取 SQLite 数据库，也可以从 JSON 文件读取。
+`@graph/ui` 是独立网站和 SPFx Web Part 共用的 UI。宿主通过 `CatalogClient` 提供 permission 数据，可以通过 HTTP API 读取 SQLite 数据库，也可以从 JSON 文件读取。
 
 ## 前端入口
 
 | 入口 | 数据来源 | 接入状态 |
 | --- | --- | --- |
 | [独立 Web](../../apps/web/src/main.tsx) | NestJS HTTP API | 已接入 |
-| [API 版 SPFx Web Part](../../apps/spfx/src/webparts/permissionsExplorer/PermissionsExplorerWebPart.ts) | NestJS HTTP API | 已接入 |
-| JSON 版 SPFx Web Part | SharePoint 文档库中的版本化 JSON，下载后在浏览器中查询 | JSON client 已有，独立 Web Part 和第三入口由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 接入 |
+| [SPFx Web Part](../../apps/spfx/src/webparts/permissionsExplorer/PermissionsExplorerWebPart.ts) | NestJS HTTP API | 已接入 |
+| SPFx Web Part 的 SharePoint JSON 模式 | SharePoint 文档库中的版本化 JSON，下载后在浏览器中查询 | JSON client 已有，宿主配置和文件访问由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 接入 |
 
 ## 界面功能
 
-- **Home** 显示目录来源、导入信息和统计，并提供各资源的 API permission 定义。
-- 每个资源页面按分类规则显示 category 卡片，进入某个 category 后按 family 分组。导航也预留了 Power BI API 和 SharePoint API 的入口，可用于扩展这两类 API 的 permission 展示，目前均标为 **Coming soon**。
-- **筛选框** 在 category 卡片页和 permission 列表页共用同一份搜索和筛选条件。进入 category 会缩小查询范围，返回时仍保留这些条件。
+- **Home** 和侧栏共用 `CatalogClient.resources()` 返回的目录。Home 为各 resource 显示计数、数据来源和浏览卡片。
+- Microsoft Graph 先显示 category 卡片，进入 category 后按 family 分组。Power BI Service 和 SharePoint Online 直接按 family 浏览。新增 resource 由目录返回的浏览方式决定如何展示。
+- **筛选框** 在 category 卡片页和 permission 列表页共用一份条件。进入 category 会缩小查询范围。切换 resource 时保留搜索词、permission 类型、admin consent 和 Show disabled，清除 family 筛选、当前 category 和打开的详情。普通浏览的 family 展开记录按 resource 和 category 保存。
 - **permission 列表与 details**分别展示匹配当前筛选的定义和该 permission 的全部定义。details 面板支持复制名称和 GUID。
 
 ## 组件与 Hook 架构
@@ -58,7 +58,7 @@ flowchart LR
 | [`ResourceNavigation`](src/explorer/ExplorerShell/components/ResourceNavigation.tsx) | 在 Home 和各 API 资源入口之间导航。 |
 | [`HomePage`](src/explorer/HomePage/HomePage.tsx) | 显示统计、资源卡片、使用说明和数据来源。 |
 | [`CatalogToolbar`](src/explorer/components/CatalogToolbar.tsx) | 显示当前筛选条件，并把用户修改交给 `updateCriteria`。 |
-| [`CatalogContent`](src/explorer/ExplorerShell/components/CatalogContent.tsx) | 浏览已接入的 API 资源时，显示 [`CategoryCards`](src/explorer/ExplorerShell/components/CategoryCards.tsx) 或 [`FamilyPermissions`](src/explorer/ExplorerShell/components/FamilyPermissions.tsx)。目前可浏览 Microsoft Graph，Power BI 和 SharePoint 是预留入口。 |
+| [`CatalogContent`](src/explorer/ExplorerShell/components/CatalogContent.tsx) | 根据 resource 的浏览方式和当前 category 显示 [`CategoryCards`](src/explorer/ExplorerShell/components/CategoryCards.tsx) 或 [`FamilyPermissions`](src/explorer/ExplorerShell/components/FamilyPermissions.tsx)。 |
 | [`CategoryCards`](src/explorer/ExplorerShell/components/CategoryCards.tsx)、[`FamilyPermissions`](src/explorer/ExplorerShell/components/FamilyPermissions.tsx)、[`PermissionGrid`](src/permissions/PermissionGrid/PermissionGrid.tsx) | 分别显示 category 卡片、可展开的 family 分组和 permission 表格。 |
 | [`DetailsPanel`](src/permissions/DetailsPanel/DetailsPanel.tsx)、[`DefinitionDetails`](src/permissions/DetailsPanel/components/DefinitionDetails.tsx)、[`CopyValue`](src/permissions/DetailsPanel/components/CopyValue.tsx) | 展示选中 permission 的完整定义，并提供名称和 GUID 的复制操作。 |
 | [`DefinitionLabel`](src/permissions/components/DefinitionLabel.tsx)、[`MetadataTable`](src/components/MetadataTable.tsx)、[`RequestError`](src/components/RequestError.tsx) | 提供可复用的定义标签、元数据表和请求错误提示。 |
@@ -73,7 +73,7 @@ flowchart LR
 | [`useCatalogRequest`](src/hooks/useCatalogRequest.ts) | 执行传入的查询函数，处理加载、失败、取消和重试。 |
 | [`useFamilyBrowse`](src/explorer/ExplorerShell/hooks/useFamilyBrowse.ts) | 按 family 分组并保存展开状态。 |
 | [`usePermissionDetails`](src/permissions/DetailsPanel/hooks/usePermissionDetails.ts)、[`useCopyValue`](src/permissions/DetailsPanel/hooks/useCopyValue.ts) | 分别加载选中 permission 的详情、管理复制结果。 |
-| [`CatalogClient`](../contracts/src/catalog-query.ts) | UI 统一使用的查询接口。HTTP client 通过后端 API 查询 SQLite，JSON client 在浏览器中查询已加载的快照。 |
+| [`CatalogClient`](../contracts/src/catalog-client.ts) | UI 统一使用的查询接口。HTTP client 通过后端 API 查询 SQLite，JSON client 在浏览器中查询已加载的快照。 |
 
 ## 页面如何更新
 
@@ -107,14 +107,14 @@ flowchart TD
 | 名称 | 含义与用途 |
 | --- | --- |
 | `criteria` | 筛选框保存的条件，例如搜索词、permission 类型、family 和是否显示禁用项。 |
-      | `category` | 此项目为 permission 划分的大类。比如Directory，SharePoint。  |
-| `family` | category 内的分组，例如 `Mail`。每组可以展开查看其中的 permission。 |
+| `category` | 按配置为 permission 划分的大类，例如 Graph 的 Exchange。 |
+| `family` | 在 resource 或 category 中显示的 permission 分组，例如 `Mail`。每组可以展开查看其中的 permission。 |
 | `query` | 结合 `criteria` 和当前 `category` 得到的查询参数。 |
 | `catalog` | 此处指 `useExplorerCatalog` 返回给页面的查询状态和派生数据。 |
-| `resources` | API 资源列表和目录状态，用于 Home 和定位 Microsoft Graph resource。 |
+| `resources` | API 资源列表和目录状态。Home 和侧栏使用同一份结果，并按 Resource App ID 定位选中的 resource。 |
 | `categories` | category 列表和计数，用于显示分类卡片。 |
-| `rows` | 当前 category 中符合查询条件的 permission 行，用于 family 分组和表格。 |
-| `familySource` | 包含禁用项的 permission 查询结果，用于生成独立于当前筛选的 family 选项，也供 Home 统计使用。 |
+| `rows` | 当前 resource 或 category 中符合查询条件的 permission 行，用于 family 分组和表格。 |
+| `familySource` | 包含禁用项的 permission 查询结果，用于生成独立于当前筛选的 family 选项。旧版单资源目录也用它补读 Home 的 definitions 总数。 |
 
 ## 接入与验证
 

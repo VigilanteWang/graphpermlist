@@ -1,17 +1,13 @@
-/** npm run verify:data 的入口。用共享加载器检查本地 permission 文件，再输出摘要和数量。 */
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { loadPermissionsSource } from '@graph/catalog-source';
-export { DEFAULT_PERMISSIONS_SOURCE, SNAPSHOT_SHA256, validatePermissionsData, loadPermissionsSource } from '@graph/catalog-source';
+/** npm run verify:data 的入口。用导入和导出共用的加载器校验所有已配置的源。 */
+import { loadPermissionsSources } from '@graph/catalog-source';
+export { loadPermissionsSource, validatePermissionsData } from '@graph/catalog-source';
 
-// 只有直接运行本文件时才执行校验；被其他模块导入时仅提供导出。
-if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
-  try {
-    const { sha256, counts } = await loadPermissionsSource();
-    console.log(JSON.stringify({ status: 'ok', sha256, counts }, null, 2));
-  } catch (error) {
-    console.error(`Data verification failed: ${error.message}`);
-    // 非零退出码让 npm 或持续集成流程识别校验失败。
-    process.exitCode = 1;
-  }
+try {
+  const { inputs, schemaVersion } = await loadPermissionsSources();
+  const resources = inputs.map(({ data, fileName, sha256, counts }) => ({ appId: data.appId, fileName, sha256, counts }));
+  const { sha256, counts } = resources[0];
+  console.log(JSON.stringify(schemaVersion === 1 ? { status: 'ok', sha256, counts } : { status: 'ok', resources }, null, 2));
+} catch (error) {
+  console.error(`Data verification failed: ${error.message}`);
+  process.exitCode = 1;
 }

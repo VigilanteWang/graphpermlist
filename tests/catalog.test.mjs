@@ -184,7 +184,7 @@ test('transactional publication, updated versions, corrupt input, rollback after
     const before = await snapshotTables();
     const badPath = join(dir,'invalid.json');
     config.set('PERMISSIONS_SOURCE',badPath);
-    for (const invalid of ['{broken', JSON.stringify({...source,appRoles:[]}),
+    for (const invalid of ['{broken', JSON.stringify({...source,appRoles:undefined}),
       JSON.stringify({...source,appRoles:[...source.appRoles,source.appRoles[0]]}),
       JSON.stringify({...source,passwordCredentials:[]})]) {
       await writeFile(badPath,invalid);
@@ -244,7 +244,7 @@ test('CLI initializes, imports and closes on success/failure; separate HTTP cont
   const dir = await mkdtemp(join(tmpdir(),'catalog-cli-'));
   const path = join(dir,'catalog.sqlite');
   const env = {...process.env,SQLITE_PATH:path,PORT:'1'};
-  delete env.PERMISSIONS_SOURCE;
+  env.PERMISSIONS_SOURCE = graphSourcePath;
   delete env.PERMISSIONS_SHA256;
   const run = (command,extra={}) => spawnSync(process.execPath,['apps/api/dist/catalog-cli.js',command],{
     env:{...env,...extra},encoding:'utf8',timeout:15000});
@@ -330,7 +330,7 @@ test('injected TypeORM reader holds one version when the active snapshot changes
       assert.ok(!Object.hasOwn(entry, 'versionId'));
     }
     assert.deepEqual(await reader.readActive(graph), {
-      versionId: nextId, resourceId: graph, displayName: 'Replacement',
+      versionId: nextId, resourceId: graph, displayName: 'Replacement', browseMode: 'category',
       source: old.source, classificationHash: old.classificationHash,
       categories: [], families: [], definitions: []
     });

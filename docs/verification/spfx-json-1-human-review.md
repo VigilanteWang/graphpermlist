@@ -69,7 +69,7 @@ published for PR #16 review.
 
 This supplements the historical stage checks above with the current component-local
 folder refactor and Fluent UI controls. See [final evidence](../sharepoint-json-plan.md#12-follow-up-component-local-folders-and-fluent-ui--2026-11-18)
-and [UI rules](../../packages/ui/AGENTS.md). Record pass/change-needed/blocked with
+and [UI rules](../../common/ui/AGENTS.md). Record pass/change-needed/blocked with
 expected/actual behavior and sanitized reproduction details.
 
 1. Inspect src/explorer/ExplorerShell, src/explorer/HomePage and

@@ -15,7 +15,7 @@ export class EmptyQueryDto {}
 export class PermissionQueryDto implements PermissionQueryOptions {
   @IsOptional() @IsString() @MaxLength(500) q?: string;
   @IsOptional() @IsString() @MaxLength(100) category?: string;
-  @IsOptional() @IsString() @MaxLength(100) family?: string;
+  @IsOptional() @IsString() @MaxLength(256) family?: string;
   @IsOptional() @IsIn(['Delegated', 'Application']) permissionType?: PermissionType;
   @IsOptional() @Transform(parseBoolean) @IsBoolean() adminConsentRequired?: boolean;
   @IsOptional() @Transform(parseBoolean) @IsBoolean() showDisabled?: boolean;

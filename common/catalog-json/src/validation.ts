@@ -1,4 +1,4 @@
-/** 校验 current.json 和它指向的目录快照。离线工具与浏览器都用同一套 schema 1 规则检查文件。 */
+/** 校验 current.json 和它指向的目录快照。离线工具与浏览器都用同一套 schema 1 和 2 规则检查文件。 */
 import type {
   CatalogJsonError, CatalogJsonErrorCode, CatalogJsonManifest, CatalogJsonSnapshot
 } from '@graph/contracts';
@@ -63,20 +63,20 @@ function decode(bytes: Uint8Array, maxBytes: number): string {
   return text;
 }
 
-/** schema 1 的顶层 JSON 对象解析函数，区分不支持的版本和缺失或无效的 schema 字段。 */
-function parseDocument(text: string, fields: readonly string[]): Record<string, unknown> {
+/** 发布文件的顶层解析函数，按已支持的 schema 版本选择字段要求。 */
+function parseDocument(text: string, fields: readonly string[], schema2Fields = fields): Record<string, unknown> {
   let value: unknown;
   try {
     value = JSON.parse(text);
   } catch {
     throw new JsonCatalogError('invalid-snapshot', 'Catalog file is not valid JSON.');
   }
-  if (value && typeof value === 'object' && 'schemaVersion' in value
-    && Number.isInteger(value.schemaVersion) && value.schemaVersion !== 1) {
+  const schema = value && typeof value === 'object' && 'schemaVersion' in value ? value.schemaVersion : undefined;
+  if (Number.isInteger(schema) && schema !== 1 && schema !== 2) {
     throw new JsonCatalogError('unsupported-schema', 'Catalog schema version is not supported.');
   }
-  const document = record(value, fields);
-  expect(document.schemaVersion === 1, 'Invalid catalog schema version.');
+  const document = record(value, schema === 2 ? schema2Fields : fields);
+  expect(schema === 1 || schema === 2, 'Invalid catalog schema version.');
   return document;
 }
 
@@ -123,12 +123,14 @@ export function readJsonManifest(bytes: Uint8Array): CatalogJsonManifest {
 }
 
 /** 发布来源的校验函数，确保摘要、时间、逻辑文件名和排除数量可用于追溯。 */
-function validateSource(value: unknown): void {
-  const source = record(value, ['fileName', 'sha256', 'classificationVersion', 'generatedAt', 'excludedRscCount']);
+function validateSource(value: unknown, embeddedTimestamp: boolean): void {
+  const fields = ['fileName', 'sha256', 'classificationVersion', 'excludedRscCount'];
+  if (embeddedTimestamp) fields.push('generatedAt');
+  const source = record(value, fields);
   pattern(source.fileName, LOGICAL_FILENAME);
   pattern(source.sha256, SHA256);
   pattern(source.classificationVersion, CLASSIFICATION_VERSION);
-  expect(isIsoUtcTimestamp(source.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
+  if (embeddedTimestamp) expect(isIsoUtcTimestamp(source.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
   expect(typeof source.excludedRscCount === 'number' && Number.isSafeInteger(source.excludedRscCount)
     && source.excludedRscCount >= 0, 'Invalid excluded RSC count.');
 }
@@ -182,12 +184,19 @@ function validateDefinition(value: unknown, families: ReadonlyMap<string, Set<st
 }
 
 /** 单个 resource 的结构校验函数，对定义应用快照剩余的记录预算并返回实际记录数。 */
-function validateResource(value: unknown, resourceIds: Set<string>, remainingDefinitions: number): number {
-  const resource = record(value, ['resourceId', 'displayName', 'categories', 'families', 'definitions']);
+function validateResource(value: unknown, resourceIds: Set<string>, remainingDefinitions: number, multiResource: boolean): number {
+  const fields = ['resourceId', 'displayName', 'categories', 'families', 'definitions'];
+  if (multiResource) fields.push('browseMode', 'source', 'classificationHash');
+  const resource = record(value, fields);
   const id = pattern(resource.resourceId, UUID);
   expect(!resourceIds.has(id), 'Duplicate resource App ID.');
   resourceIds.add(id);
   label(resource.displayName);
+  if (multiResource) {
+    expect(resource.browseMode === 'category' || resource.browseMode === 'family', 'Invalid resource browse mode.');
+    pattern(resource.classificationHash, SHA256);
+    validateSource(resource.source, false);
+  }
 
   const families = new Map<string, Set<string>>();
   for (const value of array(resource.categories, MAX_CATEGORIES_PER_RESOURCE)) {
@@ -197,6 +206,11 @@ function validateResource(value: unknown, resourceIds: Set<string>, remainingDef
     label(category.displayName);
     officialText(category.description);
     families.set(key, new Set());
+  }
+  if (multiResource) {
+    // family 浏览复用内部 category；category 浏览的配置不能占用这个保留标识。
+    expect(resource.browseMode === 'family' ? families.size === 1 && families.has('all-permissions')
+      : !families.has('all-permissions'), 'Categories do not match the resource browse mode.');
   }
   for (const value of array(resource.families, MAX_FAMILIES_PER_RESOURCE)) {
     const family = record(value, ['category', 'family']);
@@ -210,6 +224,7 @@ function validateResource(value: unknown, resourceIds: Set<string>, remainingDef
   const locations = new Map<string, string>();
   // 同名可以有多条定义。用类型和 GUID 识别重复定义，用 value 核对它们是否出现在同一个位置。
   const definitions = array(resource.definitions, remainingDefinitions);
+  if (multiResource) expect(definitions.length > 0, 'A resource must contain an ordinary permission definition.');
   for (const definition of definitions) validateDefinition(definition, families, identities, locations);
   return definitions.length;
 }
@@ -221,16 +236,25 @@ export async function readJsonSnapshot(bytes: Uint8Array, manifest: CatalogJsonM
   const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
   const sha256 = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
   expect(sha256 === manifest.artifactSha256, 'Catalog snapshot SHA-256 does not match the manifest.');
-  const snapshot = parseDocument(text, ['schemaVersion', 'version', 'source', 'classificationHash', 'resources']);
+  const snapshot = parseDocument(text, ['schemaVersion', 'version', 'source', 'classificationHash', 'resources'],
+    ['schemaVersion', 'version', 'generatedAt', 'resources']);
+  expect(snapshot.schemaVersion === manifest.schemaVersion, 'Catalog snapshot schema does not match the manifest.');
   expect(snapshot.version === manifest.version, 'Catalog snapshot version does not match the manifest.');
-  pattern(snapshot.classificationHash, SHA256);
-  validateSource(snapshot.source);
+  const multiResource = snapshot.schemaVersion === 2;
+  if (multiResource) {
+    expect(isIsoUtcTimestamp(snapshot.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
+  } else {
+    pattern(snapshot.classificationHash, SHA256);
+    validateSource(snapshot.source, true);
+  }
 
   const resourceIds = new Set<string>();
   let remaining = MAX_DEFINITIONS;
   // 上限约束的是整个文件。校验完一个 resource 后，扣掉它已使用的条数。
-  for (const resource of array(snapshot.resources, MAX_RESOURCES)) {
-    remaining -= validateResource(resource, resourceIds, remaining);
+  const resources = array(snapshot.resources, MAX_RESOURCES);
+  if (multiResource) expect(resources.length > 0, 'The catalog must contain at least one resource.');
+  for (const resource of resources) {
+    remaining -= validateResource(resource, resourceIds, remaining, multiResource);
   }
   return snapshot as unknown as CatalogJsonSnapshot;
 }

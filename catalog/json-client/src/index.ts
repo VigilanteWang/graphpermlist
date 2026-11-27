@@ -1,6 +1,6 @@
 /** 从 current.json 找到并校验目录快照。界面随后可以从内存里的快照查询列表、计数和详情。 */
 import type {
-  CatalogClient, CatalogJsonArtifactMetadata, CatalogJsonSnapshot, CatalogResourceModel,
+  CatalogClient, CatalogJsonArtifactMetadata, CatalogJsonResource, CatalogJsonSnapshot, CatalogResourceModel,
   CatalogJsonSnapshotSource, CategoryListResult, PermissionDetailResult, PermissionListResult,
   PermissionQueryOptions, ResourceListResult
 } from '@graph/contracts';
@@ -32,7 +32,7 @@ interface Flight {
 /** 查询通用的 JSON 来源元数据，仅由有效发布物产生。 */
 interface JsonQueryMetadata {
   dataState: 'ready';
-  source: CatalogJsonSnapshotSource;
+  source: CatalogJsonSnapshotSource | null;
   artifact: CatalogJsonArtifactMetadata;
 }
 
@@ -110,16 +110,23 @@ async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: numb
 }
 
 /** 按 App ID 查 resource，和 HTTP API 一样忽略大小写，查不到时报告 not-found。 */
-function findResource(publication: Publication, resourceId: string): CatalogResourceModel {
+function findResource(publication: Publication, resourceId: string): CatalogResourceModel | CatalogJsonResource {
   const normalized = resourceId.toLowerCase();
   const resource = publication.snapshot.resources.find(item => item.resourceId === normalized);
   if (!resource) throw new JsonCatalogError('not-found', 'Resource not found.');
   return resource;
 }
 
+/** schema 2 的 resource 来源。快照生成时间对整批 resource 一致。 */
+function resourceSource(resource: CatalogJsonResource, generatedAt: string): CatalogJsonSnapshotSource {
+  return { ...resource.source, generatedAt };
+}
+
 /** 查询结果的来源构造函数，复制元数据以免调用方修改会话快照。 */
-function queryMetadata({ snapshot, artifact }: Publication): JsonQueryMetadata {
-  return { dataState: 'ready', source: { ...snapshot.source }, artifact: { ...artifact } };
+function queryMetadata({ snapshot, artifact }: Publication, resource?: CatalogResourceModel | CatalogJsonResource): JsonQueryMetadata {
+  const source = snapshot.schemaVersion === 1 ? { ...snapshot.source }
+    : resource && 'source' in resource ? resourceSource(resource, snapshot.generatedAt) : null;
+  return { dataState: 'ready', source, artifact: { ...artifact } };
 }
 
 /** 供界面使用的 JSON CatalogClient。前端负责文件位置和读取权限，客户端负责校验快照和执行查询。 */
@@ -153,10 +160,20 @@ export class JsonCatalogClient implements CatalogClient {
   async resources(signal?: AbortSignal): Promise<ResourceListResult> {
     const publication = await this.getPublication(signal);
     checkAborted(signal);
-    const items = publication.snapshot.resources.map(({ resourceId, displayName, definitions }) => ({
-      resourceId, displayName, ...countPermissions(queryPermissions(resourceId, definitions))
-    })).sort((a, b) => a.resourceId.localeCompare(b.resourceId));
-    return { ...queryMetadata(publication), items };
+    const { snapshot } = publication;
+    const items = snapshot.resources.map(resource => {
+      const { resourceId, displayName, definitions } = resource;
+      const counts = countPermissions(queryPermissions(resourceId, definitions));
+      return {
+        resourceId, displayName, ...counts,
+        ...(snapshot.schemaVersion === 2 && 'source' in resource ? {
+          browseMode: resource.browseMode,
+          totalDefinitionCount: definitions.length,
+          source: resourceSource(resource, snapshot.generatedAt)
+        } : {})
+      };
+    }).sort((a, b) => a.resourceId.localeCompare(b.resourceId));
+    return { ...queryMetadata(publication, snapshot.resources.length === 1 ? snapshot.resources[0] : undefined), items };
   }
 
   /** category 查询，使用同一批命中 definitions 计算分类和总数。 */
@@ -165,7 +182,7 @@ export class JsonCatalogClient implements CatalogClient {
     checkAborted(signal);
     const resource = findResource(publication, resourceId);
     const rows = queryPermissions(resource.resourceId, resource.definitions, query);
-    return { ...queryMetadata(publication), ...countPermissions(rows), items: queryCategories(resource.categories, rows) };
+    return { ...queryMetadata(publication, resource), ...countPermissions(rows), items: queryCategories(resource.categories, rows) };
   }
 
   /** permission 列表查询，返回合并行和筛选统计。复制行内 definitions，让调用方修改结果时保留快照原样。 */
@@ -174,7 +191,7 @@ export class JsonCatalogClient implements CatalogClient {
     checkAborted(signal);
     const resource = findResource(publication, resourceId);
     const rows = queryPermissions(resource.resourceId, resource.definitions, query);
-    return { ...queryMetadata(publication), ...countPermissions(rows), items: structuredClone(rows) };
+    return { ...queryMetadata(publication, resource), ...countPermissions(rows), items: structuredClone(rows) };
   }
 
   /** permission 详情查询，按精确 value 获取命中行及该名称下的全部 definitions。 */
@@ -185,7 +202,7 @@ export class JsonCatalogClient implements CatalogClient {
     const resource = findResource(publication, resourceId);
     const detail = queryDetail(resource.resourceId, resource.definitions, value, query);
     if (!detail) throw new JsonCatalogError('not-found', 'Permission not found.');
-    return { ...queryMetadata(publication), ...structuredClone(detail) };
+    return { ...queryMetadata(publication, resource), ...structuredClone(detail) };
   }
 
   /** 为一次查询取得快照。已有快照时，即使正在刷新也能立即用它查询。 */

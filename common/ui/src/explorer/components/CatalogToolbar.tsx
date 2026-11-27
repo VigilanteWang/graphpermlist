@@ -1,4 +1,4 @@
-/** 两级目录页面共用的筛选框，包含搜索输入和其他筛选选项。 */
+/** category 卡片页和 family 浏览页共用的筛选框，包含搜索输入和其他筛选选项。 */
 import * as React from 'react';
 import { Button, Checkbox, Field, Input, mergeClasses, Select } from '@fluentui/react-components';
 import type { PermissionQueryOptions, PermissionType } from '@graph/contracts';

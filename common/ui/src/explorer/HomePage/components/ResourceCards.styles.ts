@@ -1,17 +1,23 @@
 /** resource 入口按钮与卡片网格的局部样式。 */
 import { makeStyles, tokens } from '@fluentui/react-components';
 
-/** 固定 resource 卡片的阅读尺寸，并允许小于 240px 的容器继续收缩。 */
+/** 让 resource 卡片在窄容器继续收缩，并允许长名称换行时撑高卡片。 */
 export const useResourceCardsStyles = makeStyles({
-  card: {
+  resourceCard: {
+    boxSizing: 'border-box',
+    width: '100%',
+    minWidth: '0',
+    maxWidth: '340px',
+    minHeight: '200px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'start',
+    justifyContent: 'space-between',
     textAlign: 'left',
     whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
     padding: '20px',
     gap: '12px',
-    minHeight: '170px',
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusLarge,
     backgroundColor: tokens.colorNeutralBackground1,
@@ -23,13 +29,5 @@ export const useResourceCardsStyles = makeStyles({
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
     maxWidth: '1052px',
     gap: '16px'
-  },
-  resourceCard: {
-    boxSizing: 'border-box',
-    width: '100%',
-    maxWidth: '340px',
-    height: '200px',
-    justifyContent: 'space-between'
-  },
-  comingSoonCard: { backgroundColor: tokens.colorNeutralBackground3 }
+  }
 });

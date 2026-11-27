@@ -16,47 +16,41 @@ npm run start:api
 Keep the API terminal running. In a second terminal run `npm run dev:web`.
 The website uses the HTTP API for the shared catalog browsing UI.
 
-The root `.env.example` documents PORT, HOST, CORS_ORIGINS, SQLITE_PATH and
-PERMISSIONS_SOURCE. Copy to `.env` only when changing defaults. Both CLI and HTTP
-load the same ConfigModule, DatabaseModule, entities and CatalogModule. Paths in
-environment variables resolve relative to the command's working directory, except
-the default input which resolves from the repository's scripts directory.
-Never commit `.env`, original tenant exports or generated SQLite files.
+The root `.env.example` documents HTTP, SQLite, and catalog input settings.
+Both CLI and HTTP use the same Nest configuration. Export, validation, and
+sanitization are standalone Node commands. Pass their variables in the command
+environment. Paths supplied in variables resolve from the working directory.
+The default manifest is `data/catalog-resources.json`, resolved from the
+installed source workspace. Keep original exports and SQLite databases local.
 
 ## Migration and import
 
-- `npm run db:migrate` uses a Nest application context and TypeORM's versioned
-  migration history. Repeating it applies no additional schema changes.
-  `synchronize` and automatic startup migrations remain disabled.
-- `npm run import:data` uses CatalogImportService in a Nest application context.
-  It does not start HTTP and closes the connection in `finally`, including failures.
-  Run migration first; missing schema is an error, not an unimported empty catalog.
-- Default input: `data/commercial-graph-permlist.json`; its SHA256 is independently
-  pinned. For a reviewed replacement use `PERMISSIONS_SOURCE=./data/replacement.json`.
-  Optionally set `PERMISSIONS_SHA256` to an expected digest. Validate and sanitize
-  replacements before import; the parser rejects unknown tenant/credential fields,
-  missing/empty collections, malformed definitions and duplicate GUIDs within a type.
-  Definition identity is type + GUID, so different GUIDs sharing a value are preserved.
-  Counts are calculated from the input, never constrained to the current snapshot totals.
-- Only appRoles allowing Application and ordinary delegated scopes are imported.
-  User/group-only roles are skipped. RSC is counted separately and excluded.
-- Each successful changed snapshot records a new immutable version with the source
-  digest, import timestamp and classification version. Original safe fields are stored
-  alongside the normalized API fields. Reimporting the active source/classification
-  returns the existing version without changing its import timestamp or counts.
-- All definitions, categories and families are written before the active-version
-  pointer changes, in one transaction. Both partial-write and publication failures
-  roll back. Historical versions remain stored; no cleanup or rollback CLI is shipped.
-  Import calls within one application context are serialized for SQLite's connection.
-  Cross-process contention can fail; rerun the command after the other writer finishes.
-- Source metadata publishes the logical name `commercial-graph-permlist.json`, not
-  the operator's filename/path. SHA256 distinguishes replacements. CLI failures use
-  a fixed message and nonzero exit status, including initialization failures.
+- `npm run db:migrate` applies versioned SQLite migrations. The #18 migration
+  adds a browse mode to existing snapshots with a category default. Running it
+  again applies only pending migrations. The API still uses `synchronize: false`
+  and explicit migrations.
+- `npm run import:data` validates and models every configured input before one
+  SQLite transaction writes the batch. The default manifest pins Microsoft
+  Graph, Power BI Service and SharePoint Online. Supply `PERMISSIONS_CONFIG`
+  to use a different manifest. See [source documentation](../data/README.md).
+- An explicit `PERMISSIONS_SOURCE` imports a single Graph input. Optionally
+  pin it using `PERMISSIONS_SHA256`. Use a fresh database to review Graph by
+  itself. Each import updates the named resources and leaves other active
+  resources in the same database available.
+- The importer keeps original official fields and disabled definitions.
+  It excludes user-only appRoles and counts RSC separately. An unchanged
+  active resource retains its version ID and import timestamp, while changed
+  resources receive new versions. A failed batch leaves previous active
+  versions available. In-process writes are serialized per connection.
+- Import results report a per-resource version ID and reuse flag in manifest
+  mode. The command closes its connection on success or failure. Source metadata
+  uses the configured logical filename. Explicit Graph imports use
+  `commercial-graph-permlist.json` for source display.
 
-SQLite-specific DDL/indexes live in `apps/api/src/database/catalog.migration.ts`;
-connection options live in DatabaseModule. Business queries use injected TypeORM
-repositories and are independent of HTTP. A SQL Server provider is not implemented
-or validated in this stage.
+`TypeOrmCatalogReader` resolves an active version and maps its categories,
+families, and definitions using that version ID. `CatalogService` consumes
+plain snapshots and calls the shared query package. SQLite DDL remains in
+`apps/api/src/database/`.
 
 ## Read-only API examples
 
@@ -94,24 +88,28 @@ npm run export:json -- --output ./release/catalog
 npm run verify:json -- --output ./release/catalog
 ```
 
-The default source is `data/commercial-graph-permlist.json`. For a reviewed
-replacement, pass `PERMISSIONS_SOURCE=./data/replacement.json` in the command
-environment and optionally pin `PERMISSIONS_SHA256`. Export reads these environment
-variables directly. It reports a fixed logical source name and preserves the input.
-`./release/catalog` is gitignored.
+Default export uses the resource manifest and writes schema 2. A snapshot's
+`generatedAt` applies to the entire release. Each resource supplies its browse
+mode, source file SHA-256, classification version/hash, and excluded RSC count.
+SQLite reports a separate `importedAt` for each resource.
 
-- `catalog-<version>.json` contains the schema 1 snapshot. Its version is derived
-  from the snapshot payload, including `source.generatedAt`. The timestamp defaults
-  to the current UTC time. Repeating with identical input and code and
-  `--generated-at 2026-11-20T00:00:00.000Z` reproduces both files byte for byte.
-- `current.json` points to the versioned filename and stores the SHA-256 of its
-  exact file bytes. The separate `source.sha256` records the input digest.
-  `generatedAt` records export time. SQLite continues to record `importedAt`.
-- Local export stages and verifies both files, then adds the snapshot to the
-  destination on the same filesystem. Identical snapshots can be reused. A collision
-  with different bytes fails. Replacing `current.json` is the final local step.
-  Keep old version files for rollback. A failure before pointer replacement can
-  leave an unreferenced, valid version file.
+```sh
+PERMISSIONS_SOURCE=./data/commercial-graph-permlist.json \
+  npm run export:json -- --output ./release/graph-only --generated-at 2026-11-20T00:00:00.000Z
+npm run verify:json -- --output ./release/graph-only
+```
+
+Explicit Graph export emits schema 1, using the same bytes as #13 for identical
+input and generation time. Both formats derive the version from content.
+`current.json` points to the versioned basename and records the separate
+SHA-256 over the exact snapshot file bytes. For reproducible output, use fixed
+inputs, classification and `--generated-at`.
+
+Local export stages and verifies both files, publishes the immutable snapshot,
+then replaces `current.json`. Identical version files can be reused. A collision
+with different bytes fails and preserves the previous pointer. Keep verified
+version files and manifests for rollback. Update consumers to the reader that
+accepts schema 1 and 2 before switching a shared pointer to schema 2.
 
 ### Manual switch and rollback in SharePoint
 

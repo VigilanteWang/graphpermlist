@@ -41,7 +41,7 @@ export function ExplorerShell({
   const styles = useExplorerStyles();
   // 目录外壳保留筛选和展开记录，切换子页面时可以继续用同一份状态。
   const model = useExplorerController(client, viewportLayout);
-  const { resources, graph, resourceId, enabled, familySource, families } = model.catalog;
+  const { resources, resource, familySource, families } = model.catalog;
   return (
     <FluentProvider
       ref={model.root}
@@ -58,7 +58,8 @@ export function ExplorerShell({
         )}
       >
         <ResourceNavigation
-          page={model.page}
+          resourceId={model.resourceId}
+          resources={resources.data?.items ?? []}
           hostLabel={hostLabel}
           narrow={model.narrow}
           viewportLayout={viewportLayout}
@@ -81,24 +82,24 @@ export function ExplorerShell({
               <Button onClick={resources.retry}>Retry</Button>
             </div>
           )}
-          {resources.data?.dataState === 'ready' && model.page === 'home' && (
+          {resources.data?.dataState === 'ready' && model.resourceId === undefined && (
             <HomePage
               resources={resources.data}
-              graph={graph}
               familySource={familySource}
-              onBrowseGraph={() => model.navigate('graph')}
+              onBrowse={(resourceId) => model.navigate(resourceId, true)}
             />
           )}
-          {resources.data?.dataState === 'ready' && model.page === 'graph' && !graph && (
+          {resources.data?.dataState === 'ready' && model.resourceId !== undefined && !resource && (
             <Body1 as="p" role="status">
-              Microsoft Graph is not available in this catalog.
+              This API resource is not available in the catalog.
             </Body1>
           )}
-          {enabled && (
+          {resource && (
             <>
               <CatalogToolbar criteria={model.criteria} families={families} updateCriteria={model.updateCriteria} />
               <CatalogContent
-                key={model.categoryKey}
+                key={model.browseKey}
+                resourceName={resource.displayName}
                 category={model.category}
                 catalog={model.catalog}
                 browse={model.browse}
@@ -108,8 +109,9 @@ export function ExplorerShell({
                 onOpenPermission={model.openDetail}
               />
               <DetailsPanel
+                key={resource.resourceId}
                 client={client}
-                resourceId={resourceId}
+                resourceId={resource.resourceId}
                 value={model.detail}
                 query={model.query}
                 onClose={model.closeDetail}

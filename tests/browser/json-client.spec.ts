@@ -9,7 +9,7 @@ test('Chromium streams the real offline publication, verifies it and queries the
   const dir = await mkdtemp(join(tmpdir(), 'catalog-json-browser-'));
   const generatedAt = '2026-11-20T00:00:00.000Z';
   const env = { ...process.env };
-  delete env.PERMISSIONS_SOURCE;
+  env.PERMISSIONS_SOURCE = resolve('data/commercial-graph-permlist.json');
   delete env.PERMISSIONS_SHA256;
   try {
     await promisify(execFile)(process.execPath, ['tools/catalog-json/cli.mjs', 'export', '--output', dir,
@@ -52,6 +52,67 @@ test('Chromium streams the real offline publication, verifies it and queries the
     });
     expect(result.source).not.toHaveProperty('importedAt');
     expect(requested).toEqual(['current.json', manifest.snapshot]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('Chromium validates schema 2 and refreshes back to the real Graph schema 1 publication', async ({ page }) => {
+  const dir = await mkdtemp(join(tmpdir(), 'catalog-json-multi-browser-'));
+  const generatedAt = '2026-11-20T00:00:00.000Z';
+  const env = { ...process.env, PERMISSIONS_CONFIG: '', PERMISSIONS_SHA256: '' };
+  try {
+    const run = promisify(execFile);
+    const publish = (output: string, source: string) => run(process.execPath,
+      ['tools/catalog-json/cli.mjs', 'export', '--output', output, '--generated-at', generatedAt],
+      { env: { ...env, PERMISSIONS_SOURCE: source }, timeout: 15_000 });
+    const multi = join(dir, 'multi');
+    const graphOnly = join(dir, 'legacy');
+    await Promise.all([publish(multi, ''), publish(graphOnly, resolve('data/commercial-graph-permlist.json'))]);
+    let active = multi;
+    const requests: string[] = [];
+    await page.route('**/stage-18-files/*', async route => {
+      const file = new URL(route.request().url()).pathname.split('/').at(-1)!;
+      requests.push(file);
+      const directory = active;
+      if (file !== 'current.json') active = graphOnly;
+      await route.fulfill({ path: join(directory, file), contentType: 'application/json' });
+    });
+    await page.goto('/');
+    const result = await page.evaluate(async moduleUrl => {
+      const { JsonCatalogClient } = await import(moduleUrl);
+      const client = new JsonCatalogClient((file: string, signal: AbortSignal) =>
+        fetch(`/stage-18-files/${file}`, { signal, cache: 'no-store', redirect: 'error' }));
+      const graph = '00000003-0000-0000-c000-000000000000';
+      const powerBi = '00000009-0000-0000-c000-000000000000';
+      const spo = '00000003-0000-0ff1-ce00-000000000000';
+      const resources = await client.resources();
+      const [tenant, sites, graphSites] = await Promise.all([
+        client.detail(powerBi, 'Tenant.Read.All'), client.detail(spo, 'Sites.Read.All'), client.detail(graph, 'Sites.Read.All')
+      ]);
+      await client.refresh();
+      const rollback = await client.resources();
+      return {
+        resources, tenant: tenant.item.visibleTypes, tenantSource: tenant.source, sites: sites.allDefinitions,
+        graphSites: graphSites.allDefinitions, rollback
+      };
+    }, `/@fs${resolve('catalog/json-client/dist/esm/index.js')}`);
+    expect(result.resources).toMatchObject({
+      source: null, artifact: { schemaVersion: 2 }, items: [
+        { displayName: 'Microsoft Graph', browseMode: 'category', definitionCount: 1660, totalDefinitionCount: 1664 },
+        { displayName: 'SharePoint Online', browseMode: 'family', definitionCount: 49, totalDefinitionCount: 49 },
+        { displayName: 'Power BI Service', browseMode: 'family', definitionCount: 204, totalDefinitionCount: 204 }
+      ]
+    });
+    expect(result.tenant).toEqual(['Application', 'Delegated']);
+    expect(result.tenantSource).toMatchObject({ fileName: 'commercial-powerbi-permlist.json', generatedAt });
+    expect(result.sites).toHaveLength(1);
+    expect(result.graphSites).toHaveLength(2);
+    expect(result.graphSites.map((definition: { id: string }) => definition.id)).not.toContain(result.sites[0].id);
+    expect(result.rollback).toMatchObject({ artifact: { schemaVersion: 1 }, source: { generatedAt } });
+    expect(result.rollback.items).toHaveLength(1);
+    expect(requests).toHaveLength(4);
+    expect(requests.filter(file => file === 'current.json')).toHaveLength(2);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

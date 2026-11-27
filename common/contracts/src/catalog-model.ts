@@ -78,3 +78,13 @@ export interface CatalogResourceModel {
   families: CatalogFamily[];
   definitions: CatalogDefinitionWithRawFields[];
 }
+
+/** resource 的浏览方式。category 先选分类，family 直接展示按 family 分组的 permission。 */
+export type CatalogBrowseMode = 'category' | 'family';
+
+/** 目录导入时使用的分类配置。Graph 使用内置规则，其他 resource 可按 family 映射 category。 */
+export type CatalogClassification = { mode: 'graph' } | {
+  mode: 'categories';
+  version: string;
+  categories: (CatalogCategoryMetadata & { families: string[] })[];
+};

@@ -11,8 +11,9 @@ live Graph collection, tenant grants, RSC UI, Azure infrastructure or production
 Keep Nest's default Express adapter, TypeORM/better-sqlite3 and synchronize:false.
 UI uses Fluent UI v9 and React 18.3.1 peers; host adapters own React roots and configuration.
 Shared packages must not import SPFx context or identity clients. Scope styles locally.
-Data lives in data/commercial-graph-permlist.json or PERMISSIONS_SOURCE. Never invent
-missing input, import fixtures as production data, or commit credentials/local databases.
+The default input manifest is data/catalog-resources.json. PERMISSIONS_SOURCE
+selects a Graph-only input. Never invent missing input, import fixtures as
+production data, or commit credentials or local databases.
 The #11 increment adds SharePoint-library JSON while retaining the API product.
 The website and existing SPFx share one UI via a neutral CatalogClient.
 Keep one SPFx solution, Web Part and sppkg with existing IDs and output.

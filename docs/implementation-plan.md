@@ -756,7 +756,7 @@ tenant upload or deployment; stop at #12 and wait for user review/merge/new-chat
 On the existing #12 stage branch, the user requested a responsibility-based UI
 refactor and durable local conventions. See the
 [follow-up scope, verification and review handoff](sharepoint-json-plan.md#12-follow-up-shared-ui-organization--2026-11-17),
-[packages/ui rules](../packages/ui/AGENTS.md) and
+[packages/ui rules](../common/ui/AGENTS.md) and
 [source map](ui-development.md#source-organization). The public shell/props and
 host usage stay compatible; current criteria, expansion and focus remain with the
 same state owner. This maintenance does not start #13 or resolve actual SharePoint
@@ -810,8 +810,17 @@ merge #13 before starting that stage in a separate chat.
 
 ### Shared UI README follow-up
 
-The [package README](../packages/ui/README.md) describes the wired Web and API SPFx
+The [package README](../common/ui/README.md) describes the wired Web and API SPFx
 hosts, the planned JSON SPFx host, and the component and Hook flow. Verified
 relative links and the architecture diagram's render and Hook relationships
 against the working tree, rendered both Mermaid diagrams in Chromium, and ran
 `git diff --check`. Host runtime acceptance remains with its stage.
+
+## SharePoint JSON stage 3 — #18
+
+[Stage 3 delivery, commands and verification](sharepoint-json-plan.md#stage-3-delivery-and-verification--18)
+records the #13 merge prerequisite, independent package migration and
+CatalogReader commits, three-resource SQLite and JSON delivery, and fourth
+resource verification. The [manual review checklist](verification/spfx-json-3-human-review.md)
+covers isolated setup, source and count checks, Chromium and pending SharePoint
+acceptance. Stage 4 requires #18 to be merged and verified.

@@ -4,7 +4,7 @@ test('Home connects to the imported catalog and resource navigation returns Home
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Microsoft Graph Permissions Explorer', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Permissions Explorer', exact: true })).toBeVisible();
   await expect(page.getByText('Standalone website', { exact: false })).toBeVisible();
   const all = await request.get(`http://127.0.0.1:${Number(process.env.CATALOG_TEST_API_PORT ?? 3000)}/api/v1/resources/00000003-0000-0000-c000-000000000000/permissions?showDisabled=true`);
   expect(all.ok()).toBeTruthy();
@@ -14,7 +14,7 @@ test('Home connects to the imported catalog and resource navigation returns Home
   await expect(page.getByRole('heading', { name: 'Microsoft Graph', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open Exchange', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Home', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Microsoft Graph Permissions Explorer', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Permissions Explorer', exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -55,7 +55,7 @@ test('loading is visible while the real resource response is pending', async ({ 
   } finally {
     release();
   }
-  await expect(page.getByRole('heading', { name: 'Microsoft Graph Permissions Explorer', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Permissions Explorer', exact: true })).toBeVisible();
 });
 
 
@@ -112,8 +112,8 @@ test('Home explains permissions and resource cards resize within bounds with key
   }
   await expect(page.getByText('Source snapshot', { exact: true })).not.toBeVisible();
   const cards = page.getByLabel('API resources');
-  await expect(cards.getByRole('button', { name: 'Power BI', exact: false })).toBeDisabled();
-  await expect(cards.getByRole('button', { name: 'SharePoint', exact: false })).toBeDisabled();
+  await expect(cards.getByRole('button', { name: 'Browse Power BI Service', exact: true })).toBeEnabled();
+  await expect(cards.getByRole('button', { name: 'Browse SharePoint Online', exact: true })).toBeEnabled();
   await page.getByRole('main').evaluate(el => { el.scrollTop = 0; });
   await page.getByRole('button', { name: 'Browse Microsoft Graph', exact: true }).focus();
   await page.keyboard.press('Enter');
@@ -124,12 +124,13 @@ test('neutral source metadata shows generation time without inventing an import 
   await page.route('**/api/v1/resources', async route => {
     const response = await route.fetch();
     const body = await response.json();
-    const { importedAt: _importedAt, ...source } = body.source;
-    body.source = { ...source, generatedAt: '2026-11-17T00:00:00Z' };
+    const graph = body.items.find((item: { displayName: string }) => item.displayName === 'Microsoft Graph');
+    const { importedAt: _importedAt, ...source } = graph.source;
+    graph.source = { ...source, generatedAt: '2026-11-17T00:00:00Z' };
     await route.fulfill({ response, json: body });
   });
   await page.goto('/');
-  await page.getByText('Catalog data details', { exact: true }).click();
+  await page.getByText('Microsoft Graph catalog data details', { exact: true }).click();
   await expect(page.getByText('Generated at (UTC)', { exact: true })).toBeVisible();
   await expect(page.getByText('2026-11-17T00:00:00Z', { exact: true })).toBeVisible();
   await expect(page.getByText('Imported at (UTC)', { exact: true })).toHaveCount(0);
@@ -147,8 +148,8 @@ test('Fluent resource navigation supports keyboard selection and preserves catal
   const home = nav.getByRole('button', { name: 'Home', exact: true });
   const graph = nav.getByRole('button', { name: 'Microsoft Graph', exact: true });
   await expect(home).toHaveAttribute('aria-current', 'page');
-  await expect(nav.getByRole('button', { name: 'Power BI · Coming soon', exact: true })).toBeDisabled();
-  await expect(nav.getByRole('button', { name: 'SharePoint · Coming soon', exact: true })).toBeDisabled();
+  await expect(nav.getByRole('button', { name: 'Power BI Service', exact: true })).toBeEnabled();
+  await expect(nav.getByRole('button', { name: 'SharePoint Online', exact: true })).toBeEnabled();
   await graph.focus();
   await page.keyboard.press('Enter');
   await expect(graph).toHaveAttribute('aria-current', 'page');
@@ -158,7 +159,7 @@ test('Fluent resource navigation supports keyboard selection and preserves catal
   await home.focus();
   await page.keyboard.press('Space');
   await expect(home).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: 'Microsoft Graph Permissions Explorer', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Permissions Explorer', exact: true })).toBeVisible();
   await graph.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('textbox', { name: 'Search permissions', exact: true })).toHaveValue('Mail.Read');
@@ -168,8 +169,8 @@ test('Fluent resource navigation supports keyboard selection and preserves catal
 
 test('Fluent source accordion exposes keyboard expansion and accessible metadata row headers', async ({ page }) => {
   await page.goto('/');
-  const toggle = page.getByRole('button', { name: 'Catalog data details', exact: true });
-  const source = page.getByRole('table', { name: 'Catalog data details', exact: true });
+  const toggle = page.getByRole('button', { name: 'Microsoft Graph catalog data details', exact: true });
+  const source = page.getByRole('table', { name: 'Microsoft Graph catalog data details', exact: true });
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(source).not.toBeVisible();
   await toggle.focus();

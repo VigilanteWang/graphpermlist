@@ -99,8 +99,9 @@ for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
 // 分别检查供 import 和 require 使用的构建产物。浏览器里的 JSON client 只需要查询与校验代码。
 const dualModules = [
   ['catalog/query', 'index', '.', []],
-  ['catalog/ingest', 'permission-model', '.', ['./classification.js']],
+  ['catalog/ingest', 'permission-model', '.', ['./classification.js', './resource-classification.js']],
   ['catalog/ingest', 'classification', undefined, []],
+  ['catalog/ingest', 'resource-classification', undefined, []],
   ['common/catalog-json', 'validation', './validation', []],
   ['catalog/json-client', 'index', '.', ['@graph/catalog-core', '@graph/catalog-json/validation']]
 ];

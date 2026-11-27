@@ -1,4 +1,4 @@
-/** 为 ExplorerShell 管理页面、筛选条件和键盘焦点，把查询结果交给界面使用。 */
+/** ExplorerShell 的控制器 Hook，管理资源导航、筛选和焦点。 */
 import * as React from "react";
 import type {
   CatalogClient,
@@ -9,12 +9,8 @@ import { useExplorerCatalog } from "./useExplorerCatalog.js";
 import { useExplorerLayout } from "./useExplorerLayout.js";
 import { useFamilyBrowse } from "./useFamilyBrowse.js";
 
-/** 目录主页面的取值；Coming soon resource 不能成为可导航页面。 */
-export type ExplorerPage = "home" | "graph";
-
 /**
- * ExplorerShell 使用的状态和操作。category 列表和 permission 列表共用同一份筛选条件，
- * 切换视图时仍由外壳保留筛选和 family 展开记录。
+ * ExplorerShell 使用的状态和操作。外壳区分跨 resource 共用的筛选条件与当前 resource 的浏览状态。
  *
  * @param client - 前端提供的目录客户端。
  * @param viewportLayout - 是否采用视口布局。启用时，切换页面或 category 会将主内容滚回顶部。
@@ -29,52 +25,62 @@ export function useExplorerController(
   // 详情关闭时按 DOM 元素恢复焦点。category 卡片在切换视图时会卸载，返回时按 category 键重新找。
   const detailTrigger = React.useRef<HTMLElement | null>(null);
   const categoryTrigger = React.useRef<string>();
-  const [page, setPage] = React.useState<ExplorerPage>("home");
-  // category 是应用按分类规则对 Microsoft Graph API permission 划分出的大类，这里保存当前打开的类别。
+  const focusResourceHeading = React.useRef(false);
+  const lastResourceId = React.useRef<string>();
+  // resourceId 保存 Resource App ID。undefined 表示当前在 Home。
+  const [resourceId, setResourceId] = React.useState<string>();
+  // category 保存当前打开的类别。直接浏览 family 的 resource 无需选择 category。
   const [category, setCategory] = React.useState<CatalogCategorySummary>();
   // criteria 保存当前的搜索词和筛选选项，例如 permission 类型、family 和是否显示禁用项。
   // 筛选框读取 criteria，并通过 updateCriteria 更新它。当前 category 由导航单独管理。
   const [criteria, setCriteria] = React.useState<PermissionQueryOptions>({});
   // 保存当前详情里的 permission 名称，例如 User.Read。undefined 表示详情关闭。
   const [detail, setDetail] = React.useState<string>();
-  const categoryKey = category?.category ?? "all";
+  const browseKey = JSON.stringify([resourceId, category?.category]);
   // 把筛选框的 criteria 和当前 category 组装成查询参数。两者都没变时复用 query，避免重复查询。
   const query = React.useMemo(
     () => ({ ...criteria, category: category?.category }),
     [criteria, category],
   );
-  const catalog = useExplorerCatalog(client, page, category, query);
-  // 把当前 category 查到的 permission 按 family 分组，记住平时展开了哪些 family。
+  const catalog = useExplorerCatalog(client, resourceId, category, query);
+  // 对当前查到的 permission 按 family 分组，分别记住各 resource 和 category 的展开状态。
   // 开始搜索或搜索结果更新时，自动展开所有命中的 family。
   const browse = useFamilyBrowse(
     catalog.rows.data?.items,
-    categoryKey,
+    browseKey,
     !!query.q?.trim(),
   );
   React.useEffect(() => {
-    // 进入 category 时聚焦新标题，方便键盘和屏幕阅读器用户从新内容继续，筛选时保留输入焦点。
+    // 从 Home 卡片或 category 卡片进入时，焦点移到新标题。侧栏导航仍让焦点留在侧栏。
     if (viewportLayout) main.current?.scrollTo({ top: 0 });
-    if (page === "graph" && category) heading.current?.focus();
-  }, [page, category, viewportLayout]);
+    if (category || focusResourceHeading.current) heading.current?.focus();
+    focusResourceHeading.current = false;
+  }, [resourceId, category, viewportLayout]);
   React.useEffect(() => {
-    if (
-      page !== "graph" ||
-      category ||
-      !catalog.categories.data ||
-      !categoryTrigger.current
-    )
-      return;
-    const button = root.current?.querySelector<HTMLButtonElement>(
-      `[data-category="${categoryTrigger.current}"]`,
-    );
+    const trigger = categoryTrigger.current;
+    if (!resourceId || category || !catalog.categories.data || !trigger) return;
+    const buttons = root.current?.querySelectorAll<HTMLButtonElement>("[data-category]");
+    const button = Array.from(buttons ?? []).find((item) => item.dataset.category === trigger);
     // 返回时聚焦原卡片以继续浏览，找不到则聚焦一级标题，浏览器通常会将焦点目标滚入视野。
     (button ?? heading.current)?.focus();
     categoryTrigger.current = undefined;
-  }, [page, category, catalog.categories.data, root]);
-  /** 切换 Home 或 Microsoft Graph。点 Microsoft Graph 会回到 category 列表，搜索词和筛选条件继续保留。 */
-  function navigate(next: ExplorerPage): void {
-    setPage(next);
-    if (next === "graph") setCategory(undefined);
+  }, [resourceId, category, catalog.categories.data, root]);
+  /**
+   * 主导航和 Home 卡片的页面切换操作。打开浏览入口时清理当前 category 和详情。
+   * @param nextResourceId - 要打开的 Resource App ID。省略时回到 Home。
+   * @param fromHomeCard - 是否由 Home 卡片进入，需要把焦点移到新页面的标题。
+   */
+  function navigate(nextResourceId?: string, fromHomeCard = false): void {
+    if (nextResourceId && nextResourceId !== lastResourceId.current) {
+      // 回到 Home 再打开同一 resource 时可以继续使用原 family；打开另一个 resource 时重新选择。
+      setCriteria((previous) => previous.family === undefined ? previous : { ...previous, family: undefined });
+      lastResourceId.current = nextResourceId;
+    }
+    focusResourceHeading.current = fromHomeCard;
+    categoryTrigger.current = undefined;
+    detailTrigger.current = null;
+    setResourceId(nextResourceId);
+    setCategory(undefined);
     setDetail(undefined);
   }
   /**
@@ -103,24 +109,26 @@ export function useExplorerController(
       .activeElement as HTMLElement | null;
     setDetail(value);
   }
-  /** 关闭详情。下一帧如果原来的焦点元素仍在页面上，就把焦点还给它。 */
+  /** 详情关闭和焦点恢复操作。下一帧如果原来的焦点元素仍在页面上，就把焦点还给它。 */
   function closeDetail(): void {
+    const trigger = detailTrigger.current;
+    detailTrigger.current = null;
     setDetail(undefined);
-    requestAnimationFrame(
-      () => detailTrigger.current?.isConnected && detailTrigger.current.focus(),
-    );
+    requestAnimationFrame(() => {
+      if (trigger?.isConnected) trigger.focus();
+    });
   }
   return {
     root,
     main,
     heading,
     narrow,
-    page,
+    resourceId,
     category,
     criteria,
     detail,
     query,
-    categoryKey,
+    browseKey,
     catalog,
     browse,
     navigate,

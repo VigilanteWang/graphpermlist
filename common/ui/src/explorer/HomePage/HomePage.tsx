@@ -1,47 +1,55 @@
 /** 目录 Home 页面，组装介绍、统计、resource 入口与来源详情。 */
 import * as React from 'react';
-import { Badge, Body1, Title1 } from '@fluentui/react-components';
-import type { ResourceListResult, CatalogResourceSummary, PermissionListResult } from '@graph/contracts';
+import { Body1, Title1 } from '@fluentui/react-components';
+import type { PermissionListResult, ResourceListResult } from '@graph/contracts';
 import { RequestError } from '../../components/RequestError.js';
 import { CatalogAbout } from './components/CatalogAbout.js';
 import { CatalogSourceDetails } from './components/CatalogSourceDetails.js';
 import { ResourceCards } from './components/ResourceCards.js';
-import { Statistics } from './components/Statistics.js';
 import { useHomeStyles } from './HomePage.styles.js';
 
-/** 首页接收的目录数据、统计查询状态和打开 Microsoft Graph 的操作。外壳在页面切换时继续保留这些查询状态。 */
+/** 首页接收的目录列表、旧版目录统计查询状态，以及按 Resource App ID 打开浏览页的操作。 */
 interface HomePageProps {
   resources: ResourceListResult;
-  graph?: CatalogResourceSummary;
   familySource: { data?: PermissionListResult; error?: string; retry: () => void };
-  onBrowseGraph: () => void;
+  onBrowse: (resourceId: string) => void;
 }
 
-/** 首页。统计请求失败时可以在这里重试，目录返回来源记录时才显示来源详情。 */
+/** 目录首页。每个 resource 有独立的浏览入口和统计，提供来源记录时也显示来源详情。 */
 export function HomePage({
   resources,
-  graph,
   familySource,
-  onBrowseGraph
+  onBrowse
 }: HomePageProps): React.ReactElement {
   const styles = useHomeStyles();
+  const onlyResource = resources.items.length === 1 ? resources.items[0] : undefined;
   return (
     <div className={styles.stack}>
-      <Badge appearance="tint" color="brand">
-        LOCAL PERMISSION CATALOG
-      </Badge>
       <Title1 as="h1" className={styles.heading}>
-        Microsoft Graph Permissions Explorer
+        {onlyResource ? `${onlyResource.displayName} Permissions Explorer` : 'Permissions Explorer'}
       </Title1>
       <Body1>
-        Explore official permission definitions across Microsoft Graph services. Compare Application and
-        Delegated permissions, consent requirements and complete official wording.
+        Compare Application and Delegated permissions, consent requirements and official descriptions across
+        API resources.
       </Body1>
-      <Statistics resources={resources} graph={graph} definitions={familySource.data} />
-      <ResourceCards onBrowseGraph={onBrowseGraph} />
+      <ResourceCards
+        resources={resources.items}
+        legacyTotalDefinitionCount={familySource.data?.definitionCount}
+        onBrowse={onBrowse}
+      />
       {familySource.error && <RequestError error={familySource.error} retry={familySource.retry} />}
       <CatalogAbout />
-      {resources.source && <CatalogSourceDetails source={resources.source} />}
+      {resources.items.map((resource) => {
+        // 旧版单资源目录把来源放在列表顶层；新版目录的来源记录随各 resource 返回。
+        const source = resource.source ?? (onlyResource ? resources.source : undefined);
+        return source && (
+          <CatalogSourceDetails
+            key={resource.resourceId}
+            resourceName={onlyResource ? undefined : resource.displayName}
+            source={source}
+          />
+        );
+      })}
     </div>
   );
 }
