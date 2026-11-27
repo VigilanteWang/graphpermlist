@@ -42,11 +42,17 @@ graphpermlist/
 │           ├── package-solution.json     Solution 标识、版本和包输出设置
 │           ├── rig.json                  官方 SPFx Heft 工具链配置入口
 │           └── serve.json                SPFx 开发服务配置
-├── packages/
-│   ├── ui/src/index.tsx                  两个前端共用的 Fluent UI 界面
-│   ├── api-client/src/index.ts           HTTP 请求、查询参数和错误处理
-│   ├── catalog-core/src/                 纯查询规则、共享建模、JSON 校验与 client
-│   └── contracts/src/index.ts            中立 client、响应及 JSON snapshot/manifest 类型
+├── common/
+│   ├── contracts/                       中立 client、查询、数据模型和传输契约
+│   ├── catalog-json/                    浏览器与离线工具共用的 JSON 校验
+│   └── ui/                              两个前端共用的 Fluent UI 界面
+├── catalog/
+│   ├── api-client/                      HTTP 请求、查询参数和错误处理
+│   ├── json-client/                     从宿主加载快照，在内存查询
+│   ├── query/                           纯查询规则（@graph/catalog-core）
+│   ├── ingest/                          导入 SQLite、导出 JSON 共用的写入前建模
+│   └── source/                          Node 输入读取和校验
+├── tools/catalog-json/                  离线导出和校验 JSON 发布文件
 ├── data/
 │   ├── commercial-graph-permlist.json    版本化的安全权限快照
 │   └── README.md                         数据来源、字段说明和校验值
@@ -58,7 +64,6 @@ graphpermlist/
 │   └── verification/                     验证记录与截图
 ├── scripts/
 │   ├── verify-data.mjs                   数据结构和快照完整性检查
-│   ├── catalog-json.mjs                  离线导出与校验 JSON 发布文件
 │   └── check-boundaries.mjs              React 依赖与共享代码边界检查
 ├── tests/                                API、客户端、数据和浏览器测试
 │   └── fixtures/                         仅供测试的契约样例
@@ -150,7 +155,7 @@ npm run test:browser
 | --- | --- | --- | --- |
 | API | NodeNext / NodeNext | ES2020 | `apps/api/package.json` 显式 `type: commonjs`，输出 CommonJS，由 Node 直接执行 |
 | contracts、api-client、ui | NodeNext / NodeNext | ES2020 | 各包保留 `type: module`，输出 ESM 与类型声明 |
-| catalog-core | NodeNext / NodeNext；另编译 CommonJS / Node | ES2020 | 单一源码生成 ESM/CJS，条件出口供浏览器和现有 Node API 使用 |
+| query、ingest、catalog-json、json-client | NodeNext / NodeNext；另编译 CommonJS / Node | ES2020 | 单一源码生成 ESM/CJS，条件出口供浏览器和现有 Node API 使用 |
 | Web | ESNext / Bundler | ES2022 | TypeScript 只检查类型，Vite 构建浏览器产物 |
 | 测试夹具 | NodeNext / NodeNext | ES2020 | 只做类型检查，不输出代码 |
 | SPFx | ESNext / node（官方 rig） | ES5 | Heft 额外输出 CommonJS，Webpack 负责打包 |

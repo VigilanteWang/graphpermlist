@@ -1,7 +1,7 @@
 # Read-only API v1 contract
 
 Implemented in #4. The Nest API and HTTP client share the
-[HTTP response types](../packages/contracts/src/catalog-api.ts).
+[HTTP response types](../common/contracts/src/catalog-http-contract.ts).
 Migrate, import and start using [catalog operations](catalog-operations.md).
 A migrated database without an import exposes **not imported** state. No catalog
 fixtures are served. Classification and active snapshot data are persisted at import.

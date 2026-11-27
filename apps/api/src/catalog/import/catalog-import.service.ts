@@ -3,9 +3,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { buildCatalogModel, CATALOG_SOURCE_BASENAME } from '@graph/catalog-core/model';
-import { loadPermissionsSource } from '../../../../scripts/permissions-source.cjs';
-import { CatalogCategory, CatalogDefinition, CatalogFamily, CatalogImport, CatalogResource } from './catalog.entities';
+import { buildCatalogModel, CATALOG_SOURCE_BASENAME } from '@graph/catalog-ingest';
+import { loadPermissionsSource } from '@graph/catalog-source';
+import { CatalogCategory, CatalogDefinition, CatalogFamily, CatalogImport, CatalogResource } from '../catalog.entities';
 
 /** 本地目录的导入服务。每个 resource 的新快照写完后，才会设为当前查询使用的版本。 */
 @Injectable()

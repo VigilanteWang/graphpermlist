@@ -1,6 +1,6 @@
 /** 校验 current.json 和它指向的目录快照。离线工具与浏览器都用同一套 schema 1 规则检查文件。 */
 import type {
-  CatalogJsonClientError, CatalogJsonClientErrorCode, CatalogJsonManifest, CatalogJsonSnapshot
+  CatalogJsonError, CatalogJsonErrorCode, CatalogJsonManifest, CatalogJsonSnapshot
 } from '@graph/contracts';
 
 /** current.json 的固定文件名，loader 从前端配置的同一目录读取此文件和它指向的快照。 */
@@ -27,16 +27,16 @@ const DEFINITION_FIELDS = ['id', 'isEnabled', 'title', 'description', 'permissio
 const RAW_FIELDS = ['id', 'value', 'isEnabled'];
 
 /** JSON 目录的可识别错误；code 区分读取、校验和查询失败，消息不回显文件内容。 */
-export class JsonCatalogError extends Error implements CatalogJsonClientError {
+export class JsonCatalogError extends Error implements CatalogJsonError {
   /** JSON 错误的构造函数，接收稳定分类和可展示的英文说明。 */
-  constructor(readonly code: CatalogJsonClientErrorCode, message: string) {
+  constructor(readonly code: CatalogJsonErrorCode, message: string) {
     super(message);
     this.name = 'JsonCatalogError';
   }
 }
 
 /** 检查 ISO UTC 时间格式和日期。例如 2 月 30 日可能被 Date 转成 3 月，校验会拒绝这种输入。 */
-export function isJsonTimestamp(value: unknown): value is string {
+export function isIsoUtcTimestamp(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return false;
   const instant = new Date(value);
   return Number.isFinite(instant.valueOf())
@@ -128,7 +128,7 @@ function validateSource(value: unknown): void {
   pattern(source.fileName, LOGICAL_FILENAME);
   pattern(source.sha256, SHA256);
   pattern(source.classificationVersion, CLASSIFICATION_VERSION);
-  expect(isJsonTimestamp(source.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
+  expect(isIsoUtcTimestamp(source.generatedAt), 'Catalog generation timestamp must be ISO UTC.');
   expect(typeof source.excludedRscCount === 'number' && Number.isSafeInteger(source.excludedRscCount)
     && source.excludedRscCount >= 0, 'Invalid excluded RSC count.');
 }

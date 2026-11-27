@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { PropertyPaneTextField, type IPropertyPaneConfiguration } from '@microsoft/sp-property-pane';
 import { ExplorerShell } from '@graph/ui';
-import { createCatalogClient, type CatalogClient } from '@graph/api-client';
+import { createApiCatalogClient, type CatalogClient } from '@graph/api-client';
 import type { IReadonlyTheme } from '@microsoft/sp-component-base';
 
 /** Web Part 的可配置属性结构，包含带 /api/v1 的 API 基址。 */
@@ -24,7 +24,7 @@ export default class PermissionsExplorerWebPart extends BaseClientSideWebPart<IP
     // 第一次渲染或 API 基址改动时创建 client。仅主题变化时复用 client，查询可以继续。
     if (!this._client || this._apiBaseUrl !== this.properties.apiBaseUrl) {
       this._apiBaseUrl = this.properties.apiBaseUrl;
-      this._client = createCatalogClient(this.properties.apiBaseUrl);
+      this._client = createApiCatalogClient(this.properties.apiBaseUrl);
     }
     this._root.render(React.createElement(ExplorerShell, {
       client: this._client,

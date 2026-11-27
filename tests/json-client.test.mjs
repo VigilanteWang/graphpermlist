@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
-import { JsonCatalogClient } from '@graph/catalog-core/json-client';
-import { JSON_MANIFEST_MAX_BYTES } from '@graph/catalog-core/json-validation';
+import { JsonCatalogClient } from '@graph/json-client';
+import { JSON_MANIFEST_MAX_BYTES } from '@graph/catalog-json/validation';
 
 const resourceId = 'abcdef01-1234-4123-8123-0123456789ab';
 const absentResourceId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';

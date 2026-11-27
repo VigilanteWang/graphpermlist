@@ -1,17 +1,14 @@
-/** 离线生成和校验 schema 1 目录 JSON。current.json 指向要读取的版本化快照文件。 */
+/** 离线目录的快照编码、暂存验证、不可变文件和 current.json 发布流程。 */
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { link, mkdir, mkdtemp, open, rename, rm, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import { parseArgs } from 'node:util';
-import { buildCatalogModel, CATALOG_SOURCE_BASENAME } from '@graph/catalog-core/model';
+import { join } from 'node:path';
+import { buildCatalogModel, CATALOG_SOURCE_BASENAME } from '@graph/catalog-ingest';
 import {
   JSON_MANIFEST_FILE, JSON_MANIFEST_MAX_BYTES, JSON_SNAPSHOT_MAX_BYTES, JsonCatalogError,
-  isJsonTimestamp, readJsonManifest, readJsonSnapshot
-} from '@graph/catalog-core/json-validation';
-import { loadPermissionsSource } from './permissions-source.cjs';
-
-const USAGE = 'Usage: catalog-json export --output <directory> [--generated-at <ISO UTC>] | verify --output <directory>';
+  readJsonManifest, readJsonSnapshot
+} from '@graph/catalog-json/validation';
+import { loadPermissionsSource } from '@graph/catalog-source';
 
 /** SHA-256 摘要函数。对传入的内容计算摘要，返回十六进制字符串。 */
 function sha256(bytes) {
@@ -52,7 +49,7 @@ async function readFileBounded(file, maxBytes) {
 }
 
 /** 目录校验入口。从 current.json 读出快照名和预期摘要，再校验快照文件字节及内容结构。 */
-async function verify(directory) {
+export async function verify(directory) {
   const manifest = readJsonManifest(await readFileBounded(join(directory, JSON_MANIFEST_FILE), JSON_MANIFEST_MAX_BYTES));
   const bytes = await readFileBounded(join(directory, manifest.snapshot), JSON_SNAPSHOT_MAX_BYTES);
   const snapshot = await readJsonSnapshot(bytes, manifest);
@@ -101,7 +98,7 @@ async function loadSource() {
 }
 
 /** 生成目录快照的入口。使用与 SQLite 导入相同的目录模型，另在 JSON 中记录生成时间。 */
-async function generate(directory, generatedAt) {
+export async function generate(directory, generatedAt) {
   const { data, sha256: sourceSha256 } = await loadSource();
   const { resource, classificationInput, classificationVersion, excludedRscCount } = buildCatalogModel(data);
   const content = {
@@ -117,32 +114,3 @@ async function generate(directory, generatedAt) {
   const manifest = { schemaVersion: 1, version, snapshot: `catalog-${version}.json`, artifactSha256: sha256(bytes) };
   return publish(directory, manifest, bytes);
 }
-
-/** 命令行主函数。export 生成并发布本地快照，verify 只检查 --output 目录里的现有文件。 */
-async function main() {
-  const [command, ...args] = process.argv.slice(2);
-  const { values } = parseArgs({ args, options: { output: { type: 'string' }, 'generated-at': { type: 'string' } } });
-  const specifiedTime = values['generated-at'];
-  if (!values.output?.trim() || (command !== 'export' && command !== 'verify')
-    || (specifiedTime !== undefined && (command !== 'export' || !isJsonTimestamp(specifiedTime)))) {
-    throw new JsonCatalogError('invalid-snapshot', USAGE);
-  }
-  const output = resolve(values.output);
-  const result = command === 'verify' ? await verify(output)
-    : await generate(output, specifiedTime === undefined ? new Date().toISOString() : new Date(specifiedTime).toISOString());
-  const { manifest, snapshot, byteLength } = result;
-  const definitions = snapshot.resources.flatMap(resource => resource.definitions);
-  const disabled = definitions.filter(entry => !entry.definition.isEnabled).length;
-  console.log(`${command === 'verify' ? 'Verified' : 'Published'} ${manifest.snapshot} (${byteLength} bytes)`);
-  console.log(`SHA256: ${manifest.artifactSha256}`);
-  console.log(`Definitions: ${definitions.length} total, ${disabled} disabled, ${snapshot.source.excludedRscCount} RSC excluded`);
-}
-
-main().catch(error => {
-  let message = 'Could not read or write the catalog publication directory.';
-  if (error instanceof JsonCatalogError) message = error.message;
-  if (error.code?.startsWith('ERR_PARSE_ARGS_')) message = USAGE;
-  if (error.code === 'ENOENT') message = 'The catalog publication file or directory was not found.';
-  console.error(message);
-  process.exitCode = 1;
-});

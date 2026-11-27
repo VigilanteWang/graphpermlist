@@ -8,8 +8,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { createCatalogClient } from '@graph/api-client';
-import { JsonCatalogClient } from '@graph/catalog-core/json-client';
+import { createApiCatalogClient } from '@graph/api-client';
+import { JsonCatalogClient } from '@graph/json-client';
 
 const require = createRequire(import.meta.url);
 const { Test } = require('@nestjs/testing');
@@ -18,7 +18,7 @@ const { DataSource } = require('typeorm');
 const { AppModule } = require('../apps/api/dist/app.module.js');
 const { configureApp } = require('../apps/api/dist/bootstrap.js');
 const { validateEnvironment } = require('../apps/api/dist/configuration.js');
-const { CatalogImportService } = require('../apps/api/dist/catalog/catalog-import.service.js');
+const { CatalogImportService } = require('../apps/api/dist/catalog/import/catalog-import.service.js');
 const { CatalogCategory, CatalogDefinition, CatalogFamily, CatalogImport } = require('../apps/api/dist/catalog/catalog.entities.js');
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -41,7 +41,7 @@ async function setupApi(t, inputPath, sourceSha256) {
   await database.runMigrations();
   await app.get(CatalogImportService).importFile();
   await app.listen(0, '127.0.0.1');
-  return { database, http: createCatalogClient(`${await app.getUrl()}/api/v1`) };
+  return { database, http: createApiCatalogClient(`${await app.getUrl()}/api/v1`) };
 }
 
 async function catalogCli(args, inputPath) {
@@ -49,7 +49,7 @@ async function catalogCli(args, inputPath) {
   delete env.PERMISSIONS_SOURCE;
   delete env.PERMISSIONS_SHA256;
   if (inputPath) env.PERMISSIONS_SOURCE = inputPath;
-  await run(process.execPath, ['scripts/catalog-json.mjs', ...args], { cwd: root, env, timeout: 15_000 });
+  await run(process.execPath, ['tools/catalog-json/cli.mjs', ...args], { cwd: root, env, timeout: 15_000 });
 }
 
 async function publish(output, inputPath) {

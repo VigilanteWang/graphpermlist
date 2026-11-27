@@ -17,6 +17,21 @@ Do not merge, close current/parent issues, deploy or start further work without 
 Earlier sections below are chronological records; their historical unmerged/uncommitted
 states are superseded by the stage summary and latest handoff.
 
+## Current SharePoint JSON increment
+
+[Parent #11](https://github.com/VigilanteWang/graphpermlist/issues/11) retains one
+SPFx solution, Web Part and sppkg alongside the standalone website. Both hosts
+use one shared UI and select API or JSON through host configuration in #14.
+
+1. [#12](https://github.com/VigilanteWang/graphpermlist/issues/12) — Neutral contracts and query core.
+2. [#13](https://github.com/VigilanteWang/graphpermlist/issues/13) — Offline publication and JSON client. PR #17 merged into main.
+3. [#18](https://github.com/VigilanteWang/graphpermlist/issues/18) — Module boundaries, CatalogReader and multi-resource catalogs.
+4. [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) — Configuration and SharePoint file access after #18.
+5. [#15](https://github.com/VigilanteWang/graphpermlist/issues/15) — Final review and actual SharePoint acceptance.
+
+See the [increment plan](sharepoint-json-plan.md) for current scope and stage
+evidence. Earlier planning and delivery entries below are historical.
+
 ## Human review at every stage completion
 
 At the end of each stage, publish an actionable human-review checklist as a comment

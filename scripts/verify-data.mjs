@@ -1,8 +1,8 @@
 /** npm run verify:data 的入口。用共享加载器检查本地 permission 文件，再输出摘要和数量。 */
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { loadPermissionsSource } from './permissions-source.cjs';
-export { DEFAULT_PERMISSIONS_SOURCE, SNAPSHOT_SHA256, validatePermissionsData, loadPermissionsSource } from './permissions-source.cjs';
+import { loadPermissionsSource } from '@graph/catalog-source';
+export { DEFAULT_PERMISSIONS_SOURCE, SNAPSHOT_SHA256, validatePermissionsData, loadPermissionsSource } from '@graph/catalog-source';
 
 // 只有直接运行本文件时才执行校验；被其他模块导入时仅提供导出。
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {

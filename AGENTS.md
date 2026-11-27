@@ -1,7 +1,7 @@
 # Project instructions
 
 Read the latest active parent issue and current stage issue, then docs/implementation-plan.md.
-For the SharePoint JSON increment, read #11, the current #12–#15 stage, relevant #2
+For the SharePoint JSON increment, read #11, the current #12, #13, #18, #14 or #15 stage, relevant #2
 baseline, and docs/sharepoint-json-plan.md. #2 remains the historical V1 baseline.
 Work one stage at a time. Use an independent stage branch/PR based on updated main.
 Do not merge, close issues, deploy, or start the next stage without authorization.
@@ -14,13 +14,14 @@ Shared packages must not import SPFx context or identity clients. Scope styles l
 Data lives in data/commercial-graph-permlist.json or PERMISSIONS_SOURCE. Never invent
 missing input, import fixtures as production data, or commit credentials/local databases.
 The #11 increment adds SharePoint-library JSON while retaining the API product.
-The website, API SPFx and future JSON SPFx share one UI via a neutral CatalogClient.
-Keep two independently deployable SPFx solutions/sppkg with separate IDs and outputs;
-never replace them with one Web Part data-source switch. SharePoint file access and
-identity stay in the host; browser query code cannot import Nest/TypeORM/Node-only
-modules. No customer Azure resources, tenant uploads or deployment are implied.
-Work only on the authorized stage; #12 defines contracts/core, #13 JSON tools/client,
-#14 the second SPFx and three-entry integration, #15 final review/runtime acceptance.
+The website and existing SPFx share one UI via a neutral CatalogClient.
+Keep one SPFx solution, Web Part and sppkg with existing IDs and output.
+Host configuration selects the client in #14. SharePoint file access and identity
+stay in the host; browser query code cannot import write-side or Node-only modules.
+No customer Azure resources, tenant uploads or deployment are implied.
+Work only on the authorized stage: #12 contracts/core, #13 JSON tools/client,
+#18 module boundaries and multi-resource catalogs, #14 host configuration and
+SharePoint JSON transport, #15 final review/runtime acceptance.
 Code, documentation, fixtures and retained logs must not contain personal data, tenant
 identifiers, credentials or personal absolute paths. Public resource/permission IDs are valid.
 

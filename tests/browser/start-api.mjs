@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const { createApp } = require('../../apps/api/dist/bootstrap.js');
 const { DataSource } = require('typeorm');
 const { ConfigService } = require('@nestjs/config');
-const { CatalogImportService } = require('../../apps/api/dist/catalog/catalog-import.service.js');
+const { CatalogImportService } = require('../../apps/api/dist/catalog/import/catalog-import.service.js');
 const app = await createApp();
 try {
   await app.get(DataSource).runMigrations();

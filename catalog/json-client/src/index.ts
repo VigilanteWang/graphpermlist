@@ -1,14 +1,14 @@
 /** 从 current.json 找到并校验目录快照。界面随后可以从内存里的快照查询列表、计数和详情。 */
 import type {
-  CatalogClient, CatalogJsonArtifactMetadata, CatalogJsonSnapshot, CatalogJsonSnapshotResource,
+  CatalogClient, CatalogJsonArtifactMetadata, CatalogJsonSnapshot, CatalogResourceModel,
   CatalogJsonSnapshotSource, CategoryListResult, PermissionDetailResult, PermissionListResult,
   PermissionQueryOptions, ResourceListResult
 } from '@graph/contracts';
-import { countPermissions, queryCategories, queryDetail, queryPermissions } from './index.js';
+import { countPermissions, queryCategories, queryDetail, queryPermissions } from '@graph/catalog-core';
 import {
   JSON_MANIFEST_FILE, JSON_MANIFEST_MAX_BYTES, JSON_SNAPSHOT_MAX_BYTES,
   JsonCatalogError, readJsonManifest, readJsonSnapshot
-} from './json-validation.js';
+} from '@graph/catalog-json/validation';
 
 /** 由前端提供的文件读取函数。file 是已配置目录中的文件名，signal 用来取消整次下载。 */
 export type JsonCatalogLoader = (file: string, signal: AbortSignal) => Promise<Response>;
@@ -110,7 +110,7 @@ async function loadBytes(loader: JsonCatalogLoader, file: string, maxBytes: numb
 }
 
 /** 按 App ID 查 resource，和 HTTP API 一样忽略大小写，查不到时报告 not-found。 */
-function findResource(publication: Publication, resourceId: string): CatalogJsonSnapshotResource {
+function findResource(publication: Publication, resourceId: string): CatalogResourceModel {
   const normalized = resourceId.toLowerCase();
   const resource = publication.snapshot.resources.find(item => item.resourceId === normalized);
   if (!resource) throw new JsonCatalogError('not-found', 'Resource not found.');

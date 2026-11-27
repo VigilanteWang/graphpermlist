@@ -6,7 +6,7 @@ live Graph collection. All labels and permission wording are English.
 
 ## Source organization
 
-The package's [local rules](../packages/ui/AGENTS.md) define responsibility-based
+The package's [local rules](../common/ui/AGENTS.md) define responsibility-based
 splitting, state ownership, colocated styles and data boundaries. `src/index.ts` exposes only ExplorerShell and its props.
 
 - `src/explorer/ExplorerShell/`: composition entry, internal `components/` for

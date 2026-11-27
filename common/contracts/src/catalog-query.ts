@@ -1,7 +1,6 @@
-/** 定义目录客户端的四种查询及其结果，让界面能用同一套类型读取 HTTP API 或 JSON 快照。 */
+/** 客户端的查询参数、目录概要、列表、计数和详情。 */
+import type { CatalogCategoryMetadata, PermissionDefinition, PermissionType } from './catalog-model.js';
 
-/** 普通 permission 的类型，取值为 Delegated 或 Application；不包含 RSC。 */
-export type PermissionType = 'Delegated' | 'Application';
 /** 界面需要知道的目录状态。not-imported 表示尚无导入数据，ready 表示已有可查询数据。 */
 export type CatalogDataState = 'not-imported' | 'ready';
 /** 目录输入文件的共同来源字段，供数据库导入和离线 JSON 生成记录使用。 */
@@ -45,41 +44,9 @@ export interface CatalogResourceSummary extends PermissionCounts {
   resourceId: string; // resource 的 App ID，在各数据源中标识同一个应用。
   displayName: string;
 }
-/** category 的固定标识、名称和简介，供快照及查询核心使用。 */
-export interface CatalogCategoryMetadata {
-  category: string; // 稳定的 category 标识，包含 uncategorized
-  displayName: string;
-  description: string;
-}
 /** 单个服务 category 的查询概览，包含分类元数据和命中筛选的数量。 */
 export interface CatalogCategorySummary extends CatalogCategoryMetadata, PermissionCounts {}
 
-/** 单条 permission 定义的公共字段结构，供 Application 和 Delegated 定义继承。 */
-export interface PermissionDefinitionBase {
-  id: string;
-  isEnabled: boolean;
-  title: string; // 官方显示标题，不生成额外摘要
-  description: string; // 官方 admin consent 文案
-  adminConsentRequired: boolean;
-}
-/** 一条 Application 定义。目录把这类定义的 admin consent 标为必需。 */
-export interface ApplicationPermissionDefinition extends PermissionDefinitionBase {
-  permissionType: 'Application';
-  adminConsentRule: 'application-always-required';
-}
-/** 一条 Delegated 定义。目录用 consent type 判断是否需要 admin consent，另保留 user consent 文案。 */
-export interface DelegatedPermissionDefinition extends PermissionDefinitionBase {
-  permissionType: 'Delegated';
-  consentType: 'Admin' | 'User';
-  userConsentTitle: string;
-  userConsentDescription: string;
-  adminConsentRule: 'delegated-consent-type';
-}
-/**
- * permission 定义的联合类型，一条定义可以是 ApplicationPermissionDefinition 或 DelegatedPermissionDefinition。
- * 根据 permissionType 判断具体类型后，即可读取该类型的专有字段。
- */
-export type PermissionDefinition = ApplicationPermissionDefinition | DelegatedPermissionDefinition;
 /**
  * permission 列表中的一行数据，由同一 resource 内同名 permission 的定义合并而成。
  * 如果只筛选 Delegated，definitions 只包含命中的 Delegated 定义，visibleTypes 也只列 Delegated。
@@ -127,30 +94,4 @@ export interface PermissionQueryOptions {
   permissionType?: PermissionType;
   adminConsentRequired?: boolean;
   showDisabled?: boolean;
-}
-/** 只读目录客户端的接口，约定各数据源共用的查询方法；signal 可用于取消请求。 */
-export interface CatalogClient {
-  /** resource 列表查询方法，返回列表与目录状态。 */
-  resources(signal?: AbortSignal): Promise<ResourceListResult>;
-  /** category 查询方法，返回指定 resource 在筛选条件下的分类列表和数量。 */
-  categories(resourceId: string, query?: PermissionQueryOptions, signal?: AbortSignal): Promise<CategoryListResult>;
-  /** permission 列表查询方法，返回指定 resource 中按名称合并的行。 */
-  permissions(resourceId: string, query?: PermissionQueryOptions, signal?: AbortSignal): Promise<PermissionListResult>;
-  /** permission 详情查询方法，返回命中行及全部类型定义。 */
-  detail(
-    resourceId: string, permissionValue: string, query?: PermissionQueryOptions, signal?: AbortSignal
-  ): Promise<PermissionDetailResult>;
-}
-
-/** 已校验的普通 definition 及其导航归属；仅属于一个 resource，不包含 RSC。 */
-export interface CatalogDefinitionEntry {
-  value: string;
-  category: string;
-  family: string;
-  definition: PermissionDefinition;
-}
-/** family 的分类归属；同一 family 名称可以出现在不同 category。 */
-export interface CatalogFamily {
-  category: string;
-  family: string;
 }

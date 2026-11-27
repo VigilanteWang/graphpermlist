@@ -3,7 +3,7 @@ const { createHash } = require('node:crypto');
 const { readFile } = require('node:fs/promises');
 const path = require('node:path');
 
-const DEFAULT_PERMISSIONS_SOURCE = path.resolve(__dirname, '../data/commercial-graph-permlist.json');
+const DEFAULT_PERMISSIONS_SOURCE = path.resolve(__dirname, '../../../data/commercial-graph-permlist.json');
 const SNAPSHOT_SHA256 = 'd566bed3c4d7a4cf09ec54d35c25aee7b232df5b46c765af7a377dd9fe0b96a0';
 const GRAPH_APP_ID = '00000003-0000-0000-c000-000000000000';
 const COLLECTIONS = ['appRoles', 'oauth2PermissionScopes', 'resourceSpecificApplicationPermissions'];

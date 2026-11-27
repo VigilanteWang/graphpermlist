@@ -13,10 +13,13 @@ runtime gap is reclassified as passed by this increment.
 2. [#13](https://github.com/VigilanteWang/graphpermlist/issues/13): offline export,
    validation, publication files and browser JSON client. See the
    [stage 2 handoff](#stage-2-delivery-and-verification).
-3. [#14](https://github.com/VigilanteWang/graphpermlist/issues/14): second independent
-   JSON SPFx solution and three-entry shared UI integration. Not started.
-4. [#15](https://github.com/VigilanteWang/graphpermlist/issues/15): independent review,
-   clean reproduction and actual dual-SPFx runtime acceptance. Not started.
+3. [#18](https://github.com/VigilanteWang/graphpermlist/issues/18): module migration,
+   CatalogReader and configurable multi-resource catalogs with schema 2. Starts from
+   PR #17 merged into main at `c5e4132`.
+4. [#14](https://github.com/VigilanteWang/graphpermlist/issues/14): website and existing
+   SPFx configuration for API or JSON and SharePoint file transport.
+5. [#15](https://github.com/VigilanteWang/graphpermlist/issues/15): independent review,
+   clean reproduction and actual SharePoint runtime acceptance across both modes.
 
 Each stage starts from verified latest main after its predecessor PR merges. Use
 one codex/ branch and PR per stage. No merge, issue closure, tenant upload, permission
@@ -24,31 +27,24 @@ change or deployment is authorized by successful checks. Stop after each stage.
 
 ## Product and code boundaries
 
-The website and existing API SPFx retain HTTP clients. A future JSON SPFx is a
-second solution, with independent solution/Web Part GUIDs, package name, outputs,
-configuration and upgrade/rollback. A data-source switch in one Web Part does not
-satisfy #11. Three entries reuse packages/ui and inject a CatalogClient; UI has no
-transport/host branches. Current API SPFx IDs/properties/package are unchanged.
+The website and existing SPFx use the same `common/ui` and inject a neutral
+`CatalogClient`. The final delivery keeps one solution, Web Part and sppkg with
+existing IDs and package name. #14 owns website build-time selection and SPFx
+initialization from a SharePoint configuration file, including existing API property
+compatibility. #15 owns actual SharePoint runtime acceptance.
 
-- contracts: `catalog-query.ts` defines the neutral CatalogClient, query models and
-  source metadata. `catalog-api.ts` defines HTTP responses shared by Nest and the
-  HTTP client. `catalog-json.ts` defines schema 1 publication files and JSON
-  client errors. The package entry and the api-client CatalogClient re-export
-  remain type-only.
-- api-client: unchanged HTTP routes, encoding, credentials: omit, status/errors and
-  request cancellation. No SPFx context.
-- catalog-core: pure queryPermissions/countPermissions/queryCategories/queryDetail.
-  Input is validated ordinary definitions from one resource. No IO, crypto, clock,
-  database, identity, React, Nest or SPFx runtime in the query entry. Separate
-  subpaths expose the pure import model, schema validator and browser client.
-- API CatalogService: TypeORM reads and activity lookup, adapting plain structures
-  to core and mapping absent detail/resource to existing Nest 404 responses.
-- UI: neutral client, source-neutral load/error/setup descriptions; source details
-  display importedAt for API and generatedAt for JSON without inventing timestamps.
-- SQLite import and the offline JSON tool share transformation and classification.
-  The future SPFx host owns SPHttpClient, file URL policy, permissions, configuration,
-  React and theme.
-  JSON runtime requires no Nest/SQLite/customer Azure resources.
+- `common/contracts` exposes type-only client, query, model, HTTP and JSON contracts.
+- `catalog/query` provides pure filtering, merging, counts and details through
+  `@graph/catalog-core`. The Node API and JSON client share this package.
+- `catalog/api-client` provides `createApiCatalogClient()` and its compatible
+  `createCatalogClient()` alias. `catalog/json-client` provides `JsonCatalogClient`.
+- `common/catalog-json` validates both file formats via
+  `@graph/catalog-json/validation`. The offline CLI manages file I/O under
+  `tools/catalog-json`, using the same validation as the browser.
+- SQLite import and offline export use `@graph/catalog-source` for Node-only input
+  reads and `@graph/catalog-ingest` for permission modeling and classification.
+  Browser paths exclude these two packages. JSON runtime requires no Nest, SQLite
+  or customer Azure resources.
 
 All query filters act on the same definition before value merging. Same-type,
 same-value definitions with different GUIDs survive. Counts and visibleTypes use
@@ -59,7 +55,7 @@ lexical ordering; definitions sort by type, with stable input order within a typ
 
 ## Schema 1 decisions for #13
 
-The [JSON contract](../packages/contracts/src/catalog-json.ts) describes the static
+The [JSON contract](../common/contracts/src/catalog-json-format.ts) describes the static
 schema. Stage #13 implements runtime validation.
 
 - CatalogJsonManifest: schemaVersion: 1, version, snapshot, artifactSha256.
@@ -459,6 +455,9 @@ and the JSON source type declares the generation timestamp. Actual SharePoint
 runtime acceptance remains pending. The refactor is in the existing #12 working tree.
 
 ## Stage 2 delivery and verification
+
+The following #13 record preserves its original paths and handoff. The current
+host and stage decisions are listed above.
 
 [#13](https://github.com/VigilanteWang/graphpermlist/issues/13) started on 2026-11-20
 from refreshed `origin/main` at `82aeaaebe9558d93f33b14c6e4f3c7c8c83cb56f`,

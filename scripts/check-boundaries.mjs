@@ -11,7 +11,7 @@ const root = new URL('../', import.meta.url);
  * @returns {Promise<object>} 解析后的 JSON 内容。
  */
 const json = async path => JSON.parse(await readFile(new URL(path, root), 'utf8'));
-const ui = await json('packages/ui/package.json');
+const ui = await json('common/ui/package.json');
 // 共享 UI 声明 React 版本要求，实际 React runtime 由独立网站和 SPFx 前端提供。
 assert.equal(ui.peerDependencies.react, '18.3.1');
 assert.equal(ui.peerDependencies['react-dom'], '18.3.1');
@@ -29,17 +29,20 @@ for (const name of ['react', 'react-dom']) {
   }
   // 检查三个包最终解析到同一份 React，避免重复 runtime 影响组件运行。
   const resolved = [];
-  for (const pkg of ['apps/web', 'apps/spfx', 'packages/ui']) {
+  for (const pkg of ['apps/web', 'apps/spfx', 'common/ui']) {
     resolved.push(await realpath(createRequire(new URL(`${pkg}/package.json`, root)).resolve(name)));
   }
   assert.equal(new Set(resolved).size, 1, `${name} resolves identically across UI and hosts`);
 }
 // 按角色列出全部允许的外部依赖；新增依赖必须显式审查，避免共享包依赖后端或特定前端。
 const allowedDependencies = {
-  contracts: [],
-  'catalog-core': ['@graph/contracts'],
-  'api-client': ['@graph/contracts'],
-  ui: ['@graph/contracts', '@fluentui/react-components', 'react', 'react-dom']
+  'common/contracts': [],
+  'common/catalog-json': ['@graph/contracts'],
+  'common/ui': ['@graph/contracts', '@fluentui/react-components', 'react', 'react-dom'],
+  'catalog/query': ['@graph/contracts'],
+  'catalog/json-client': ['@graph/contracts', '@graph/catalog-core', '@graph/catalog-json'],
+  'catalog/api-client': ['@graph/contracts'],
+  'catalog/ingest': ['@graph/contracts']
 };
 /** 要检查的源码文件列表，递归收集 src 下各级目录中的 JavaScript 和 TypeScript 文件。 */
 async function sourceFiles(directory) {
@@ -62,11 +65,11 @@ function checkSpecifier(specifier, file, directory, allowed) {
   }
 }
 for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
-  const metadata = await json(`packages/${pkg}/package.json`);
+  const metadata = await json(`${pkg}/package.json`);
   for (const name of Object.keys({ ...metadata.dependencies, ...metadata.peerDependencies, ...metadata.optionalDependencies })) {
     assert.ok(allowed.includes(name), `${pkg} has unapproved runtime dependency ${name}`);
   }
-  const directory = new URL(`packages/${pkg}/src/`, root);
+  const directory = new URL(`${pkg}/src/`, root);
   for (const file of await sourceFiles(directory)) {
     const source = await readFile(file, 'utf8');
     assert.ok(!/@microsoft\/sp-|WebPartContext|AadHttpClient|MSGraphClient/.test(source), `${pkg} has no SPFx identity/context dependency`);
@@ -94,24 +97,21 @@ for (const [pkg, allowed] of Object.entries(allowedDependencies)) {
   }
 }
 // 分别检查供 import 和 require 使用的构建产物。浏览器里的 JSON client 只需要查询与校验代码。
-const core = await json('packages/catalog-core/package.json');
-const coreModules = {
-  'index': [],
-  'model': ['./classification.js'],
-  'classification': [],
-  'json-validation': [],
-  'json-client': ['./index.js', './json-validation.js']
-};
-for (const [condition, format] of [['import', 'esm'], ['require', 'cjs']]) {
-  for (const [moduleName, allowed] of Object.entries(coreModules)) {
+const dualModules = [
+  ['catalog/query', 'index', '.', []],
+  ['catalog/ingest', 'permission-model', '.', ['./classification.js']],
+  ['catalog/ingest', 'classification', undefined, []],
+  ['common/catalog-json', 'validation', './validation', []],
+  ['catalog/json-client', 'index', '.', ['@graph/catalog-core', '@graph/catalog-json/validation']]
+];
+for (const [directory, moduleName, entry, allowed] of dualModules) {
+  const metadata = await json(`${directory}/package.json`);
+  for (const [condition, format] of [['import', 'esm'], ['require', 'cjs']]) {
     const output = `./dist/${format}/${moduleName}.js`;
-    if (moduleName !== 'classification') {
-      const entry = moduleName === 'index' ? '.' : `./${moduleName}`;
-      assert.equal(core.exports[entry][condition].default, output);
-    }
-    const source = await readFile(new URL(`packages/catalog-core/${output}`, root), 'utf8');
+    if (entry) assert.equal(metadata.exports[entry][condition].default, output);
+    const source = await readFile(new URL(`${directory}/${output}`, root), 'utf8');
     const imports = ts.preProcessFile(source, true, true).importedFiles.map(item => item.fileName);
-    assert.deepEqual([...new Set(imports)].sort(), allowed, `Unexpected emitted dependencies in ${output}`);
+    assert.deepEqual([...new Set(imports)].sort(), allowed, `Unexpected emitted dependencies in ${directory}/${output}`);
   }
 }
 // SPFx 的 manifest 应声明由 SharePoint 提供的 React 组件；bundle 应含共享界面的提示文案。

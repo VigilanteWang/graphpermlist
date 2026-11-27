@@ -1,6 +1,6 @@
 /** 本地 permission 文件加载器的类型声明，供 TypeScript 调用 JavaScript 实现时使用。 */
 
-import type { CatalogJsonAppRoleFields, CatalogJsonScopeFields } from '@graph/contracts';
+import type { SourceAppRoleFields, SourceScopeFields } from '@graph/contracts';
 
 /** 输入文件中一条 RSC definition 的字段。目录模型会单独统计这组 definition。 */
 interface RawRscPermission {
@@ -13,7 +13,7 @@ interface RawRscPermission {
 /** 输入 JSON 的顶层结构，包含一个 Graph resource 的名称、App ID 和三组 permission definition。 */
 export interface PermissionsSource {
   appId: string; displayName: string; appDisplayName: string;
-  appRoles: CatalogJsonAppRoleFields[]; oauth2PermissionScopes: CatalogJsonScopeFields[];
+  appRoles: SourceAppRoleFields[]; oauth2PermissionScopes: SourceScopeFields[];
   resourceSpecificApplicationPermissions: RawRscPermission[];
 }
 /** 默认本地 permission 快照的绝对路径。 */

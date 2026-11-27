@@ -1,6 +1,6 @@
 /** 把 Graph resource 导出的 appRole 和 scope 整理为目录数据，供 SQLite 导入和离线 JSON 发布共用。 */
 import type {
-  CatalogJsonAppRoleFields, CatalogJsonScopeFields, CatalogJsonSnapshotDefinition, CatalogJsonSnapshotResource
+  SourceAppRoleFields, SourceScopeFields, CatalogDefinitionWithRawFields, CatalogResourceModel
 } from '@graph/contracts';
 import { CATEGORIES, CLASSIFICATION_VERSION, classifyPermission } from './classification.js';
 export { CATEGORIES, CLASSIFICATION_VERSION, classifyPermission };
@@ -12,21 +12,21 @@ export const CATALOG_SOURCE_BASENAME = 'commercial-graph-permlist.json';
 interface CatalogModelInput {
   appId: string;
   displayName: string;
-  appRoles: readonly CatalogJsonAppRoleFields[];
-  oauth2PermissionScopes: readonly CatalogJsonScopeFields[];
+  appRoles: readonly SourceAppRoleFields[];
+  oauth2PermissionScopes: readonly SourceScopeFields[];
   resourceSpecificApplicationPermissions: readonly unknown[];
 }
 
 /** 一个 resource 的目录数据及来源信息。导入和发布流程对 classificationInput 计算分类摘要。 */
 interface CatalogModel {
-  resource: CatalogJsonSnapshotResource;
+  resource: CatalogResourceModel;
   excludedRscCount: number;
   classificationVersion: string;
   classificationInput: string;
 }
 
 /** 把 appRole 转成 Application definition，保留原始字段并将 admin consent 标为必需。 */
-function applicationEntry(raw: CatalogJsonAppRoleFields): CatalogJsonSnapshotDefinition {
+function applicationEntry(raw: SourceAppRoleFields): CatalogDefinitionWithRawFields {
   return {
     value: raw.value, ...classifyPermission(raw.value),
     definition: {
@@ -39,7 +39,7 @@ function applicationEntry(raw: CatalogJsonAppRoleFields): CatalogJsonSnapshotDef
 }
 
 /** 把 scope 转成 Delegated definition，按 Admin 或 User 设置 admin consent，并保留两套 consent 文案。 */
-function delegatedEntry(raw: CatalogJsonScopeFields): CatalogJsonSnapshotDefinition {
+function delegatedEntry(raw: SourceScopeFields): CatalogDefinitionWithRawFields {
   return {
     value: raw.value, ...classifyPermission(raw.value),
     definition: {

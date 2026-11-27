@@ -27,7 +27,7 @@ export type { CatalogClient } from '@graph/contracts';
  * @param fetcher - 发起请求的函数，默认是浏览器的 fetch。
  * @returns 可取消请求的只读客户端。
  */
-export function createCatalogClient(baseUrl: string, fetcher: typeof fetch = globalThis.fetch): CatalogClient {
+export function createApiCatalogClient(baseUrl: string, fetcher: typeof fetch = globalThis.fetch): CatalogClient {
   // 去掉末尾斜杠，避免拼接路径时出现重复分隔符。
   const base = baseUrl.replace(/\/+$/, '');
   /** 执行一次 GET 查询。把筛选值放入 URL，成功时读 JSON，HTTP 失败时抛出 CatalogApiError。 */
@@ -66,3 +66,6 @@ export function createCatalogClient(baseUrl: string, fetcher: typeof fetch = glo
       get<CatalogApiPermissionDetailResponse>(`${resourcePath(id)}/permissions/${encodeURIComponent(value)}`, query, signal)
   };
 }
+
+/** HTTP client 工厂的兼容别名，供使用原名称的调用方继续使用。 */
+export const createCatalogClient = createApiCatalogClient;

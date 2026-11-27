@@ -12,7 +12,7 @@ test('Chromium streams the real offline publication, verifies it and queries the
   delete env.PERMISSIONS_SOURCE;
   delete env.PERMISSIONS_SHA256;
   try {
-    await promisify(execFile)(process.execPath, ['scripts/catalog-json.mjs', 'export', '--output', dir,
+    await promisify(execFile)(process.execPath, ['tools/catalog-json/cli.mjs', 'export', '--output', dir,
       '--generated-at', generatedAt], { env, timeout: 15_000 });
     const manifest = JSON.parse(await readFile(join(dir, 'current.json'), 'utf8'));
     const requested: string[] = [];
@@ -43,7 +43,7 @@ test('Chromium streams the real offline publication, verifies it and queries the
         artifact: resources.artifact,
         nodePresent: 'process' in globalThis || 'require' in globalThis
       };
-    }, `/@fs${resolve('packages/catalog-core/dist/esm/json-client.js')}`);
+    }, `/@fs${resolve('catalog/json-client/dist/esm/index.js')}`);
     expect(result).toMatchObject({
       counts: [1660, 1664], definitions: [1, 2], types: ['Delegated'],
       source: { generatedAt, excludedRscCount: 60 },

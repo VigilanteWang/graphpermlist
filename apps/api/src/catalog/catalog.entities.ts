@@ -1,6 +1,6 @@
 /** 目录的 TypeORM 实体。每个类对应一张 SQLite 表，供导入服务写入、查询服务读取。 */
 import { Column, Entity, PrimaryColumn } from 'typeorm';
-import type { CatalogImportSource, CatalogJsonSnapshotDefinition, PermissionDefinition, PermissionType } from '@graph/contracts';
+import type { CatalogImportSource, CatalogDefinitionWithRawFields, PermissionDefinition, PermissionType } from '@graph/contracts';
 
 /** Graph resource 的记录。每个 resource 保存一条记录，可关联多次导入的快照。 */
 @Entity('catalog_resource')
@@ -45,7 +45,7 @@ export class CatalogDefinition {
   // TypeORM 把对象转成 JSON 文本存入一列，查询时再读成对象供列表和详情使用。
   @Column('simple-json') definition!: PermissionDefinition;
   // 保存源定义中允许保留的字段，例如 appRole 的 origin 和 allowedMemberTypes。
-  @Column('simple-json') rawDefinition!: CatalogJsonSnapshotDefinition['rawDefinition'];
+  @Column('simple-json') rawDefinition!: CatalogDefinitionWithRawFields['rawDefinition'];
 }
 // 集中导出实体列表，供数据库连接和功能模块注册使用。
 export const CATALOG_ENTITIES = [CatalogResource, CatalogImport, CatalogCategory, CatalogFamily, CatalogDefinition];
