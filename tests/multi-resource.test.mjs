@@ -5,11 +5,11 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createApiCatalogClient } from '@graph/api-client';
 import { JsonCatalogClient } from '@graph/json-client';
 import { loadPermissionsSources, sanitizePermissionsData } from '@graph/catalog-source';
+import { writeGraphManifest } from './fixtures/graph-manifest.mjs';
 import { addVerificationResource, sourceDigest, verificationId } from './fixtures/add-verification-resource.mjs';
 
 const require = createRequire(import.meta.url);
@@ -22,7 +22,6 @@ const { Test } = require('@nestjs/testing');
 const { ConfigService } = require('@nestjs/config');
 const { DataSource } = require('typeorm');
 const dataRoot = new URL('../data/', import.meta.url);
-const graphSource = fileURLToPath(new URL('commercial-graph-permlist.json', dataRoot));
 const [graph, powerBi, sharePoint] = [
   '00000003-0000-0000-c000-000000000000',
   '00000009-0000-0000-c000-000000000000',
@@ -58,7 +57,7 @@ function createJson(directory) {
 async function openDatabase(t, databasePath) {
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(ConfigService).useValue(new ConfigService(validateEnvironment({
-      SQLITE_PATH: databasePath, PERMISSIONS_SOURCE: '', PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: ''
+      SQLITE_PATH: databasePath, PERMISSIONS_CONFIG: ''
     }))).compile();
   const app = module.createNestApplication({ logger: false });
   t.after(() => app.close());
@@ -68,8 +67,6 @@ async function openDatabase(t, databasePath) {
   await database.runMigrations();
   await app.listen(0, '127.0.0.1');
   const config = app.get(ConfigService);
-  config.set('PERMISSIONS_SOURCE', '');
-  config.set('PERMISSIONS_SHA256', '');
   config.set('PERMISSIONS_CONFIG', '');
   return { http: createApiCatalogClient(`${await app.getUrl()}/api/v1`), database, config, importer: app.get(CatalogImportService) };
 }
@@ -101,17 +98,17 @@ test('default SQLite and schema 2 preserve all three sources, identity, metadata
   await assert.rejects(http.categories(graph), { status: 404 });
 
   // Reapply the additive migration over an existing Graph-only database.
-  config.set('PERMISSIONS_SOURCE', graphSource);
-  const existingGraph = await importer.importFile();
+  config.set('PERMISSIONS_CONFIG', await writeGraphManifest(join(dir, 'graph')));
+  const { resources: [existingGraph] } = await importer.importFile();
   await database.undoLastMigration();
   assert.ok(!(await database.query('PRAGMA table_info(catalog_import)')).some(column => column.name === 'browseMode'));
   await database.runMigrations();
-  config.set('PERMISSIONS_SOURCE', '');
+  config.set('PERMISSIONS_CONFIG', '');
   const batch = await importer.importFile();
   assert.equal(batch.definitionCount, 1917);
   assert.equal(batch.reused, false);
   assert.deepEqual(batch.resources.find(item => item.resourceId === graph),
-    { ...existingGraph, resourceId: graph, reused: true });
+    { ...existingGraph, reused: true });
   assert.deepEqual(await importer.importFile(),
     { ...batch, reused: true, resources: batch.resources.map(item => ({ ...item, reused: true })) });
 
@@ -275,7 +272,7 @@ test('fourth resource uses files and config only; failed batches and publication
 test('source whitelist and config reject missing collections and duplicate identifiers', async t => {
   const dir = await directory(t);
   const { configPath, config } = await addVerificationResource(dir);
-  const { data } = (await loadPermissionsSources({ configPath, source: '' })).inputs.at(-1);
+  const { data } = (await loadPermissionsSources({ configPath })).at(-1);
   const withMetadata = { ...data, ignoredMetadata: 'synthetic', appRoles: data.appRoles.map(role => ({ ...role, extra: 'synthetic' })) };
   assert.deepEqual(sanitizePermissionsData(withMetadata, verificationId), data);
   assert.throws(() => sanitizePermissionsData({ ...data, resourceSpecificApplicationPermissions: undefined }, verificationId),
@@ -284,5 +281,5 @@ test('source whitelist and config reject missing collections and duplicate ident
     verificationId), /duplicate permission ID/);
   config.resources.push({ ...config.resources.at(-1), appId: verificationId.toUpperCase(), fileName: 'another.json' });
   await writeFile(configPath, JSON.stringify(config));
-  await assert.rejects(loadPermissionsSources({ configPath, source: '' }), /Duplicate resource App ID/);
+  await assert.rejects(loadPermissionsSources({ configPath }), /Duplicate resource App ID/);
 });

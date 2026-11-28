@@ -16,8 +16,8 @@ export interface PermissionsSource {
   appRoles: SourceAppRoleFields[]; oauth2PermissionScopes: SourceScopeFields[];
   resourceSpecificApplicationPermissions: RawRscPermission[];
 }
-/** 默认本地 permission 快照的绝对路径。 */
-export const DEFAULT_PERMISSIONS_SOURCE: string;
+/** 已退役的源配置错误，可直接显示固定的迁移提示。 */
+export class RetiredSourceOptionsError extends Error {}
 /**
  * permission 快照的结构校验函数，检查 Graph resource 及 permission 字段并统计数量。
  * @param data - 待校验的数据。
@@ -34,10 +34,8 @@ export interface LoadedPermissionsSource {
   counts: Record<string, unknown>;
 }
 
-/** 输入的路径配置；显式 source 选择 Graph 单源模式，否则使用 resource 清单。 */
+/** resource 清单的路径配置，未指定路径时使用默认清单。 */
 interface SourceOptions {
-  source?: string;
-  expectedSha256?: string;
   configPath?: string;
 }
 
@@ -47,14 +45,8 @@ interface ConfiguredPermissionsSource extends LoadedPermissionsSource {
   classification?: CatalogClassification;
 }
 
-/** Graph 单源的异步加载函数，兼容显式文件和预期 SHA-256。 */
-export function loadPermissionsSource(options?: SourceOptions): Promise<LoadedPermissionsSource>;
-
-/** 批次加载函数，返回输入选择模式及全部已校验的源。 */
-export function loadPermissionsSources(options?: SourceOptions): Promise<{
-  mode: 'single-source' | 'manifest';
-  inputs: ConfiguredPermissionsSource[];
-}>;
+/** 异步批次加载函数，返回清单中全部已校验的源。 */
+export function loadPermissionsSources(options?: SourceOptions): Promise<ConfiguredPermissionsSource[]>;
 
 /** 将导出的公开字段投影到脱敏源结构，再以指定 Resource App ID 校验。 */
 export function sanitizePermissionsData(data: unknown, appId: string): PermissionsSource;

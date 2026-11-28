@@ -29,8 +29,8 @@ export class CatalogImportService {
   /** 导入服务的构造函数，接收 Nest 注入的数据库连接和配置服务。 */
   constructor(private readonly database: DataSource, private readonly config: ConfigService) {}
 
-  /** 文件导入的入口。任务按调用顺序执行，单源返回版本结果，清单返回整批结果。 */
-  importFile(): Promise<ImportedVersion | ImportedBatch> {
+  /** 清单导入的入口。任务按调用顺序执行，返回整批结果和各 resource 的版本。 */
+  importFile(): Promise<ImportedBatch> {
     const work = this.pending.then(() => this.importSnapshot());
     // 调用者收到本次失败，队列仍可继续执行下一次导入。
     this.pending = work.catch(() => undefined);
@@ -38,10 +38,8 @@ export class CatalogImportService {
   }
 
   /** 导入批次。全部源完成校验和建模后，才开启一个事务写入或复用各 resource 的版本。 */
-  private async importSnapshot(): Promise<ImportedVersion | ImportedBatch> {
-    const { inputs, mode } = await loadPermissionsSources({
-      source: this.config.get<string>('PERMISSIONS_SOURCE'),
-      expectedSha256: this.config.get<string>('PERMISSIONS_SHA256'),
+  private async importSnapshot(): Promise<ImportedBatch> {
+    const inputs = await loadPermissionsSources({
       configPath: this.config.get<string>('PERMISSIONS_CONFIG')
     });
     const models = inputs.map(({ data, classification, displayName, fileName, sha256 }) => ({
@@ -52,7 +50,6 @@ export class CatalogImportService {
       const resources: ImportedBatch['resources'] = [];
       for (const { model, fileName, sha256 } of models) {
         const imported = await this.writeVersion(manager, model, fileName, sha256);
-        if (mode === 'single-source') return imported;
         resources.push({ resourceId: model.resource.resourceId, ...imported });
       }
       return {

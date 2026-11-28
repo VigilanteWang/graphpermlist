@@ -833,3 +833,6 @@ The [#18 review follow-up](sharepoint-json-plan.md#stage-3-review-follow-up--18)
 records the ETL and JSON format layout changes, commands, schema 2 rollback
 verification and the [schema 1 retirement](sharepoint-json-plan.md#schema-1-retirement--18).
 #14 and #15 use the schema 2-only contract for host integration and acceptance.
+The [manifest-only input follow-up](sharepoint-json-plan.md#manifest-only-catalog-input--18)
+unifies source verification, SQLite import and JSON export, with evidence for
+both one-entry and default manifests.

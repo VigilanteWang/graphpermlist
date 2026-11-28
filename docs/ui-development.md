@@ -81,7 +81,7 @@ npm run start:api
 In a second terminal run `npm run dev:web`, then open `http://localhost:5173`.
 The CLI and HTTP server must use the same `SQLITE_PATH`; use an isolated file when
 reviewing without changing an existing local database. No startup auto-import occurs.
-`PERMISSIONS_SOURCE` can override the versioned `data/commercial-graph-permlist.json`.
+`PERMISSIONS_CONFIG` can select a custom resource manifest for the import.
 
 Home and the sidebar use the same resource list. Each resource displays its
 permission and definition counts. Its source details include the snapshot name,

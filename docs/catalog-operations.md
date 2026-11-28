@@ -33,19 +33,22 @@ installed source workspace. Keep original exports and SQLite databases local.
   SQLite transaction writes the batch. The default manifest pins Microsoft
   Graph, Power BI Service and SharePoint Online. Supply `PERMISSIONS_CONFIG`
   to use a different manifest. See [source documentation](../data/README.md).
-- An explicit `PERMISSIONS_SOURCE` imports a single Graph input. Optionally
-  pin it using `PERMISSIONS_SHA256`. Use a fresh database to review Graph by
-  itself. Each import updates the named resources and leaves other active
-  resources in the same database available.
+- For a single resource, use a one-entry manifest. Use a fresh database if you
+  want the API to display only that resource. Each import updates the named
+  resources and leaves other active resources available.
 - The importer keeps original official fields and disabled definitions.
   It excludes user-only appRoles and counts RSC separately. An unchanged
   active resource retains its version ID and import timestamp, while changed
   resources receive new versions. A failed batch leaves previous active
   versions available. In-process writes are serialized per connection.
-- Import results report a per-resource version ID and reuse flag in manifest
-  mode. The command closes its connection on success or failure. Source metadata
-  uses the configured logical filename. Explicit Graph imports use
-  `commercial-graph-permlist.json` for source display.
+- Import results report a version ID and reuse flag for each entry in
+  `resources`. The command closes its connection on success or failure.
+  Source metadata uses the configured filename.
+
+If your environment or API `.env` has `PERMISSIONS_SOURCE` or
+`PERMISSIONS_SHA256`, remove those settings and put the filename and digest in
+the manifest. Source verification, import and export reject these retired
+settings when set to a nonempty value.
 
 `TypeOrmCatalogReader` resolves an active version and maps its categories,
 families, and definitions using that version ID. `CatalogService` consumes
@@ -97,7 +100,7 @@ To publish only Graph, copy its entry into a manifest with a single resource
 and place the manifest beside the sanitized Graph source.
 
 ```sh
-PERMISSIONS_SOURCE= PERMISSIONS_CONFIG=./release/graph-resources.json \
+PERMISSIONS_CONFIG=./release/graph-resources.json \
   npm run export:json -- --output ./release/graph-only --generated-at 2026-11-20T00:00:00.000Z
 npm run verify:json -- --output ./release/graph-only
 ```

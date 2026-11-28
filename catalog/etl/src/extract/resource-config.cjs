@@ -4,7 +4,6 @@ const { readFile } = require('node:fs/promises');
 
 const DEFAULT_CONFIG = resolve(__dirname, '../../../../data/catalog-resources.json');
 const GRAPH_APP_ID = '00000003-0000-0000-c000-000000000000';
-const GRAPH_FILE_NAME = 'commercial-graph-permlist.json';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DIGEST = /^[a-f0-9]{64}$/i;
 const FILE_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,122}\.json$/;
@@ -98,4 +97,4 @@ async function loadResourceConfig(path = DEFAULT_CONFIG) {
   });
 }
 
-module.exports = { DEFAULT_CONFIG, GRAPH_APP_ID, GRAPH_FILE_NAME, UUID, DIGEST, isLabel, requireCondition, readJsonInput, loadResourceConfig };
+module.exports = { GRAPH_APP_ID, UUID, isLabel, requireCondition, readJsonInput, loadResourceConfig };

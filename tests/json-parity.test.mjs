@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createApiCatalogClient } from '@graph/api-client';
 import { JsonCatalogClient } from '@graph/json-client';
+import { writeGraphManifest } from './fixtures/graph-manifest.mjs';
 
 const require = createRequire(import.meta.url);
 const { Test } = require('@nestjs/testing');
@@ -29,9 +30,9 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const identity = (type, id) => `${type}/${id.toLowerCase()}`;
 const definitionKeys = definitions => definitions.map(d => identity(d.permissionType, d.id)).sort();
 
-async function setupApi(t, inputPath, sourceSha256) {
+async function setupApi(t, configPath) {
   const config = new ConfigService(validateEnvironment({ SQLITE_PATH: ':memory:',
-    PERMISSIONS_SOURCE: inputPath, PERMISSIONS_SHA256: sourceSha256 }));
+    PERMISSIONS_CONFIG: configPath }));
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(ConfigService).useValue(config).compile();
   const app = module.createNestApplication({ logger: false });
@@ -44,20 +45,8 @@ async function setupApi(t, inputPath, sourceSha256) {
   return { database, http: createApiCatalogClient(`${await app.getUrl()}/api/v1`) };
 }
 
-async function graphManifest(directory, sourceBytes) {
-  const fileName = basename(sourcePath);
-  const configPath = join(directory, 'catalog-resources.json');
-  await mkdir(directory);
-  await writeFile(join(directory, fileName), sourceBytes);
-  await writeFile(configPath, JSON.stringify({ resources: [{
-    appId: '00000003-0000-0000-c000-000000000000', fileName,
-    sha256: sha256(sourceBytes), classification: { mode: 'graph' }
-  }] }));
-  return configPath;
-}
-
-async function catalogCli(args, configPath, source = '') {
-  const env = { ...process.env, PERMISSIONS_SOURCE: source, PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: configPath ?? '' };
+async function catalogCli(args, configPath, extra = {}) {
+  const env = { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: configPath ?? '', ...extra };
   await run(process.execPath, ['catalog/etl/src/export/cli.mjs', ...args], { cwd: root, env, timeout: 15_000 });
 }
 
@@ -120,7 +109,7 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   const expected = sourceDefinitions(source);
   const firstOutput = join(dir, 'first');
   const secondOutput = join(dir, 'second');
-  const configPath = await graphManifest(join(dir, 'graph'), sourceBytes);
+  const configPath = await writeGraphManifest(join(dir, 'graph'), sourceBytes);
   const release = await publish(firstOutput, configPath);
   const { json, artifact, snapshot } = release;
   const repeated = await publish(secondOutput, configPath);
@@ -129,12 +118,12 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   await catalogCli(['verify', '--output', firstOutput]);
   assert.deepEqual(await readFile(sourcePath), sourceBytes);
 
-  const invalidConfig = await graphManifest(join(dir, 'invalid'), JSON.stringify({ ...source, appRoles: undefined }));
+  const invalidConfig = await writeGraphManifest(join(dir, 'invalid'), JSON.stringify({ ...source, appRoles: undefined }));
   const snapshotFile = `catalog-${artifact.version}.json`;
   const exportArgs = ['export', '--output', firstOutput, '--generated-at', generatedAt];
   await assert.rejects(catalogCli(exportArgs, invalidConfig), { code: 1 });
-  await assert.rejects(catalogCli(exportArgs, configPath, sourcePath),
-    { code: 1, stderr: /Unset PERMISSIONS_SOURCE and use PERMISSIONS_CONFIG/ });
+  await assert.rejects(catalogCli(exportArgs, configPath, { PERMISSIONS_SOURCE: sourcePath }),
+    { code: 1, stderr: /Unset PERMISSIONS_SOURCE and PERMISSIONS_SHA256.*PERMISSIONS_CONFIG/ });
   assert.deepEqual((await readdir(firstOutput)).sort(), [snapshotFile, 'current.json'].sort());
   assert.deepEqual(await readFile(join(firstOutput, 'current.json')), release.manifestBytes);
   assert.deepEqual(await readFile(join(firstOutput, snapshotFile)), release.snapshotBytes);
@@ -148,7 +137,7 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   assert.deepEqual(await readFile(join(secondOutput, 'current.json')), repeated.manifestBytes);
   assert.deepEqual(await readFile(join(secondOutput, snapshotFile)), corruptedBytes);
 
-  const { http, database } = await setupApi(t, sourcePath, sha256(sourceBytes));
+  const { http, database } = await setupApi(t, configPath);
   const active = await database.getRepository(CatalogImport).findOneByOrFail({ active: true });
   assert.equal(snapshot.resources.length, 1);
   const [resource] = snapshot.resources;
@@ -256,10 +245,9 @@ test('distinct same-type GUIDs merge by value while filtered detail keeps every 
   const excluded = { ...first, id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', allowedMemberTypes: ['User'] };
   source.appRoles.push(first, second, excluded);
   const sourceBytes = JSON.stringify(source);
-  const configPath = await graphManifest(join(dir, 'altered'), sourceBytes);
-  const inputPath = join(dir, 'altered', basename(sourcePath));
+  const configPath = await writeGraphManifest(join(dir, 'altered'), sourceBytes);
   const { json, artifact, snapshot } = await publish(join(dir, 'release'), configPath);
-  const { http } = await setupApi(t, inputPath, sha256(sourceBytes));
+  const { http } = await setupApi(t, configPath);
 
   assert.equal(snapshot.resources[0].source.fileName, 'commercial-graph-permlist.json');
   assert.equal(snapshot.resources[0].source.sha256, sha256(sourceBytes));

@@ -687,8 +687,9 @@ The exporter, validator and browser reader now use schema 2. A custom JSON
 publication uses `PERMISSIONS_CONFIG`. A one-entry Graph manifest produces a
 Graph-only schema 2 release. The exporter rejects `PERMISSIONS_SOURCE` with a
 migration message. SQLite import and `verify:data` retain their explicit Graph
-input and output shapes. The rollback target is the previous verified schema 2
-manifest and snapshot. See the [current checks](verification/spfx-json-3-human-review.md).
+input and output shapes at this revision. The rollback target is the previous
+verified schema 2 manifest and snapshot. The follow-up below supersedes the
+explicit Graph input.
 
 | Command or check | Result |
 | --- | --- |
@@ -705,3 +706,29 @@ tracks review of [PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19
 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) integrates schema 2
 into both hosts. Actual SharePoint file access and rollback are pending under
 [#15](https://github.com/VigilanteWang/graphpermlist/issues/15).
+
+## Manifest-only catalog input — #18
+
+SQLite import, source verification and JSON export use the same resource manifest
+loader. `PERMISSIONS_CONFIG` selects a custom file and each manifest entry pins
+the source filename and SHA-256. A one-entry manifest follows the same path and
+has the same `resources` result shape as the default three-entry manifest.
+The retired `PERMISSIONS_SOURCE` and `PERMISSIONS_SHA256` settings trigger a
+migration message when nonempty, including API CLI settings from `.env`. This
+prevents an old command from selecting the default batch or bypassing a pinned
+digest. The per-resource Graph classification is still part of its manifest entry.
+
+| Command or check | Result |
+| --- | --- |
+| `npm run typecheck`, `npm test` | Passed with Node 22.16.0 and npm 10.9.2. All 99 Node tests passed after updating the per-resource reuse assertion. Covers one-entry results, retired settings, malformed input and transaction rollback. Existing locked dependencies reused. |
+| `npm run verify:data`, `npm run db:migrate`, `npm run import:data` | Separate scratch databases accepted the default manifest with 1,917 ordinary definitions and a Graph-only manifest with 1,664. Import and verification both returned a `resources` array. A second import reused all IDs. An old setting supplied through an isolated API `.env` produced the migration message. |
+| `npm --ignore-scripts run export:json`, `npm --ignore-scripts run verify:json` after the shared build | Both manifests published and verified schema 2. The fixed-time default artifact matched the recorded SHA-256. |
+| `npm run build`, `npm run check:react` | Passed Vite and SPFx production builds and shared dependency checks. |
+| `CATALOG_TEST_API_PORT=3240 CATALOG_TEST_WEB_PORT=5340 npm run test:browser` | 33 Chromium tests passed. The fourth-resource case was skipped in the default run and passed with all four cases in the separate `CATALOG_TEST_RESOURCE_CONFIG` run. |
+| Source and diff review | Reviewed changed Chinese comments, declaration coverage, manifest digest and transaction rules, and the English configuration error. `git diff --check` passed. |
+
+The [current human review steps](verification/spfx-json-3-human-review.md) and
+[#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
+cover the unified input in [PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19).
+Host integration begins in #14 after #18 is merged and verified. Actual
+SharePoint runtime acceptance remains in #15.

@@ -1,5 +1,6 @@
 /** 本地 SQLite 的命令行入口，供 npm run db:migrate 和 npm run import:data 使用。 */
 import 'reflect-metadata';
+import { RetiredSourceOptionsError } from '@graph/catalog-source';
 import { type INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
@@ -21,9 +22,10 @@ async function main(): Promise<void> {
     } else {
       console.log(JSON.stringify({ status: 'ok', ...await app.get(CatalogImportService).importFile() }));
     }
-  } catch {
+  } catch (error) {
     // 路径、文件名和解析片段可能含私人信息，对外只输出固定错误说明。
-    console.error('Catalog command failed. Check sanitized input, configuration and database migrations.');
+    console.error(error instanceof RetiredSourceOptionsError ? error.message
+      : 'Catalog command failed. Check sanitized input, configuration and database migrations.');
     process.exitCode = 1;
   } finally {
     // 成功或失败都释放数据库连接，使 CLI 能正常退出。

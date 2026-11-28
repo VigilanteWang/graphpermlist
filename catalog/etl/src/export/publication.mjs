@@ -8,7 +8,7 @@ import {
   JSON_MANIFEST_FILE, JSON_MANIFEST_MAX_BYTES, JSON_SNAPSHOT_MAX_BYTES, JsonCatalogError,
   readJsonManifest, readJsonSnapshot
 } from '@graph/catalog-json/validation';
-import { loadPermissionsSources } from '@graph/catalog-source';
+import { RetiredSourceOptionsError, loadPermissionsSources } from '@graph/catalog-source';
 
 /** SHA-256 摘要函数。对传入的内容计算摘要，返回十六进制字符串。 */
 function sha256(bytes) {
@@ -87,13 +87,12 @@ async function publish(directory, manifest, bytes) {
 
 /** 快照输入的加载入口。JSON 发布使用清单，可以用只含一项的清单发布单个 resource。 */
 async function loadSource() {
-  if (process.env.PERMISSIONS_SOURCE) {
-    throw new JsonCatalogError('invalid-snapshot',
-      'JSON export requires a resource manifest. Unset PERMISSIONS_SOURCE and use PERMISSIONS_CONFIG for a custom or single-resource manifest.');
-  }
   try {
-    return await loadPermissionsSources({ source: '' });
+    return await loadPermissionsSources();
   } catch (error) {
+    if (error instanceof RetiredSourceOptionsError) {
+      throw new JsonCatalogError('invalid-snapshot', error.message);
+    }
     if (error.cause?.code) {
       throw new JsonCatalogError('load-failed', 'Cannot read the permissions input. Check PERMISSIONS_CONFIG and file access.');
     }
@@ -103,7 +102,7 @@ async function loadSource() {
 
 /** 生成目录快照的入口。使用与 SQLite 导入相同的目录模型，另在 JSON 中记录生成时间。 */
 export async function generate(directory, generatedAt) {
-  const { inputs } = await loadSource();
+  const inputs = await loadSource();
   const resources = inputs.map(({ data, sha256: sourceSha256, classification, displayName, fileName }) => {
     const { resource, browseMode, classificationInput, classificationVersion, excludedRscCount } =
       buildCatalogModel(data, { classification, displayName });

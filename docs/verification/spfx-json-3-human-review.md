@@ -6,7 +6,8 @@ checks below use a new directory and reserved loopback ports.
 
 ```sh
 npm ci
-PERMISSIONS_SOURCE= PERMISSIONS_CONFIG= PERMISSIONS_SHA256= npm run verify:data
+unset PERMISSIONS_SOURCE PERMISSIONS_SHA256 PERMISSIONS_CONFIG
+npm run verify:data
 npm run typecheck
 npm test
 npm run build
@@ -14,14 +15,15 @@ npm run check:react
 
 catalog_review_dir=$(mktemp -d)
 export SQLITE_PATH="$catalog_review_dir/catalog.sqlite"
-export PERMISSIONS_SOURCE= PERMISSIONS_CONFIG= PERMISSIONS_SHA256=
 npm run db:migrate
 npm run import:data
 npm run import:data
 npm run export:json -- --output "$catalog_review_dir/catalog" --generated-at 2026-11-20T00:00:00.000Z
 npm run verify:json -- --output "$catalog_review_dir/catalog"
 SQLITE_PATH="$catalog_review_dir/graph.sqlite" npm run db:migrate
-SQLITE_PATH="$catalog_review_dir/graph.sqlite" PERMISSIONS_SOURCE=./data/commercial-graph-permlist.json npm run import:data
+node --input-type=module -e 'import { writeGraphManifest } from "./tests/fixtures/graph-manifest.mjs"; await writeGraphManifest(process.argv[1])' "$catalog_review_dir/graph"
+PERMISSIONS_CONFIG="$catalog_review_dir/graph/catalog-resources.json" npm run verify:data
+SQLITE_PATH="$catalog_review_dir/graph.sqlite" PERMISSIONS_CONFIG="$catalog_review_dir/graph/catalog-resources.json" npm run import:data
 ```
 
 1. Review the three original implementation commits in order. The package move leaves
@@ -34,7 +36,8 @@ SQLITE_PATH="$catalog_review_dir/graph.sqlite" PERMISSIONS_SOURCE=./data/commerc
    The current validator accepts schema 2 for both manifest and snapshot.
 2. Check that the first default import saves 1,917 ordinary definitions and
    the repeat reports the same three version IDs with `reused: true`. The separate
-   explicit Graph import saves 1,664 ordinary definitions and returns one version.
+   one-entry Graph manifest saves 1,664 ordinary definitions. Both commands
+   report one item in `resources` when run with that manifest.
    The default schema 2 artifact verifies with SHA-256
    `f03b0daffb23e8dccaf55c2fc6158fafb2905c0961d3cdde8af325efa9cf2f47`.
 3. Run the API against the scratch SQLite file with
@@ -64,7 +67,7 @@ SQLITE_PATH="$catalog_review_dir/graph.sqlite" PERMISSIONS_SOURCE=./data/commerc
    validation and per-resource source/definition parity. The client refreshes
    from two schema 2 versions, then loads the previous verified manifest and
    restores that version's category and details. Graph-only JSON publishes
-   through a single-entry manifest. The old export input fails with a manifest
+   through a single-entry manifest. The old source variables fail with a manifest
    migration message, and schema 1 manifests and snapshots return
    `unsupported-schema`.
 5. Run both Chromium checks. The test-only generator writes two fake
