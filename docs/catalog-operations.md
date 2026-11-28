@@ -45,11 +45,6 @@ installed source workspace. Keep original exports and SQLite databases local.
   `resources`. The command closes its connection on success or failure.
   Source metadata uses the configured filename.
 
-If your environment or API `.env` has `PERMISSIONS_SOURCE` or
-`PERMISSIONS_SHA256`, remove those settings and put the filename and digest in
-the manifest. Source verification, import and export reject these retired
-settings when set to a nonempty value.
-
 `TypeOrmCatalogReader` resolves an active version and maps its categories,
 families, and definitions using that version ID. `CatalogService` consumes
 plain snapshots and calls the shared query package. SQLite DDL remains in

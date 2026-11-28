@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 test('Chromium streams the real offline publication, verifies it and queries the pinned version', async ({ page }) => {
   const dir = await mkdtemp(join(tmpdir(), 'catalog-json-browser-'));
   const generatedAt = '2026-11-20T00:00:00.000Z';
-  const env = { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_CONFIG: '', PERMISSIONS_SHA256: '' };
+  const env = { ...process.env, PERMISSIONS_CONFIG: '' };
   try {
     await promisify(execFile)(process.execPath, ['catalog/etl/src/export/cli.mjs', 'export', '--output', dir,
       '--generated-at', generatedAt], { env, timeout: 15_000 });
@@ -59,7 +59,7 @@ test('Chromium rolls back to a previous verified schema 2 publication', async ({
   const dir = await mkdtemp(join(tmpdir(), 'catalog-json-multi-browser-'));
   const generatedAt = '2026-11-20T00:00:00.000Z';
   const previousGeneratedAt = '2026-11-19T00:00:00.000Z';
-  const env = { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_CONFIG: '', PERMISSIONS_SHA256: '' };
+  const env = { ...process.env, PERMISSIONS_CONFIG: '' };
   try {
     const run = promisify(execFile);
     const publish = (output: string, timestamp: string) => run(process.execPath,

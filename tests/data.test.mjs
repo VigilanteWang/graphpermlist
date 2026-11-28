@@ -28,12 +28,12 @@ test('versioned snapshot digest verifies all collections; partial and missing so
   await assert.rejects(loadPermissionsSources({ configPath }), /Cannot read permissions input/);
 });
 
-test('data verification returns a resources array for any manifest and rejects retired digest overrides', async t => {
+test('data verification returns a resources array for one-entry and default manifests', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'catalog-verify-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const configPath = await writeGraphManifest(dir);
-  const verify = (path, extra = {}) => spawnSync(process.execPath, ['catalog/etl/src/extract/verify-data.mjs'], {
-    env: { ...process.env, PERMISSIONS_CONFIG: path, PERMISSIONS_SOURCE: '', PERMISSIONS_SHA256: '', ...extra },
+  const verify = path => spawnSync(process.execPath, ['catalog/etl/src/extract/verify-data.mjs'], {
+    env: { ...process.env, PERMISSIONS_CONFIG: path },
     encoding: 'utf8', timeout: 15000
   });
   for (const [path, expected] of [[configPath, 1], ['', 3]]) {
@@ -43,7 +43,4 @@ test('data verification returns a resources array for any manifest and rejects r
     assert.equal(status, 'ok');
     assert.equal(resources.length, expected);
   }
-  const retired = verify(configPath, { PERMISSIONS_SHA256: '0'.repeat(64) });
-  assert.equal(retired.status, 1);
-  assert.match(retired.stderr, /Use PERMISSIONS_CONFIG/);
 });

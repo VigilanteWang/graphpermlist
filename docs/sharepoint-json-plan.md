@@ -713,10 +713,9 @@ SQLite import, source verification and JSON export use the same resource manifes
 loader. `PERMISSIONS_CONFIG` selects a custom file and each manifest entry pins
 the source filename and SHA-256. A one-entry manifest follows the same path and
 has the same `resources` result shape as the default three-entry manifest.
-The retired `PERMISSIONS_SOURCE` and `PERMISSIONS_SHA256` settings trigger a
-migration message when nonempty, including API CLI settings from `.env`. This
-prevents an old command from selecting the default batch or bypassing a pinned
-digest. The per-resource Graph classification is still part of its manifest entry.
+The per-resource Graph classification is part of its manifest entry. The
+subsequent development cleanup removed the old-settings check introduced in
+this revision. Current commands read only the manifest configuration.
 
 | Command or check | Result |
 | --- | --- |
@@ -732,3 +731,21 @@ The [current human review steps](verification/spfx-json-3-human-review.md) and
 cover the unified input in [PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19).
 Host integration begins in #14 after #18 is merged and verified. Actual
 SharePoint runtime acceptance remains in #15.
+
+### Input configuration cleanup
+
+Source verification, SQLite import and JSON export read `PERMISSIONS_CONFIG`
+or the default resource manifest directly. The obsolete-settings error,
+configuration check and migration messages were removed from all three commands.
+Schema 2 validation and manifest-based digest checks apply as before.
+
+`npm run verify:data`, `npm run typecheck`, `npm test` (99 tests),
+`npm run build` and `npm run check:react` passed. The standalone CommonJS API
+check passed with scratch SQLite, including migration, repeated import, all four
+routes and CORS. A scratch run with leftover environment settings confirmed
+that source verification, import and publication still read the default three
+resources. The fixed-time schema 2 publication matched the recorded SHA-256.
+Chromium passed 33 tests on loopback ports 3241/5341 and four additional checks
+with the fourth-resource manifest.
+Source scan and `git diff --check` passed. The [current checklist](verification/spfx-json-3-human-review.md)
+shows only the supported configuration. Actual SharePoint remains for #15.

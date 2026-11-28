@@ -2,8 +2,6 @@ import { createRequire } from 'node:module';
 
 // 浏览器验收始终从默认真实资源清单或专用测试清单构造隔离内存数据库。
 process.env.SQLITE_PATH = ':memory:';
-process.env.PERMISSIONS_SOURCE = '';
-process.env.PERMISSIONS_SHA256 = '';
 process.env.PERMISSIONS_CONFIG = process.env.CATALOG_TEST_RESOURCE_CONFIG ?? '';
 const require = createRequire(import.meta.url);
 const { createApp } = require('../../apps/api/dist/bootstrap.js');

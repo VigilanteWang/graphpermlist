@@ -16,8 +16,6 @@ export interface PermissionsSource {
   appRoles: SourceAppRoleFields[]; oauth2PermissionScopes: SourceScopeFields[];
   resourceSpecificApplicationPermissions: RawRscPermission[];
 }
-/** 已退役的源配置错误，可直接显示固定的迁移提示。 */
-export class RetiredSourceOptionsError extends Error {}
 /**
  * permission 快照的结构校验函数，检查 Graph resource 及 permission 字段并统计数量。
  * @param data - 待校验的数据。

@@ -6,7 +6,7 @@ checks below use a new directory and reserved loopback ports.
 
 ```sh
 npm ci
-unset PERMISSIONS_SOURCE PERMISSIONS_SHA256 PERMISSIONS_CONFIG
+unset PERMISSIONS_CONFIG
 npm run verify:data
 npm run typecheck
 npm test
@@ -67,8 +67,7 @@ SQLITE_PATH="$catalog_review_dir/graph.sqlite" PERMISSIONS_CONFIG="$catalog_revi
    validation and per-resource source/definition parity. The client refreshes
    from two schema 2 versions, then loads the previous verified manifest and
    restores that version's category and details. Graph-only JSON publishes
-   through a single-entry manifest. The old source variables fail with a manifest
-   migration message, and schema 1 manifests and snapshots return
+   through a single-entry manifest. Schema 1 manifests and snapshots return
    `unsupported-schema`.
 5. Run both Chromium checks. The test-only generator writes two fake
    definitions and registers them in a copy of the real manifest.

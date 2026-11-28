@@ -45,8 +45,8 @@ async function setupApi(t, configPath) {
   return { database, http: createApiCatalogClient(`${await app.getUrl()}/api/v1`) };
 }
 
-async function catalogCli(args, configPath, extra = {}) {
-  const env = { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: configPath ?? '', ...extra };
+async function catalogCli(args, configPath) {
+  const env = { ...process.env, PERMISSIONS_CONFIG: configPath ?? '' };
   await run(process.execPath, ['catalog/etl/src/export/cli.mjs', ...args], { cwd: root, env, timeout: 15_000 });
 }
 
@@ -122,8 +122,6 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   const snapshotFile = `catalog-${artifact.version}.json`;
   const exportArgs = ['export', '--output', firstOutput, '--generated-at', generatedAt];
   await assert.rejects(catalogCli(exportArgs, invalidConfig), { code: 1 });
-  await assert.rejects(catalogCli(exportArgs, configPath, { PERMISSIONS_SOURCE: sourcePath }),
-    { code: 1, stderr: /Unset PERMISSIONS_SOURCE and PERMISSIONS_SHA256.*PERMISSIONS_CONFIG/ });
   assert.deepEqual((await readdir(firstOutput)).sort(), [snapshotFile, 'current.json'].sort());
   assert.deepEqual(await readFile(join(firstOutput, 'current.json')), release.manifestBytes);
   assert.deepEqual(await readFile(join(firstOutput, snapshotFile)), release.snapshotBytes);

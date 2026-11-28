@@ -247,8 +247,6 @@ test('CLI initializes, imports and closes on success/failure; separate HTTP cont
   const path = join(dir,'catalog.sqlite');
   const env = {...process.env,SQLITE_PATH:path,PORT:'1'};
   env.PERMISSIONS_CONFIG = await writeGraphManifest(dir);
-  env.PERMISSIONS_SOURCE = '';
-  env.PERMISSIONS_SHA256 = '';
   const run = (command,extra={}) => spawnSync(process.execPath,['apps/api/dist/catalog-cli.js',command],{
     env:{...env,...extra},encoding:'utf8',timeout:15000});
   let app;
@@ -268,9 +266,6 @@ test('CLI initializes, imports and closes on success/failure; separate HTTP cont
     assert.equal(failure.status,1);
     assert.equal(failure.signal,null);
     assert.ok(!(failure.stdout+failure.stderr).includes('operator-private-name'));
-    const retired = run('import', { PERMISSIONS_SOURCE: 'retired-input.json' });
-    assert.equal(retired.status, 1);
-    assert.match(retired.stderr, /Use PERMISSIONS_CONFIG/);
     const invalidDatabase = run('migrate',{SQLITE_PATH:'/dev/null/operator-private-name/catalog.sqlite'});
     assert.equal(invalidDatabase.status,1);
     assert.ok(!(invalidDatabase.stdout+invalidDatabase.stderr).includes('operator-private-name'));

@@ -39,7 +39,7 @@ async function directory(t) {
 async function cli(command, output, { config = '' } = {}) {
   return exec(process.execPath, ['catalog/etl/src/export/cli.mjs', command, '--output', output,
     ...(command === 'export' ? ['--generated-at', generatedAt] : [])],
-  { env: { ...process.env, PERMISSIONS_SOURCE: '', PERMISSIONS_SHA256: '', PERMISSIONS_CONFIG: config }, timeout: 15_000 });
+  { env: { ...process.env, PERMISSIONS_CONFIG: config }, timeout: 15_000 });
 }
 
 async function published(directory) {

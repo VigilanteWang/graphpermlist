@@ -12,14 +12,6 @@ const FIELDS = {
   resourceSpecificApplicationPermissions: ['description', 'displayName', 'id', 'isEnabled', 'value'],
 };
 
-/** 已退役的源配置错误。各命令可以直接显示这条固定的迁移提示。 */
-class RetiredSourceOptionsError extends Error {
-  /** 创建提示清理旧环境变量、改用资源清单的错误。 */
-  constructor() {
-    super('Unset PERMISSIONS_SOURCE and PERMISSIONS_SHA256. Use PERMISSIONS_CONFIG and set each source SHA256 in the resource manifest.');
-  }
-}
-
 /**
  * permission 文件的结构校验函数。确认文件与配置中的 Resource App ID 一致，再检查各类 definition 的字段并统计数量。
  * @param {unknown} data 从 JSON 解析得到、尚未校验的数据。
@@ -86,10 +78,6 @@ async function loadFile(sourcePath, appId, expected, fileName) {
 
 /** 目录输入加载函数，返回清单中全部已校验的源。 */
 async function loadPermissionsSources({ configPath = process.env.PERMISSIONS_CONFIG } = {}) {
-  // 旧环境配置必须先清理，避免原先只导入 Graph 的命令意外导入默认清单的全部 resource。
-  if (process.env.PERMISSIONS_SOURCE || process.env.PERMISSIONS_SHA256) {
-    throw new RetiredSourceOptionsError();
-  }
   const entries = await loadResourceConfig(configPath || undefined);
   const inputs = [];
   for (const { appId, sourcePath, fileName, sha256, displayName, classification } of entries) {
@@ -115,4 +103,4 @@ function sanitizePermissionsData(data, appId) {
   return output;
 }
 
-module.exports = { RetiredSourceOptionsError, validatePermissionsData, loadPermissionsSources, sanitizePermissionsData };
+module.exports = { validatePermissionsData, loadPermissionsSources, sanitizePermissionsData };

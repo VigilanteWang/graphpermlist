@@ -8,7 +8,7 @@ import {
   JSON_MANIFEST_FILE, JSON_MANIFEST_MAX_BYTES, JSON_SNAPSHOT_MAX_BYTES, JsonCatalogError,
   readJsonManifest, readJsonSnapshot
 } from '@graph/catalog-json/validation';
-import { RetiredSourceOptionsError, loadPermissionsSources } from '@graph/catalog-source';
+import { loadPermissionsSources } from '@graph/catalog-source';
 
 /** SHA-256 摘要函数。对传入的内容计算摘要，返回十六进制字符串。 */
 function sha256(bytes) {
@@ -90,9 +90,6 @@ async function loadSource() {
   try {
     return await loadPermissionsSources();
   } catch (error) {
-    if (error instanceof RetiredSourceOptionsError) {
-      throw new JsonCatalogError('invalid-snapshot', error.message);
-    }
     if (error.cause?.code) {
       throw new JsonCatalogError('load-failed', 'Cannot read the permissions input. Check PERMISSIONS_CONFIG and file access.');
     }
