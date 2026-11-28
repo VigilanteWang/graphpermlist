@@ -8,8 +8,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { createCatalogClient } from '@graph/api-client';
-import { JsonCatalogClient } from '@graph/catalog-core/json-client';
+import { createApiCatalogClient } from '@graph/api-client';
+import { JsonCatalogClient } from '@graph/json-client';
+import { writeGraphManifest } from './fixtures/graph-manifest.mjs';
 
 const require = createRequire(import.meta.url);
 const { Test } = require('@nestjs/testing');
@@ -18,7 +19,7 @@ const { DataSource } = require('typeorm');
 const { AppModule } = require('../apps/api/dist/app.module.js');
 const { configureApp } = require('../apps/api/dist/bootstrap.js');
 const { validateEnvironment } = require('../apps/api/dist/configuration.js');
-const { CatalogImportService } = require('../apps/api/dist/catalog/catalog-import.service.js');
+const { CatalogImportService } = require('../apps/api/dist/catalog/load/catalog-import.service.js');
 const { CatalogCategory, CatalogDefinition, CatalogFamily, CatalogImport } = require('../apps/api/dist/catalog/catalog.entities.js');
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -29,9 +30,9 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const identity = (type, id) => `${type}/${id.toLowerCase()}`;
 const definitionKeys = definitions => definitions.map(d => identity(d.permissionType, d.id)).sort();
 
-async function setupApi(t, inputPath, sourceSha256) {
+async function setupApi(t, configPath) {
   const config = new ConfigService(validateEnvironment({ SQLITE_PATH: ':memory:',
-    PERMISSIONS_SOURCE: inputPath, PERMISSIONS_SHA256: sourceSha256 }));
+    PERMISSIONS_CONFIG: configPath }));
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(ConfigService).useValue(config).compile();
   const app = module.createNestApplication({ logger: false });
@@ -41,22 +42,19 @@ async function setupApi(t, inputPath, sourceSha256) {
   await database.runMigrations();
   await app.get(CatalogImportService).importFile();
   await app.listen(0, '127.0.0.1');
-  return { database, http: createCatalogClient(`${await app.getUrl()}/api/v1`) };
+  return { database, http: createApiCatalogClient(`${await app.getUrl()}/api/v1`) };
 }
 
-async function catalogCli(args, inputPath) {
-  const env = { ...process.env };
-  delete env.PERMISSIONS_SOURCE;
-  delete env.PERMISSIONS_SHA256;
-  if (inputPath) env.PERMISSIONS_SOURCE = inputPath;
-  await run(process.execPath, ['scripts/catalog-json.mjs', ...args], { cwd: root, env, timeout: 15_000 });
+async function catalogCli(args, configPath) {
+  const env = { ...process.env, PERMISSIONS_CONFIG: configPath ?? '' };
+  await run(process.execPath, ['catalog/etl/src/export/cli.mjs', ...args], { cwd: root, env, timeout: 15_000 });
 }
 
-async function publish(output, inputPath) {
-  await catalogCli(['export', '--output', output, '--generated-at', generatedAt], inputPath);
+async function publish(output, configPath) {
+  await catalogCli(['export', '--output', output, '--generated-at', generatedAt], configPath);
   const manifestBytes = await readFile(join(output, 'current.json'));
   const manifest = JSON.parse(manifestBytes);
-  assert.equal(manifest.schemaVersion, 1);
+  assert.equal(manifest.schemaVersion, 2);
   assert.match(manifest.snapshot, /^catalog-[a-zA-Z0-9_-]+\.json$/);
   assert.equal(manifest.snapshot, `catalog-${manifest.version}.json`);
   const snapshotBytes = await readFile(join(output, manifest.snapshot));
@@ -64,7 +62,7 @@ async function publish(output, inputPath) {
   assert.equal(snapshot.schemaVersion, manifest.schemaVersion);
   assert.equal(snapshot.version, manifest.version);
   assert.equal(sha256(snapshotBytes), manifest.artifactSha256);
-  assert.equal(snapshot.source.generatedAt, generatedAt);
+  assert.equal(snapshot.generatedAt, generatedAt);
   const artifact = { schemaVersion: manifest.schemaVersion, version: manifest.version, sha256: manifest.artifactSha256 };
   const json = new JsonCatalogClient(async (file, signal) => new Response(await readFile(join(output, file), { signal }), {
     headers: { 'content-type': 'application/json' }
@@ -111,18 +109,19 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   const expected = sourceDefinitions(source);
   const firstOutput = join(dir, 'first');
   const secondOutput = join(dir, 'second');
-  const release = await publish(firstOutput);
+  const configPath = await writeGraphManifest(join(dir, 'graph'), sourceBytes);
+  const release = await publish(firstOutput, configPath);
   const { json, artifact, snapshot } = release;
-  const repeated = await publish(secondOutput);
+  const repeated = await publish(secondOutput, configPath);
   assert.deepEqual(repeated.manifestBytes, release.manifestBytes);
   assert.deepEqual(repeated.snapshotBytes, release.snapshotBytes);
   await catalogCli(['verify', '--output', firstOutput]);
   assert.deepEqual(await readFile(sourcePath), sourceBytes);
 
-  const invalidInput = join(dir, 'incomplete.json');
-  await writeFile(invalidInput, JSON.stringify({ ...source, appRoles: [] }));
+  const invalidConfig = await writeGraphManifest(join(dir, 'invalid'), JSON.stringify({ ...source, appRoles: undefined }));
   const snapshotFile = `catalog-${artifact.version}.json`;
-  await assert.rejects(catalogCli(['export', '--output', firstOutput, '--generated-at', generatedAt], invalidInput), { code: 1 });
+  const exportArgs = ['export', '--output', firstOutput, '--generated-at', generatedAt];
+  await assert.rejects(catalogCli(exportArgs, invalidConfig), { code: 1 });
   assert.deepEqual((await readdir(firstOutput)).sort(), [snapshotFile, 'current.json'].sort());
   assert.deepEqual(await readFile(join(firstOutput, 'current.json')), release.manifestBytes);
   assert.deepEqual(await readFile(join(firstOutput, snapshotFile)), release.snapshotBytes);
@@ -131,19 +130,19 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   const corruptedBytes = Buffer.concat([repeated.snapshotBytes, Buffer.from('\n')]);
   await writeFile(join(secondOutput, snapshotFile), corruptedBytes);
   await assert.rejects(catalogCli(['verify', '--output', secondOutput]), { code: 1 });
-  await assert.rejects(catalogCli(['export', '--output', secondOutput, '--generated-at', generatedAt]), { code: 1 });
+  await assert.rejects(catalogCli(['export', '--output', secondOutput, '--generated-at', generatedAt], configPath), { code: 1 });
   assert.deepEqual((await readdir(secondOutput)).sort(), [snapshotFile, 'current.json'].sort());
   assert.deepEqual(await readFile(join(secondOutput, 'current.json')), repeated.manifestBytes);
   assert.deepEqual(await readFile(join(secondOutput, snapshotFile)), corruptedBytes);
 
-  const { http, database } = await setupApi(t, sourcePath, sha256(sourceBytes));
+  const { http, database } = await setupApi(t, configPath);
   const active = await database.getRepository(CatalogImport).findOneByOrFail({ active: true });
-  assert.equal(snapshot.classificationHash, active.classificationHash);
-  assert.match(snapshot.classificationHash, /^[0-9a-f]{64}$/);
-  assert.deepEqual(snapshot.source, { fileName: 'commercial-graph-permlist.json', sha256: sha256(sourceBytes), generatedAt,
-    classificationVersion: active.source.classificationVersion, excludedRscCount: source.resourceSpecificApplicationPermissions.length });
   assert.equal(snapshot.resources.length, 1);
   const [resource] = snapshot.resources;
+  assert.equal(resource.classificationHash, active.classificationHash);
+  assert.match(resource.classificationHash, /^[0-9a-f]{64}$/);
+  assert.deepEqual(resource.source, { fileName: 'commercial-graph-permlist.json', sha256: sha256(sourceBytes),
+    classificationVersion: active.source.classificationVersion, excludedRscCount: source.resourceSpecificApplicationPermissions.length });
   assert.equal(resource.resourceId, source.appId);
   assert.equal(resource.displayName, source.displayName);
   const where = { versionId: active.id };
@@ -164,8 +163,18 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
     new Map(expected.map(({ type, raw }) => [identity(type, raw.id), raw])));
 
   const id = source.appId;
-  const resources = await assertParity(http.resources(), json.resources(), artifact);
+  const [httpResources, resources] = await Promise.all([http.resources(), json.resources()]);
+  assert.equal(httpResources.items.length, 1);
+  const [httpResource] = httpResources.items;
+  assert.deepEqual(httpResource.source, httpResources.source);
+  const { importedAt, ...httpSource } = httpResources.source;
+  assert.equal(new Date(importedAt).toISOString(), importedAt);
+  const publishedSource = { ...httpSource, generatedAt };
+  assert.deepEqual(resources, { ...httpResources, source: publishedSource, artifact,
+    items: [{ ...httpResource, source: publishedSource }] });
   assert.equal(resources.items.length, 1);
+  assert.equal(resources.items[0].browseMode, 'category');
+  assert.equal(resources.items[0].totalDefinitionCount, expected.length);
   assertCounts(resources.items[0], expected.filter(({ raw }) => raw.isEnabled));
   const mail = expected.filter(({ raw }) => raw.value === 'Mail.Read');
   const mailDelegated = mail.find(({ type }) => type === 'Delegated').raw;
@@ -212,7 +221,7 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   await assertNotFound(http.detail(id, 'mail.read'), json.detail(id, 'mail.read'));
 
   const later = '2026-11-20T00:00:01.000Z';
-  await catalogCli(['export', '--output', firstOutput, '--generated-at', later]);
+  await catalogCli(['export', '--output', firstOutput, '--generated-at', later], configPath);
   const newManifest = JSON.parse(await readFile(join(firstOutput, 'current.json')));
   assert.notEqual(newManifest.version, artifact.version);
   assert.deepEqual(await readFile(join(firstOutput, snapshotFile)), release.snapshotBytes);
@@ -221,7 +230,7 @@ test('versioned offline export matches the source, SQLite rows and all four HTTP
   const refreshed = await json.resources();
   assert.equal(refreshed.artifact.version, newManifest.version);
   assert.equal(refreshed.source.generatedAt, later);
-  assert.deepEqual(refreshed.items, resources.items);
+  assert.deepEqual(refreshed.items, [{ ...resources.items[0], source: { ...publishedSource, generatedAt: later } }]);
 });
 
 test('distinct same-type GUIDs merge by value while filtered detail keeps every definition', async t => {
@@ -233,14 +242,13 @@ test('distinct same-type GUIDs merge by value while filtered detail keeps every 
   const second = { ...first, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', isEnabled: false };
   const excluded = { ...first, id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', allowedMemberTypes: ['User'] };
   source.appRoles.push(first, second, excluded);
-  const inputPath = join(dir, 'altered.json');
   const sourceBytes = JSON.stringify(source);
-  await writeFile(inputPath, sourceBytes);
-  const { json, artifact, snapshot } = await publish(join(dir, 'release'), inputPath);
-  const { http } = await setupApi(t, inputPath, sha256(sourceBytes));
+  const configPath = await writeGraphManifest(join(dir, 'altered'), sourceBytes);
+  const { json, artifact, snapshot } = await publish(join(dir, 'release'), configPath);
+  const { http } = await setupApi(t, configPath);
 
-  assert.equal(snapshot.source.fileName, 'commercial-graph-permlist.json');
-  assert.equal(snapshot.source.sha256, sha256(sourceBytes));
+  assert.equal(snapshot.resources[0].source.fileName, 'commercial-graph-permlist.json');
+  assert.equal(snapshot.resources[0].source.sha256, sha256(sourceBytes));
   const id = source.appId;
   const browse = { q: value, showDisabled: true };
   const list = await assertParity(http.permissions(id, browse), json.permissions(id, browse), artifact);

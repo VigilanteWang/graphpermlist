@@ -6,9 +6,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 const directory = await mkdtemp(join(tmpdir(), 'graphpermlist-12-'));
 const env = { ...process.env, SQLITE_PATH: join(directory, 'catalog.sqlite'),
-  PORT: '3218', CORS_ORIGINS: 'http://127.0.0.1:5318' };
-delete env.PERMISSIONS_SOURCE;
-delete env.PERMISSIONS_SHA256;
+  PORT: '3218', CORS_ORIGINS: 'http://127.0.0.1:5318', PERMISSIONS_CONFIG: '' };
 let child;
 try {
   // Fail before spawning if a service already answers on the verification port.

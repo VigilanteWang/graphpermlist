@@ -17,6 +17,21 @@ Do not merge, close current/parent issues, deploy or start further work without 
 Earlier sections below are chronological records; their historical unmerged/uncommitted
 states are superseded by the stage summary and latest handoff.
 
+## Current SharePoint JSON increment
+
+[Parent #11](https://github.com/VigilanteWang/graphpermlist/issues/11) retains one
+SPFx solution, Web Part and sppkg alongside the standalone website. Both hosts
+use one shared UI and select API or JSON through host configuration in #14.
+
+1. [#12](https://github.com/VigilanteWang/graphpermlist/issues/12) — Neutral contracts and query core.
+2. [#13](https://github.com/VigilanteWang/graphpermlist/issues/13) — Offline publication and JSON client. PR #17 merged into main.
+3. [#18](https://github.com/VigilanteWang/graphpermlist/issues/18) — Module boundaries, CatalogReader and multi-resource catalogs.
+4. [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) — Configuration and SharePoint file access after #18.
+5. [#15](https://github.com/VigilanteWang/graphpermlist/issues/15) — Final review and actual SharePoint acceptance.
+
+See the [increment plan](sharepoint-json-plan.md) for current scope and stage
+evidence. Earlier planning and delivery entries below are historical.
+
 ## Human review at every stage completion
 
 At the end of each stage, publish an actionable human-review checklist as a comment
@@ -741,7 +756,7 @@ tenant upload or deployment; stop at #12 and wait for user review/merge/new-chat
 On the existing #12 stage branch, the user requested a responsibility-based UI
 refactor and durable local conventions. See the
 [follow-up scope, verification and review handoff](sharepoint-json-plan.md#12-follow-up-shared-ui-organization--2026-11-17),
-[packages/ui rules](../packages/ui/AGENTS.md) and
+[packages/ui rules](../common/ui/AGENTS.md) and
 [source map](ui-development.md#source-organization). The public shell/props and
 host usage stay compatible; current criteria, expansion and focus remain with the
 same state owner. This maintenance does not start #13 or resolve actual SharePoint
@@ -790,13 +805,34 @@ regression in [PR #17](https://github.com/VigilanteWang/graphpermlist/pull/17).
 The [issue review checklist](https://github.com/VigilanteWang/graphpermlist/issues/13#issuecomment-7015149708)
 links to the verified commands and expected results. The existing API SPFx package
 is available from the production build.
-The independent JSON SPFx and three-entry integration remain #14 work. Review and
-merge #13 before starting that stage in a separate chat.
+The original #13 handoff described two SPFx solutions. The current #11 scope
+and stage index appear at the top of this plan.
 
 ### Shared UI README follow-up
 
-The [package README](../packages/ui/README.md) describes the wired Web and API SPFx
+The [package README](../common/ui/README.md) describes the wired Web and API SPFx
 hosts, the planned JSON SPFx host, and the component and Hook flow. Verified
 relative links and the architecture diagram's render and Hook relationships
 against the working tree, rendered both Mermaid diagrams in Chromium, and ran
 `git diff --check`. Host runtime acceptance remains with its stage.
+
+## SharePoint JSON stage 3 — #18
+
+[Stage 3 delivery, commands and verification](sharepoint-json-plan.md#stage-3-delivery-and-verification--18)
+records the #13 merge prerequisite, independent package migration and
+CatalogReader commits, three-resource SQLite and JSON delivery, and fourth
+resource verification. The [manual review checklist](verification/spfx-json-3-human-review.md)
+covers isolated setup, source and count checks, Chromium and pending SharePoint
+acceptance. Stage 4 requires #18 to be merged and verified.
+
+[PR #19](https://github.com/VigilanteWang/graphpermlist/pull/19) is open for
+review. The [#18 issue checklist](https://github.com/VigilanteWang/graphpermlist/issues/18#issuecomment-7210533618)
+was published and verified on the issue.
+
+The [#18 review follow-up](sharepoint-json-plan.md#stage-3-review-follow-up--18)
+records the ETL and JSON format layout changes, commands, schema 2 rollback
+verification and the [schema 1 retirement](sharepoint-json-plan.md#schema-1-retirement--18).
+#14 and #15 use the schema 2-only contract for host integration and acceptance.
+The [manifest-only input follow-up](sharepoint-json-plan.md#manifest-only-catalog-input--18)
+unifies source verification, SQLite import and JSON export, with evidence for
+both one-entry and default manifests.

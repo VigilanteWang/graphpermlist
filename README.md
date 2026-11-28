@@ -2,7 +2,7 @@
 
 ## 项目介绍
 
-Microsoft Graph Permissions Explorer 是一个面向 Microsoft Graph 全球云权限目录的只读应用，以仓库中的权限定义快照作为数据输入，不在线采集租户数据，也不执行权限授予或撤销。
+Microsoft Graph Permissions Explorer 是一个全球云只读权限目录，默认覆盖 Microsoft Graph、Power BI Service 和 SharePoint Online，以仓库中的脱敏权限定义快照作为数据输入，不在线采集租户数据，也不执行权限授予或撤销。
 
 - **独立网站前端**：Vite + React + TypeScript，可在浏览器中独立运行。
 - **SharePoint 前端**：SPFx Web Part，可打包为 SharePoint 解决方案；与独立网站共用界面组件、中立数据类型及前端注入的 HTTP client。
@@ -23,7 +23,7 @@ graphpermlist/
 │   │   │   ├── app.module.ts             组装应用模块
 │   │   │   ├── bootstrap.ts              API 前缀、参数校验和 CORS
 │   │   │   ├── configuration.ts          环境变量读取与校验
-│   │   │   ├── catalog/                  目录路由、实体、SQLite 导入和查询服务
+│   │   │   ├── catalog/                  目录路由、实体、查询服务与 load/ 下的 SQLite 写入
 │   │   │   └── database/                 TypeORM / SQLite 配置与版本化迁移
 │   │   └── tsconfig.json                 后端 TypeScript 配置
 │   ├── web/                              Vite 独立网站
@@ -42,13 +42,21 @@ graphpermlist/
 │           ├── package-solution.json     Solution 标识、版本和包输出设置
 │           ├── rig.json                  官方 SPFx Heft 工具链配置入口
 │           └── serve.json                SPFx 开发服务配置
-├── packages/
-│   ├── ui/src/index.tsx                  两个前端共用的 Fluent UI 界面
-│   ├── api-client/src/index.ts           HTTP 请求、查询参数和错误处理
-│   ├── catalog-core/src/                 纯查询规则、共享建模、JSON 校验与 client
-│   └── contracts/src/index.ts            中立 client、响应及 JSON snapshot/manifest 类型
+├── common/
+│   ├── contracts/                       中立 client、查询、数据模型和传输契约
+│   └── ui/                              两个前端共用的 Fluent UI 界面
+├── catalog/
+│   ├── api-client/                      HTTP 请求、查询参数和错误处理
+│   ├── json-client/                     从宿主加载快照，在内存查询
+│   ├── json-format/                     浏览器与离线工具共用的 JSON 校验
+│   ├── query/                           纯查询规则（@graph/catalog-core）
+│   └── etl/src/
+│       ├── extract/                     Node 输入读取、校验和脱敏
+│       ├── transform/                   SQLite 和 JSON 共用的纯建模与分类
+│       └── export/                      离线导出和校验 JSON 发布文件
 ├── data/
-│   ├── commercial-graph-permlist.json    版本化的安全权限快照
+│   ├── catalog-resources.json           三个默认 resource 和源文件校验值
+│   ├── commercial-*-permlist.json       脱敏 permission 快照
 │   └── README.md                         数据来源、字段说明和校验值
 ├── docs/
 │   ├── api-contract.md                   API 请求、响应及错误语义
@@ -57,8 +65,6 @@ graphpermlist/
 │   ├── implementation-plan.md            实施计划与交接说明
 │   └── verification/                     验证记录与截图
 ├── scripts/
-│   ├── verify-data.mjs                   数据结构和快照完整性检查
-│   ├── catalog-json.mjs                  离线导出与校验 JSON 发布文件
 │   └── check-boundaries.mjs              React 依赖与共享代码边界检查
 ├── tests/                                API、客户端、数据和浏览器测试
 │   └── fixtures/                         仅供测试的契约样例
@@ -100,7 +106,7 @@ npm run start:api
 npm run dev:web
 ```
 
-打开 [http://localhost:5173](http://localhost:5173)。导入成功后 Home 显示普通定义和排除的 RSC 数量；展开 **Catalog data details** 查看来源、导入时间和分类版本。点击 **Microsoft Graph** 浏览分类、搜索筛选、permission family 和完整详情。两级页面保留当前筛选条件，导航仅改变服务范围。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和两个前端的配置见 [共享 UI 开发与验收](docs/ui-development.md)。
+打开 [http://localhost:5173](http://localhost:5173)。首页显示各 resource 的 permission 行数和 definition 数量，展开对应的 **catalog data details** 查看来源、导入时间、分类版本和 RSC 排除数。Microsoft Graph 先选 category，再浏览 family。Power BI Service 和 SharePoint Online 直接按 family 浏览。切换资源保留搜索、类型、admin consent 和禁用项筛选，并清除 category、family 筛选和详情。若未执行导入，页面显示 **No catalog imported yet.**。启动服务不会自动迁移或导入；操作说明与请求示例见 [目录操作](docs/catalog-operations.md)。完整交互、键盘、HTTPS/CORS 和两个前端的配置见 [共享 UI 开发与验收](docs/ui-development.md)。
 
 后端健康检查：[http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)。在两个终端分别按 `Ctrl+C` 停止服务。
 
@@ -121,7 +127,7 @@ npm run export:json -- --output ./release/catalog
 npm run verify:json -- --output ./release/catalog
 ```
 
-命令直接读取已校验的安全源，生成 `current.json` 和不可变的 `catalog-<version>.json`，无需启动 API 或打开 SQLite。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。现有网站和 API 版 SPFx 继续使用 HTTP API。独立 JSON 版 SPFx 及三入口接入由 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14) 交付。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
+默认从三份脱敏源生成 schema 2 快照 `catalog-<version>.json` 和版本指针 `current.json`，无需启动 API 或打开 SQLite。源数据校验、SQLite 导入和 JSON 发布都使用资源清单。只处理 Graph 时，用 `PERMISSIONS_CONFIG` 指向仅含 Graph 的清单。JSON CatalogClient 由前端注入文件 loader，查询时复用已校验的会话快照。网站和 SPFx 的配置选源见 [#14](https://github.com/VigilanteWang/graphpermlist/issues/14)。生成、校验、人工发布与回退步骤见 [目录操作](docs/catalog-operations.md#offline-json-publication)。
 
 ## 本地验证与交付状态
 
@@ -150,7 +156,7 @@ npm run test:browser
 | --- | --- | --- | --- |
 | API | NodeNext / NodeNext | ES2020 | `apps/api/package.json` 显式 `type: commonjs`，输出 CommonJS，由 Node 直接执行 |
 | contracts、api-client、ui | NodeNext / NodeNext | ES2020 | 各包保留 `type: module`，输出 ESM 与类型声明 |
-| catalog-core | NodeNext / NodeNext；另编译 CommonJS / Node | ES2020 | 单一源码生成 ESM/CJS，条件出口供浏览器和现有 Node API 使用 |
+| query、ingest、catalog-json、json-client | NodeNext / NodeNext；另编译 CommonJS / Node | ES2020 | 单一源码生成 ESM/CJS，条件出口供浏览器和现有 Node API 使用 |
 | Web | ESNext / Bundler | ES2022 | TypeScript 只检查类型，Vite 构建浏览器产物 |
 | 测试夹具 | NodeNext / NodeNext | ES2020 | 只做类型检查，不输出代码 |
 | SPFx | ESNext / node（官方 rig） | ES5 | Heft 额外输出 CommonJS，Webpack 负责打包 |
@@ -163,6 +169,6 @@ Web 在 `vite.config.ts` 显式保留 Chrome 107、Edge 107、Firefox 104、Safa
 
 ## SharePoint JSON 增量
 
-父需求 [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) 保留现有 API 网站和 API SPFx，后续新增独立 JSON SPFx solution，最终产出两个独立 .sppkg、三个入口共用一份 UI。当前 [#12](https://github.com/VigilanteWang/graphpermlist/issues/12) 仅提取中立 CatalogClient、schema 1 类型和浏览器安全查询核心，接回现有 API；尚未提供 JSON 导出/client 或第二个 Web Part。UI 只依赖 contracts，由前端注入 client；api-client 的旧 CatalogClient 类型入口保持可用。
+父需求 [#11](https://github.com/VigilanteWang/graphpermlist/issues/11) 交付独立网站与一套 SPFx solution、Web Part 和 `.sppkg`。两个宿主通过中立 `CatalogClient` 使用同一份 UI。[#18](https://github.com/VigilanteWang/graphpermlist/issues/18) 已接通三个真实目录及两种 JSON 格式，现有两个宿主继续使用 HTTP。
 
-查询核心使用同一份源码生成 ESM/CommonJS，保留现有筛选、合并、计数与详情行为。JSON generatedAt、源摘要和产物摘要与 API importedAt 分开；类型不代替运行时校验。决策、阶段证据及人工交接见 [SharePoint JSON 计划](docs/sharepoint-json-plan.md)。实际 SharePoint 运行继续待验，本阶段不上传或部署，不自动启动 #13。
+HTTP 用 `createApiCatalogClient()`，原工厂名保留为别名。离线发布和 `JsonCatalogClient` 共用校验，SQLite 和 JSON 共用纯查询。新增同格式资源可按[数据说明](data/README.md)登记文件和摘要。计划与验证见 [SharePoint JSON 增量](docs/sharepoint-json-plan.md)，实际 SharePoint 运行验收在 #15。

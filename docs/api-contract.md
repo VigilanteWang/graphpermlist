@@ -1,7 +1,7 @@
 # Read-only API v1 contract
 
 Implemented in #4. The Nest API and HTTP client share the
-[HTTP response types](../packages/contracts/src/catalog-api.ts).
+[HTTP response types](../common/contracts/src/catalog-http-contract.ts).
 Migrate, import and start using [catalog operations](catalog-operations.md).
 A migrated database without an import exposes **not imported** state. No catalog
 fixtures are served. Classification and active snapshot data are persisted at import.
@@ -32,7 +32,7 @@ The resource list has no query parameters. No pagination in V1.
 | --- | --- | --- |
 | `q` | string, max 500, default empty | Trim and search case-insensitively in value, GUID, official titles/admin and user consent text |
 | `category` | stable category slug, max 100 | Exact main category; unknown slug has no matches |
-| `family` | exact family key, max 100 | Full prefix before first dot; OIDC uses `OpenID permissions` |
+| `family` | exact family key, max 256 | Full prefix before first dot; OIDC uses `OpenID permissions` |
 | `permissionType` | `Delegated` or `Application` | Exact type, case-sensitive |
 | `adminConsentRequired` | literal `true` or `false`; default unspecified | Type-specific consent rule |
 | `showDisabled` | literal `true` or `false`; default false | Include disabled definitions; not a disabled-only filter |
@@ -60,8 +60,15 @@ RSC is excluded, never mapped into ordinary Application.
 Every successful response carries `dataState` and `source`. The API uses
 `CatalogImportSource` for the source of an active import. `not-imported` means no
 successful import and source=null. `ready` means an active import exists even if filtering
-returns zero rows. `source` contains logical source filename `commercial-graph-permlist.json` (no operator filename/path), SHA256,
+returns zero rows. `source` carries the logical source basename, SHA-256,
 ISO 8601 UTC import time, classification version and excluded RSC count.
+
+Each `/resources` item includes `browseMode` (`category` or `family`),
+`totalDefinitionCount` including disabled ordinary definitions, and its own
+`source`. The top-level `source` remains populated for a single imported
+resource and is null for multiple resources. The other endpoints report the
+specified resource's source. Family-first resources publish the internal
+`all-permissions` category for the existing category query route.
 
 `permissionCount` counts merged names; `definitionCount` counts matching definitions.
 Resource counts use default filters. Categories/list aggregate and category item counts

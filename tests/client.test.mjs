@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCatalogClient, CatalogApiError } from '../packages/api-client/dist/index.js';
+import { createApiCatalogClient, createCatalogClient, CatalogApiError } from '@graph/api-client';
 
 test('client encodes route segments and false filters without sending credentials', async () => {
   const calls = [];
-  const client = createCatalogClient('https://catalog.example/api/v1/', async (url, init) => {
+  const client = createApiCatalogClient('https://catalog.example/api/v1/', async (url, init) => {
     calls.push({ url, init });
     return Response.json({ items: [] });
   });
@@ -22,18 +22,22 @@ test('client encodes route segments and false filters without sending credential
 });
 
 test('client preserves Nest HTTP errors and rejects network errors', async () => {
-  const client = createCatalogClient('/api/v1', async () => Response.json({ statusCode: 400, message: ['Invalid boolean'], error: 'Bad Request' }, { status: 400 }));
+  const client = createApiCatalogClient('/api/v1', async () => Response.json({ statusCode: 400, message: ['Invalid boolean'], error: 'Bad Request' }, { status: 400 }));
   await assert.rejects(client.resources(), err => err instanceof CatalogApiError && err.status === 400 && err.message === 'Invalid boolean');
-  const textClient = createCatalogClient('/api/v1', async () => new Response('Unavailable', { status: 503, statusText: 'Service Unavailable' }));
+  const textClient = createApiCatalogClient('/api/v1', async () => new Response('Unavailable', { status: 503, statusText: 'Service Unavailable' }));
   await assert.rejects(textClient.resources(), err => err.status === 503);
-  const offline = createCatalogClient('/api/v1', async () => { throw new TypeError('Offline'); });
+  const offline = createApiCatalogClient('/api/v1', async () => { throw new TypeError('Offline'); });
   await assert.rejects(offline.resources(), /Offline/);
 });
 
 
 test('client keeps HTTP status when an intermediary sends malformed JSON errors', async () => {
   for (const body of [null, {}, [], { message: 42 }, { message: [] }]) {
-    const client = createCatalogClient('/api/v1', async () => Response.json(body, { status: 502, statusText: 'Bad Gateway' }));
+    const client = createApiCatalogClient('/api/v1', async () => Response.json(body, { status: 502, statusText: 'Bad Gateway' }));
     await assert.rejects(client.resources(), err => err instanceof CatalogApiError && err.status === 502 && err.message === 'Bad Gateway');
   }
+});
+
+test('keeps the original HTTP client factory as an alias', () => {
+  assert.equal(createCatalogClient, createApiCatalogClient);
 });

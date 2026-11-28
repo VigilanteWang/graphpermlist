@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 test('compiled core ESM runs in Chromium without Node or host globals', async ({ page }) => {
   await page.goto('/');
   // Exercise the actual output in the browser, independently from the API's CJS output.
-  const moduleUrl = `/@fs${resolve('packages/catalog-core/dist/esm/index.js')}`;
+  const moduleUrl = `/@fs${resolve('catalog/query/dist/esm/index.js')}`;
   const result = await page.evaluate(async url => {
     const { queryPermissions, countPermissions, queryDetail } = await import(url);
     const entries = [{ value: 'Synthetic.Read', category: 'test', family: 'Synthetic', definition: {

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
-import { JsonCatalogClient } from '@graph/catalog-core/json-client';
-import { JSON_MANIFEST_MAX_BYTES } from '@graph/catalog-core/json-validation';
+import { JsonCatalogClient } from '@graph/json-client';
+import { JSON_MANIFEST_MAX_BYTES } from '@graph/catalog-json/validation';
 
 const resourceId = 'abcdef01-1234-4123-8123-0123456789ab';
 const absentResourceId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -34,17 +34,17 @@ function delegated() {
 }
 
 function snapshot(version = 'test-v1') {
-  return { schemaVersion: 1, version, classificationHash: '1'.repeat(64),
-    source: { fileName: 'example-source.json', sha256: '2'.repeat(64), classificationVersion: 'fixture-1',
-      generatedAt: '2026-11-17T00:00:00.000Z', excludedRscCount: 1 },
-    resources: [{ resourceId, displayName: `Synthetic resource ${version}`, categories: [{ ...category }],
+  return { schemaVersion: 2, version, generatedAt: '2026-11-17T00:00:00.000Z',
+    resources: [{ resourceId, displayName: `Synthetic resource ${version}`, browseMode: 'category',
+      source: { fileName: 'example-source.json', sha256: '2'.repeat(64), classificationVersion: 'fixture-1', excludedRscCount: 1 },
+      classificationHash: '1'.repeat(64), categories: [{ ...category }],
       families: [{ category: category.category, family: 'Example' }],
       definitions: [application(appId), delegated(), application(otherAppId), application(disabledId, false)] }] };
 }
 
 function publication(data = snapshot()) {
   const bytes = JSON.stringify(data, null, 2) + '\n';
-  const manifest = { schemaVersion: 1, version: data.version, snapshot: `catalog-${data.version}.json`,
+  const manifest = { schemaVersion: 2, version: data.version, snapshot: `catalog-${data.version}.json`,
     artifactSha256: createHash('sha256').update(bytes).digest('hex') };
   return { manifest, bytes };
 }
@@ -71,11 +71,13 @@ test('JSON client pins a verified publication and serves all four queries from m
   assert.equal(client.state, 'idle');
 
   const resources = await client.resources();
-  const metadata = { dataState: 'ready', source: data.source,
-    artifact: { schemaVersion: 1, version: data.version, sha256: files.manifest.artifactSha256 } };
+  const source = { ...data.resources[0].source, generatedAt: data.generatedAt };
+  const metadata = { dataState: 'ready', source,
+    artifact: { schemaVersion: 2, version: data.version, sha256: files.manifest.artifactSha256 } };
   assert.equal(client.state, 'ready');
   assert.deepEqual(resources, { ...metadata,
-    items: [{ resourceId, displayName: data.resources[0].displayName, permissionCount: 1, definitionCount: 3 }] });
+    items: [{ resourceId, displayName: data.resources[0].displayName, permissionCount: 1, definitionCount: 3,
+      browseMode: 'category', totalDefinitionCount: 4, source }] });
   assert.deepEqual(await client.categories(resourceId, { showDisabled: true }), {
     ...metadata, permissionCount: 1, definitionCount: 4,
     items: [{ ...category, permissionCount: 1, definitionCount: 4 }]
@@ -131,16 +133,14 @@ test('consumer edits to query results cannot change the pinned publication', asy
   assert.equal(calls.length, 2);
 });
 
-test('a valid zero-resource publication is pinned as ready', async () => {
+test('the maximum-length publication version is accepted', async () => {
   const version = 'a' + 'x'.repeat(79);
-  const data = { ...snapshot(version), resources: [] };
-  const { client, calls } = clientFor(publication(data));
+  const { client, calls } = clientFor(publication(snapshot(version)));
   await client.load();
   const result = await client.resources();
   assert.equal(client.state, 'ready');
-  assert.deepEqual(result.items, []);
+  assert.equal(result.items.length, 1);
   assert.equal(result.dataState, 'ready');
-  assert.deepEqual(result.source, data.source);
   assert.equal(result.artifact.version, version);
   assert.equal(calls.length, 2);
 });
@@ -150,8 +150,9 @@ test('JSON client rejects invalid and out-of-directory manifest references befor
     ['array', () => []],
     ['missing snapshot', ({ snapshot: omitted, ...rest }) => rest],
     ['wrong version type', manifest => ({ ...manifest, version: 1 })],
-    ['unsupported schema', manifest => ({ ...manifest, schemaVersion: 2 }), 'unsupported-schema'],
-    ['invalid schema type', manifest => ({ ...manifest, schemaVersion: '1' })],
+    ['retired schema', manifest => ({ ...manifest, schemaVersion: 1 }), 'unsupported-schema'],
+    ['unsupported schema', manifest => ({ ...manifest, schemaVersion: 3 }), 'unsupported-schema'],
+    ['invalid schema type', manifest => ({ ...manifest, schemaVersion: '2' })],
     ['oversize version', manifest => ({ ...manifest, version: 'x'.repeat(81) })],
     ['uppercase digest', manifest => ({ ...manifest, artifactSha256: manifest.artifactSha256.toUpperCase() })],
     ['unknown field', manifest => ({ ...manifest, unrecognized: true })],
@@ -207,12 +208,15 @@ test('manifest byte limit includes whitespace and applies to bodies without Cont
 
 test('JSON client rejects invalid snapshot structures even when their digest matches', async t => {
   const modifications = [
-    ['unsupported schema', data => { data.schemaVersion = 2; }, 'unsupported-schema'],
-    ['classification digest', data => { data.classificationHash = 'bad'; }],
-    ['source traversal', data => { data.source.fileName = '../example-source.json'; }],
-    ['source invalid timestamp', data => { data.source.generatedAt = '2026-02-30T00:00:00Z'; }],
-    ['source unknown field', data => { data.source.importedAt = data.source.generatedAt; }],
+    ['retired schema', data => { data.schemaVersion = 1; }, 'unsupported-schema'],
+    ['unsupported schema', data => { data.schemaVersion = 3; }, 'unsupported-schema'],
+    ['classification digest', (_, resource) => { resource.classificationHash = 'bad'; }],
+    ['source traversal', (_, resource) => { resource.source.fileName = '../example-source.json'; }],
+    ['invalid generation timestamp', data => { data.generatedAt = '2026-02-30T00:00:00Z'; }],
+    ['source unknown field', (data, resource) => { resource.source.importedAt = data.generatedAt; }],
     ['resources object', data => { data.resources = {}; }],
+    ['no resources', data => { data.resources = []; }],
+    ['no definitions', (_, resource) => { resource.definitions = []; }],
     ['resource unknown field', (_, resource) => { resource.unrecognized = true; }],
     ['resource GUID', (_, resource) => { resource.resourceId = 'bad'; }],
     ['duplicate resource', (data, resource) => { data.resources.push(resource); }],

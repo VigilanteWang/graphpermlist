@@ -1,0 +1,31 @@
+{
+  "name": "@graph/catalog-ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/cjs/permission-model.js",
+  "module": "dist/esm/permission-model.js",
+  "types": "dist/esm/permission-model.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/permission-model.d.ts",
+        "default": "./dist/esm/permission-model.js"
+      },
+      "require": {
+        "types": "./dist/cjs/permission-model.d.ts",
+        "default": "./dist/cjs/permission-model.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.cjs.json --noEmit"
+  },
+  "dependencies": {
+    "@graph/contracts": "0.1.0"
+  }
+}

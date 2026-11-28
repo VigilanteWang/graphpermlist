@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { writeGraphManifest } from './fixtures/graph-manifest.mjs';
 const require = createRequire(import.meta.url);
 process.env.SQLITE_PATH = ':memory:';
 const { Test } = require('@nestjs/testing');
@@ -14,9 +15,10 @@ const { AppModule } = require('../apps/api/dist/app.module.js');
 const { validateEnvironment } = require('../apps/api/dist/configuration.js');
 const { configureApp } = require('../apps/api/dist/bootstrap.js');
 const { CatalogService } = require('../apps/api/dist/catalog/catalog.service.js');
-const { CatalogImportService } = require('../apps/api/dist/catalog/catalog-import.service.js');
-const { CatalogImport, CatalogDefinition } = require('../apps/api/dist/catalog/catalog.entities.js');
-const { classifyPermission, CATEGORIES } = require('@graph/catalog-core/model');
+const { CatalogImportService } = require('../apps/api/dist/catalog/load/catalog-import.service.js');
+const { CatalogImport, CatalogDefinition, CatalogCategory, CatalogFamily } = require('../apps/api/dist/catalog/catalog.entities.js');
+const { CATALOG_READER } = require('../apps/api/dist/catalog/read/catalog-reader.js');
+const { classifyPermission, CATEGORIES } = require('@graph/catalog-ingest');
 const graph = '00000003-0000-0000-c000-000000000000';
 const source = JSON.parse(await readFile(new URL('../data/commercial-graph-permlist.json', import.meta.url), 'utf8'));
 
@@ -35,9 +37,12 @@ const expected = [
   ...source.oauth2PermissionScopes.map(d => ({ value: d.value, ...wire(d, 'Delegated') }))
 ];
 
-async function setup() {
+async function setup(t) {
+  const directory = await mkdtemp(join(tmpdir(), 'catalog-graph-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const configPath = await writeGraphManifest(directory);
   const module = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(ConfigService).useValue(new ConfigService(validateEnvironment({SQLITE_PATH:':memory:'}))).compile();
+    .overrideProvider(ConfigService).useValue(new ConfigService(validateEnvironment({ SQLITE_PATH: ':memory:', PERMISSIONS_CONFIG: configPath }))).compile();
   const app = module.createNestApplication({ logger: false });
   configureApp(app);
   await app.get(DataSource).runMigrations();
@@ -62,7 +67,7 @@ function oracle(query) {
 function keys(definitions) { return definitions.map(d => `${d.permissionType}/${d.id}`).sort(); }
 
 test('real snapshot, four HTTP APIs, matching definitions and consistent filtered counts', async t => {
-  const { app, database, importer, base } = await setup();
+  const { app, database, importer, base } = await setup(t);
   const get = async (path, query = {}) => {
     const response = await fetch(`${base}${path}?${new URLSearchParams(Object.entries(query).map(([k,v]) => [k,String(v)]))}`);
     assert.equal(response.status, 200, path);
@@ -96,7 +101,9 @@ test('real snapshot, four HTTP APIs, matching definitions and consistent filtere
       assert.equal(resources.items.length, 1);
       assert.equal(resources.items[0].resourceId, graph);
       assert.equal(resources.items[0].definitionCount, 1660);
-      assert.deepEqual(await importer.importFile(), { ...imported, reused: true });
+      assert.deepEqual(await importer.importFile(), {
+        ...imported, reused: true, resources: [{ ...imported.resources[0], reused: true }]
+      });
       assert.equal(await database.getRepository(CatalogImport).count(), 1);
     });
 
@@ -168,23 +175,21 @@ test('real snapshot, four HTTP APIs, matching definitions and consistent filtere
   assert.equal(database.isInitialized,false);
 });
 
-test('transactional publication, updated versions, corrupt input, rollback after partial writes and concurrency', async () => {
+test('transactional publication, updated versions, corrupt input, rollback after partial writes and concurrency', async t => {
   const dir = await mkdtemp(join(tmpdir(),'catalog-transaction-'));
-  const { app, database, importer, config } = await setup();
+  const { app, database, importer, config } = await setup(t);
   const catalog = app.get(CatalogService);
   try {
-    const first = await importer.importFile();
+    const { resources: [first] } = await importer.importFile();
     const initial = await catalog.permissions(graph,{showDisabled:true});
     const snapshotTables = async () => Object.fromEntries(await Promise.all(
       ['catalog_import','catalog_category','catalog_family','catalog_definition'].map(async table =>
         [table,(await database.query(`SELECT COUNT(*) AS n FROM ${table}`))[0].n])));
     const before = await snapshotTables();
-    const badPath = join(dir,'invalid.json');
-    config.set('PERMISSIONS_SOURCE',badPath);
-    for (const invalid of ['{broken', JSON.stringify({...source,appRoles:[]}),
+    for (const invalid of ['{broken', JSON.stringify({...source,appRoles:undefined}),
       JSON.stringify({...source,appRoles:[...source.appRoles,source.appRoles[0]]}),
       JSON.stringify({...source,passwordCredentials:[]})]) {
-      await writeFile(badPath,invalid);
+      config.set('PERMISSIONS_CONFIG', await writeGraphManifest(dir, invalid));
       await assert.rejects(importer.importFile());
       assert.deepEqual(await snapshotTables(),before);
       assert.deepEqual(await catalog.permissions(graph,{showDisabled:true}),initial);
@@ -198,7 +203,7 @@ test('transactional publication, updated versions, corrupt input, rollback after
     changed.appRoles.push({...newRole,id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',value:'UsersOnly.Read',allowedMemberTypes:['User']});
     // One type disabled while the other stays enabled; detail must preserve both.
     changed.oauth2PermissionScopes.find(d => d.value === 'Mail.Read').isEnabled = false;
-    await writeFile(badPath,JSON.stringify(changed));
+    config.set('PERMISSIONS_CONFIG', await writeGraphManifest(dir, JSON.stringify(changed)));
     await database.query(`CREATE TRIGGER fail_definition BEFORE INSERT ON catalog_definition WHEN NEW.value = 'NewUnknownFamily.Read.All' BEGIN SELECT RAISE(ABORT,'injected middle-of-import failure'); END`);
     await assert.rejects(importer.importFile(),/injected middle-of-import failure/);
     assert.deepEqual(await snapshotTables(),before);
@@ -211,10 +216,10 @@ test('transactional publication, updated versions, corrupt input, rollback after
     assert.deepEqual(await catalog.permissions(graph,{showDisabled:true}),initial);
     await database.query('DROP TRIGGER fail_publish');
     const [updated,duplicate] = await Promise.all([importer.importFile(),importer.importFile()]);
-    assert.notEqual(updated.versionId,first.versionId);
+    assert.notEqual(updated.resources[0].versionId,first.versionId);
     assert.equal(updated.definitionCount,1666);
     assert.equal(updated.reused,false);
-    assert.deepEqual(duplicate,{...updated,reused:true});
+    assert.deepEqual(duplicate, {...updated, reused: true, resources: [{...updated.resources[0], reused: true}]});
     assert.equal(await database.getRepository(CatalogImport).count(),2);
     assert.equal(await database.getRepository(CatalogImport).countBy({active:true}),1);
     const current = await catalog.permissions(graph,{showDisabled:true});
@@ -231,9 +236,9 @@ test('transactional publication, updated versions, corrupt input, rollback after
     assert.equal(mail.allDefinitions.find(d => d.permissionType === 'Delegated').isEnabled,false);
     assert.equal(await database.getRepository(CatalogDefinition).countBy({versionId:first.versionId}),1664);
     // Schema constraints reject duplicate definition identity and category/family drift.
-    const row = await database.getRepository(CatalogDefinition).findOneByOrFail({versionId:updated.versionId});
+    const row = await database.getRepository(CatalogDefinition).findOneByOrFail({versionId:updated.resources[0].versionId});
     await assert.rejects(database.getRepository(CatalogDefinition).insert(row), /UNIQUE/);
-    await assert.rejects(database.query(`UPDATE catalog_definition SET family='MissingFamily' WHERE versionId=? AND id=?`,[updated.versionId,row.id]),/FOREIGN KEY/);
+    await assert.rejects(database.query(`UPDATE catalog_definition SET family='MissingFamily' WHERE versionId=? AND id=?`,[updated.resources[0].versionId,row.id]),/FOREIGN KEY/);
   } finally { await app.close(); await rm(dir,{recursive:true,force:true}); }
 });
 
@@ -241,8 +246,7 @@ test('CLI initializes, imports and closes on success/failure; separate HTTP cont
   const dir = await mkdtemp(join(tmpdir(),'catalog-cli-'));
   const path = join(dir,'catalog.sqlite');
   const env = {...process.env,SQLITE_PATH:path,PORT:'1'};
-  delete env.PERMISSIONS_SOURCE;
-  delete env.PERMISSIONS_SHA256;
+  env.PERMISSIONS_CONFIG = await writeGraphManifest(dir);
   const run = (command,extra={}) => spawnSync(process.execPath,['apps/api/dist/catalog-cli.js',command],{
     env:{...env,...extra},encoding:'utf8',timeout:15000});
   let app;
@@ -252,11 +256,13 @@ test('CLI initializes, imports and closes on success/failure; separate HTTP cont
     assert.match(migrate.stdout,/CatalogSchema/);
     const initial = run('import');
     assert.equal(initial.status,0,initial.stderr);
-    assert.match(initial.stdout,/"definitionCount":1664/);
+    const contents = JSON.parse(initial.stdout);
+    assert.equal(contents.definitionCount, 1664);
+    assert.deepEqual(contents.resources.map(({ resourceId, definitionCount }) => [resourceId, definitionCount]), [[graph, 1664]]);
     const duplicate = run('import');
     assert.equal(duplicate.status,0,duplicate.stderr);
     assert.match(duplicate.stdout,/"reused":true/);
-    const failure = run('import',{PERMISSIONS_SOURCE:join(dir,'operator-private-name.json')});
+    const failure = run('import',{PERMISSIONS_CONFIG:join(dir,'operator-private-name.json')});
     assert.equal(failure.status,1);
     assert.equal(failure.signal,null);
     assert.ok(!(failure.stdout+failure.stderr).includes('operator-private-name'));
@@ -294,4 +300,44 @@ test('classification exact overrides, OIDC, complete prefixes and conservative f
   for (const value of ['MailUnknown.Read','mail.Read','constructor.Read','toString']) assert.equal(classifyPermission(value).category,'uncategorized');
   const categories=new Set(CATEGORIES.map(c => c.category));
   for (const d of expected) assert.ok(categories.has(classifyPermission(d.value).category));
+});
+
+test('injected TypeORM reader holds one version when the active snapshot changes mid-read', async t => {
+  const { app, database, importer } = await setup(t);
+  try {
+    const { resources: [{ versionId }] } = await importer.importFile();
+    const imports = database.getRepository(CatalogImport);
+    const old = await imports.findOneByOrFail({ id: versionId });
+    const nextId = 'reader-test-replacement';
+    await imports.insert({ ...old, id: nextId, displayName: 'Replacement', active: false });
+
+    const categories = database.getRepository(CatalogCategory);
+    const originalFind = categories.find.bind(categories);
+    categories.find = async options => {
+      await imports.update({ id: versionId }, { active: false });
+      await imports.update({ id: nextId }, { active: true });
+      return originalFind(options);
+    };
+
+    const reader = app.get(CATALOG_READER);
+    const snapshot = await reader.readActive(graph.toUpperCase());
+    assert.equal(snapshot.versionId, versionId);
+    assert.equal(snapshot.displayName, old.displayName);
+    assert.deepEqual(snapshot.source, old.source);
+    assert.equal(snapshot.classificationHash, old.classificationHash);
+    assert.ok(snapshot.categories.length);
+    assert.deepEqual(snapshot.families.length, await database.getRepository(CatalogFamily).countBy({ versionId }));
+    assert.equal(snapshot.definitions.length, expected.length);
+    for (const entry of [...snapshot.categories, ...snapshot.families, ...snapshot.definitions]) {
+      assert.equal(Object.getPrototypeOf(entry), Object.prototype);
+      assert.ok(!Object.hasOwn(entry, 'versionId'));
+    }
+    assert.deepEqual(await reader.readActive(graph), {
+      versionId: nextId, resourceId: graph, displayName: 'Replacement', browseMode: 'category',
+      source: old.source, classificationHash: old.classificationHash,
+      categories: [], families: [], definitions: []
+    });
+  } finally {
+    await app.close();
+  }
 });

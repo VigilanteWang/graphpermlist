@@ -4,7 +4,7 @@ import type {
   CatalogApiPermissionDetailResponse,
   CatalogApiPermissionListResponse,
   PermissionQueryOptions
-} from '../../packages/contracts/src/index.js';
+} from '../../common/contracts/src/index.js';
 
 const resourceId = '00000003-0000-0000-c000-000000000000';
 const api = `http://127.0.0.1:${Number(process.env.CATALOG_TEST_API_PORT ?? 3000)}/api/v1/resources/${resourceId}`;

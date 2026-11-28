@@ -1,0 +1,17 @@
+{
+  "name": "@graph/catalog-source",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "./permissions-source.cjs",
+  "types": "./permissions-source.d.cts",
+  "exports": {
+    ".": {
+      "types": "./permissions-source.d.cts",
+      "node": "./permissions-source.cjs"
+    }
+  },
+  "dependencies": {
+    "@graph/contracts": "0.1.0"
+  }
+}

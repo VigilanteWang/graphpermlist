@@ -1,0 +1,50 @@
+/** 本地 permission 文件加载器的类型声明，供 TypeScript 调用 JavaScript 实现时使用。 */
+
+import type { CatalogClassification, SourceAppRoleFields, SourceScopeFields } from '@graph/contracts';
+
+/** 输入文件中一条 RSC definition 的字段。目录模型会单独统计这组 definition。 */
+interface RawRscPermission {
+  id: string;
+  value: string;
+  isEnabled: boolean;
+  displayName: string;
+  description: string;
+}
+/** 输入 JSON 的顶层结构，包含一个 resource 的名称、App ID 和三组 permission definition。 */
+export interface PermissionsSource {
+  appId: string; displayName: string; appDisplayName: string;
+  appRoles: SourceAppRoleFields[]; oauth2PermissionScopes: SourceScopeFields[];
+  resourceSpecificApplicationPermissions: RawRscPermission[];
+}
+/**
+ * permission 快照的结构校验函数，检查 Graph resource 及 permission 字段并统计数量。
+ * @param data - 待校验的数据。
+ * @param appId - 预期 Resource App ID，省略时使用 Graph 的 App ID。
+ * @returns 集合总数、禁用数量和 Application permission 数量。
+ */
+export function validatePermissionsData(data: unknown, appId?: string): Record<string, unknown>;
+/** 一个已校验的输入及其来源。sourcePath 仅供本地调用方使用，公开结果使用 fileName。 */
+export interface LoadedPermissionsSource {
+  data: PermissionsSource;
+  sourcePath: string;
+  fileName: string;
+  sha256: string;
+  counts: Record<string, unknown>;
+}
+
+/** resource 清单的路径配置，未指定路径时使用默认清单。 */
+interface SourceOptions {
+  configPath?: string;
+}
+
+/** 清单中的单个 resource，提供可选显示名称与分类配置。 */
+interface ConfiguredPermissionsSource extends LoadedPermissionsSource {
+  displayName?: string;
+  classification?: CatalogClassification;
+}
+
+/** 异步批次加载函数，返回清单中全部已校验的源。 */
+export function loadPermissionsSources(options?: SourceOptions): Promise<ConfiguredPermissionsSource[]>;
+
+/** 将导出的公开字段投影到脱敏源结构，再以指定 Resource App ID 校验。 */
+export function sanitizePermissionsData(data: unknown, appId: string): PermissionsSource;

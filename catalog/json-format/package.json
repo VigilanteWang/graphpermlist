@@ -1,0 +1,38 @@
+{
+  "name": "@graph/catalog-json",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/cjs/validation.js",
+  "module": "dist/esm/validation.js",
+  "types": "dist/esm/validation.d.ts",
+  "exports": {
+    "./validation": {
+      "import": {
+        "types": "./dist/esm/validation.d.ts",
+        "default": "./dist/esm/validation.js"
+      },
+      "require": {
+        "types": "./dist/cjs/validation.d.ts",
+        "default": "./dist/cjs/validation.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.cjs.json --noEmit"
+  },
+  "dependencies": {
+    "@graph/contracts": "0.1.0"
+  },
+  "typesVersions": {
+    "*": {
+      "validation": [
+        "dist/esm/validation.d.ts"
+      ]
+    }
+  }
+}

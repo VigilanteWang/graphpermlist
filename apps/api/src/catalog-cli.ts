@@ -4,7 +4,7 @@ import { type INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
-import { CatalogImportService } from './catalog/catalog-import.service';
+import { CatalogImportService } from './catalog/load/catalog-import.service';
 
 /** 命令行主函数。migrate 更新 SQLite 表结构，import 读取本地 permission 文件并写入目录。 */
 async function main(): Promise<void> {

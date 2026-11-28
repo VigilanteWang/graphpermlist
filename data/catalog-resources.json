@@ -1,0 +1,23 @@
+{
+  "resources": [
+    {
+      "appId": "00000003-0000-0000-c000-000000000000",
+      "fileName": "commercial-graph-permlist.json",
+      "sha256": "d566bed3c4d7a4cf09ec54d35c25aee7b232df5b46c765af7a377dd9fe0b96a0",
+      "classification": {
+        "mode": "graph"
+      }
+    },
+    {
+      "appId": "00000009-0000-0000-c000-000000000000",
+      "fileName": "commercial-powerbi-permlist.json",
+      "sha256": "9a880d687adba7dc1aad2f42c441e0f78e7af23c88e8fe2284c3ecd740657fe6"
+    },
+    {
+      "appId": "00000003-0000-0ff1-ce00-000000000000",
+      "fileName": "commercial-spo-permlist.json",
+      "sha256": "91ff6285c1210e71db8e3474da7ecb16ebcfa3a222c50bc8ba77e761304b330e",
+      "displayName": "SharePoint Online"
+    }
+  ]
+}
